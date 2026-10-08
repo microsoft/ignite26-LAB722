@@ -1,0 +1,21 @@
+{
+  "clinicalTopic": "diabetes-and-obesity",
+  "trialData": {
+    "source": "TODO_TRIAL_DATA_SOURCE",
+    "release": "PENDING_REVIEW",
+    "filters": {
+      "conditions": [],
+      "interventions": [],
+      "phases": []
+    }
+  },
+  "safetyData": {
+    "source": "TODO_SAFETY_DATA_SOURCE",
+    "retrievedAt": "PENDING_REVIEW",
+    "fields": []
+  },
+  "optionalCommercialData": {
+    "source": "TODO_OPTIONAL_COMMERCIAL_DATA_SOURCE",
+    "enabled": false
+  }
+}

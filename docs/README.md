@@ -1,10 +1,14 @@
-# Docs
+# Supporting documentation
 
-<!-- IGNITE TEMPLATE PLACEHOLDER: remove this folder when the session needs no additional documentation. -->
+Attendee steps live in [`instructions/`](../instructions/README.md). This folder contains maintainer and facilitator context:
 
-Use this folder for supporting documentation such as reference material and
-architecture/context.
+- [Architecture and trust boundaries](architecture.md)
+- [Implementation plan](implementation-plan.md)
 
-If this repository intentionally uses MkDocs or another docs-site pattern,
-attendee instructions can remain here. Link the attendee entry point clearly
-from the root README.
+Additional documents planned for implementation:
+
+- Security model
+- Data provenance
+- Responsible-use guidance
+- Facilitator guide
+- Troubleshooting reference
