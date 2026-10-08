@@ -5,8 +5,8 @@
 ```text
 Attendee browser
   |
-  +--> Microsoft Foundry Agent Service
-  |      `--> Caldova orchestrator
+  +--> Per-attendee Microsoft Foundry project and endpoint
+  |      `--> Caldova orchestrator using Microsoft Agent Framework
   |
   +--> ACA Sandboxes portal
   |      +--> Primary development Sandbox
@@ -28,7 +28,7 @@ Approved image digest ----------> ACA Express
 
 ## Agent boundary
 
-The Foundry orchestrator plans and coordinates work. It does not execute repository code. The three specialist roles execute commands and manipulate files only inside their assigned Sandbox clones.
+The Python Foundry orchestrator uses Microsoft Agent Framework to plan and coordinate work. It does not execute repository code. The three specialist roles execute commands and manipulate files only inside their assigned Sandbox clones.
 
 The attendee configures one persistent orchestrator. Specialist roles are versioned templates started as separate sessions:
 
@@ -67,4 +67,6 @@ The final deployment uses the approved image digest rather than a mutable tag.
 
 ## Identity boundary
 
-Skillable provides the resource group and attendee principal ID. The event platform preassigns the permissions needed for the dedicated Sandbox and Express portals. Attendees do not provide GitHub personal access tokens or infrastructure credentials.
+During development and rollout testing, maintainers deploy with `azd` and Azure CLI against the ACAPMS subscription. Each environment contains its own Foundry endpoint and model deployment so the lab can be completed independently.
+
+Skillable identity and attendee authorization are added after the Bicep deployment has been compiled to ARM and validated. The event platform will provide the resource group and attendee principal ID and preassign the permissions needed for the dedicated Sandbox and Express portals. Attendees do not provide GitHub personal access tokens or infrastructure credentials.

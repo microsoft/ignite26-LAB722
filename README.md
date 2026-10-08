@@ -68,10 +68,12 @@ By the end of this session, you will be able to:
 - Azure Container Apps Sandboxes
 - Azure Container Apps Express
 - Microsoft Foundry Agent Service
+- Microsoft Agent Framework for Python
 - Azure Container Registry
 - Azure Monitor Application Insights
 - Azure Developer CLI (`azd`)
 - Bicep and Azure Resource Manager templates
+- React and TypeScript
 - GitHub and Model Context Protocol connections
 
 ### 📚 Continue your learning

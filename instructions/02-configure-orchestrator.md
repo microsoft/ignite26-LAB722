@@ -20,7 +20,7 @@ The orchestrator reasons about the work but does not execute repository code its
 
 ## Starting state
 
-- The Foundry project and shared event model deployment are available.
+- The attendee's Foundry project, API endpoint, and model deployment are available.
 - Read-only GitHub access and a staged source fallback are configured.
 - The Sandbox MCP endpoint is available.
 

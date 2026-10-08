@@ -26,6 +26,10 @@ The approved relational artifact will use DuckDB. Its planned content is:
 
 The large immutable artifact will be published as a GitHub release asset. Its manifest, schemas, pipeline source, fixtures, and checksum remain in this repository.
 
-## Source status
+## Source use
 
-The source choices are known, but exact releases, fields, filters, and redistribution approval are pending. See [sources/README.md](sources/README.md).
+AACT is a public relational representation of ClinicalTrials.gov data and asks users to acknowledge AACT and CTTI. openFDA data is generally public domain and made available under CC0 unless the relevant documentation marks content as subject to additional rights.
+
+The lab will use the public datasets directly to create a bounded artifact. Maintainers still need to select an immutable snapshot, document the included fields and filters, preserve attribution and disclaimers, and exclude any specifically marked third-party content.
+
+See [sources/README.md](sources/README.md).

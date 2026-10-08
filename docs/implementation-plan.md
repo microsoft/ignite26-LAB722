@@ -12,9 +12,11 @@ Deliver a 75-minute guided and self-paced lab in which attendees configure a Fou
 | Trial data | Curated AACT-derived DuckDB artifact |
 | Safety data | Cached openFDA-derived fixtures plus an optional live request |
 | Artifact storage | GitHub release asset with manifest and checksum in `/data` |
+| Backend and agents | Python using Microsoft Agent Framework |
+| Portal | React and TypeScript |
 | Deployment scope | Skillable provides the resource group |
 | Attendee identity | Skillable supplies the principal/object ID |
-| Foundry model | Shared event deployment with per-attendee state |
+| Foundry resources | Deploy an API and Foundry endpoint for each attendee |
 | GitHub access | Read-only connection with staged source fallback |
 | Sandbox authorization | Preassigned by the event platform |
 | Presentation output | RevealJS source, PDF, and slide images |
@@ -33,25 +35,33 @@ Deliver a 75-minute guided and self-paced lab in which attendees configure a Fou
 
 ### Data pipeline
 
-- Approve exact AACT and openFDA source configuration.
+- Select an immutable AACT snapshot and a bounded set of diabetes and obesity records.
+- Select the openFDA drug-event fields needed by the lab.
 - Build the bounded relational artifact and deterministic fixtures.
 - Generate the manifest, schemas, counts, and checksums.
 - Publish an immutable GitHub release asset.
+- Preserve AACT acknowledgement and openFDA attribution and disclaimer metadata.
+- Exclude any field or content specifically marked as third-party or subject to additional rights.
 
 ### Application and agents
 
 - Build the starter and completed research portal states.
+- Use Python and Microsoft Agent Framework for the orchestrator, worker contracts, data access, and backend APIs.
+- Use React and TypeScript for the attendee portal.
 - Implement the orchestrator and three structured worker contracts.
 - Implement Sandbox operations and telemetry correlation.
 - Add deterministic data, citation, policy, and application tests.
+- Prevent the portal and agents from presenting adverse-event reports as proof of causation, incidence, or comparative safety.
 
 ### Infrastructure
 
-- Use `azd` as the maintainer deployment workflow.
+- Use `azd` and Azure CLI against the ACAPMS subscription as the current maintainer deployment workflow.
 - Keep Bicep as the infrastructure source of truth.
 - Generate the Skillable ARM template from Bicep.
+- Deploy a Foundry project/API endpoint and model deployment for each attendee environment.
 - Expose only deployment-specific parameters.
 - Provide readiness and fallback paths.
+- Add Skillable identity and attendee authorization only after the ARM template is complete and the deployment has passed repeatable rollout tests.
 
 ### Attendee content
 
@@ -78,10 +88,8 @@ Retain the resources and deployment evidence until the project owner explicitly 
 
 ## Confirmations still required
 
-- Name the data redistribution reviewer.
-- Name the medical or responsible AI reviewer.
-- Confirm write access to the canonical Microsoft repository.
-- Obtain the exact Skillable parameter and startup contract.
-- Obtain the shared Foundry endpoint, deployment name, API version, region, and capacity.
-- Approve the exact data release, filters, interventions, and fields.
+- Select the exact AACT snapshot, filters, interventions, and tables used to generate the lab artifact.
+- Select the exact openFDA drug-event fields and queries used by the lab.
+- Confirm the per-attendee Foundry model, API version, and supported westus3 capacity during the first deployment test.
+- Obtain the Skillable parameter, identity, and startup contract after the generated ARM template is available.
 - Create the Microsoft Stream or SharePoint publishing location.
