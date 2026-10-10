@@ -1,0 +1,20 @@
+{
+  "name": "lab722-caldova-presenter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local RevealJS presenter material and installed-Edge exports for LAB722 rehearsal.",
+  "type": "module",
+  "scripts": {
+    "present": "node export.mjs --serve",
+    "export": "node export.mjs",
+    "verify": "node export.mjs --verify"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "pdf-lib": "1.17.1",
+    "playwright-core": "1.58.2",
+    "reveal.js": "4.5.0"
+  }
+}

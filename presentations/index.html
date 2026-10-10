@@ -1,0 +1,559 @@
+<!doctype html>
+<!-- Adapted from pamelafox/presentation-skills, revision 2b809b3a8d2ffdd2a5fb30da890d0e7ce6aeb53c.
+     Copyright (c) 2024 Pamela Fox. MIT: licenses/presentation-skills-MIT.txt.
+     Template/version decisions: template-provenance.json and README.md. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="LAB722: Caldova Research Preview Factory. Facilitator-guided rehearsal with prepared resources and verified development evidence.">
+  <title>LAB722 · Operate secure, multi-tenant agentic apps on Azure Container Apps</title>
+  <link rel="stylesheet" href="node_modules/reveal.js/dist/reset.css">
+  <link rel="stylesheet" href="node_modules/reveal.js/dist/reveal.css">
+  <link rel="stylesheet" href="theme-simple.css" id="theme">
+  <style>
+    :root { --deck-ink: #000; --deck-heading: #000; --deck-page: #fff; --deck-border: #bdbdbd; }
+    .reveal { background: var(--deck-page); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--deck-ink); font-size: 32px; }
+    .reveal .slides section { text-align: left; padding: 36px 60px 62px; box-sizing: border-box; height: 720px; }
+    .reveal h1, .reveal h2, .reveal h3 { font-family: inherit; color: var(--deck-heading); background: none; display: block; padding: 6px 0; text-transform: none; letter-spacing: normal; font-weight: 700; -webkit-text-stroke: 0; text-shadow: none; }
+    .reveal h1 { font-size: 1.82em; line-height: 1.16; }
+    .reveal h2 { font-size: 1.45em; line-height: 1.18; margin: 0 0 22px; }
+    .reveal h3 { font-size: 1.06em; line-height: 1.25; }
+    .reveal p, .reveal li, .reveal td, .reveal th { font-size: 1em; line-height: 1.38; }
+    .reveal p { margin: 16px 0; }
+    .reveal ul, .reveal ol { margin: 10px 0 14px 1.15em; display: block; }
+    .reveal ul.tight li, .reveal ol.tight li { margin-bottom: 0.42em; }
+    .reveal a, .reveal a:visited { color: #003f8f; text-decoration: underline; }
+    .reveal a:hover { color: #000; text-decoration: underline; }
+    .reveal strong { color: var(--deck-heading); }
+    .reveal code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 0.86em; padding: 0.08em 0.18em; border-radius: 0.2em; background: #f3f3f3; }
+    .reveal pre { width: 100%; max-width: none; margin: 20px 0; padding: 14px 18px; box-sizing: border-box; border: 1px solid var(--deck-border); background: #fff; box-shadow: none; font-size: 0.85em; }
+    .reveal pre code { padding: 0; background: transparent; font-size: 1em; line-height: 1.5; max-height: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .reveal .eyebrow { font-size: 0.7em; font-weight: 600; letter-spacing: 0.02em; margin: 0 0 14px; }
+    .reveal .lead { font-size: 1.05em; }
+    .reveal .small { font-size: 0.79em; line-height: 1.4; }
+    .reveal .statement { margin-top: 28px; border-top: 2px solid #000; padding-top: 14px; font-size: 0.9em; }
+    .reveal .slide-link { position: absolute; bottom: 22px; left: 60px; font-size: 0.62em; margin: 0; }
+    .reveal section.heading-only { flex-direction: column; justify-content: center; align-items: center; text-align: center; height: 720px; padding: 30px 68px 62px; }
+    .reveal section.heading-only.present, html.print-pdf .reveal section.heading-only { display: flex !important; }
+    .reveal section.heading-only h1::after, .reveal section.heading-only h2::after { content: ""; display: block; width: 80px; height: 6px; border-radius: 999px; margin: 18px auto 0; background: #000; }
+    .reveal section.heading-only h2 { margin-bottom: 12px; }
+    .reveal .opener { width: 1040px; text-align: left; font-size: 0.85em; line-height: 1.35; display: grid; grid-template-columns: 142px 1fr; gap: 13px 20px; margin: 16px 0; }
+    .reveal .opener dt { font-weight: 700; }
+    .reveal .opener dd { margin: 0; }
+    .reveal .target { font-weight: 600; font-size: 0.8em; }
+    .reveal table { width: 100%; font-size: 0.85em; border-collapse: collapse; margin: 18px 0; }
+    .reveal th, .reveal td { padding: 11px 14px; border-bottom: 1px solid #777; text-align: left; vertical-align: top; }
+    .reveal th { font-weight: 700; }
+    .reveal .architecture { margin: 24px 0 12px; }
+    .reveal .architecture .node { border: 1px solid #777; padding: 12px 16px; font-size: 0.86em; line-height: 1.32; }
+    .reveal .architecture .arrow { text-align: center; font-size: 0.74em; padding: 7px; }
+    .reveal .architecture .row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .reveal .flow { font-size: 1em; line-height: 1.65; border-left: 3px solid #000; padding-left: 24px; margin: 20px 0; }
+    .reveal .slide-number { color: #000; background: #fff; font-size: 18px; right: 16px; bottom: 16px; }
+    .reveal .controls { color: #000; }
+    a:focus-visible, button:focus-visible { outline: 3px solid #003f8f; outline-offset: 3px; }
+    .reveal .speaker-notes { color: #000; background: #fff; }
+    @media (prefers-reduced-motion: reduce) { .reveal *, .reveal *::before, .reveal *::after { transition: none !important; animation: none !important; } }
+    @media print {
+      .reveal .controls, .reveal .pause-overlay { display: none !important; }
+      html.print-pdf .reveal .slides section { break-inside: avoid; padding: 36px 60px 62px !important; }
+      html.print-pdf .reveal .slides section.heading-only { padding: 30px 68px 62px !important; }
+      html.print-pdf .reveal .slides .pdf-page:last-child { page-break-after: auto !important; break-after: auto !important; }
+    }
+  </style>
+</head>
+<body>
+<main class="reveal" aria-label="LAB722 presenter presentation">
+<div class="slides">
+
+  <section id="title" class="heading-only" data-segment="0" data-minutes="0.5" data-title="Operate secure, multi-tenant agentic apps on Azure Container Apps">
+    <p class="eyebrow">Microsoft Ignite 2026 · LAB722</p>
+    <h1>Operate secure, multi-tenant<br>agentic apps on Azure Container Apps</h1>
+    <p class="lead">Caldova Research Preview Factory</p>
+    <h3>Simon Jakesch</h3>
+    <p class="small">Facilitator-guided rehearsal · Recorded Evidence by default<br>75-minute target, not a measured runtime</p>
+    <p class="slide-link"><a href="../instructions/README.md">Shared participant guide</a></p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 0:30; segment 0, cumulative 0:30 of the planned 75:00.</p>
+      <p>Welcome. Caldova is fictional. This application previews public research records, not clinical decisions. We practice operational trust boundaries: agent orchestration, constrained workers, deterministic checks, and evidence-bound deployment.</p>
+      <p>Recorded Evidence is the default participant path. Optional Live Exercise requires explicit facilitator authorization and an eligible prepared environment. This is facilitator-guided rehearsal, not event authorization, a fresh attendee starter, or final recording readiness. The same guide supports guided and self-paced reading; videos have not been created.</p>
+      <p><strong>Checkpoint:</strong> Everyone can open the shared guide. Transition: distinguish the usable rehearsal path from the remaining attendee startup work.</p>
+    </aside>
+  </section>
+
+  <section id="segment-0" class="heading-only" data-segment="0" data-minutes="1" data-title="0 · Welcome and readiness" data-opener="true">
+    <p class="eyebrow">Segment 0</p>
+    <h2>Welcome and readiness</h2>
+    <dl class="opener">
+      <dt>Goal</dt><dd>Identify the prepared resources and today’s trust boundaries.</dd>
+      <dt>Why</dt><dd>A running reference is not an authorized attendee starter.</dd>
+      <dt>Services</dt><dd>Microsoft Foundry, ACA Sandboxes, ACA Express, ACR.</dd>
+      <dt>Outcome</dt><dd>Select the Recorded Evidence path without changing cloud resources.</dd>
+    </dl>
+    <p class="target">5-minute segment target · Planned window 00:00–05:00</p>
+    <p class="slide-link"><a href="../instructions/00-welcome-and-readiness.md">Segment 0 instructions</a></p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 1:00; cumulative 1:30. This is a five-minute segment target, not a measured duration.</p>
+      <p>Locate the guide, declared Python/PowerShell prerequisites, and selected path. Recorded Evidence requires no allocation or deployment. Live Exercise is optional and explicitly facilitator-authorized, not a generalized participant cloud workflow. Skillable-specific identity, authorization, trigger, and output adaptation are outside this milestone and do not block material creation.</p>
+      <p><strong>Checkpoint:</strong> Participants can state which path they are following. Transition: examine the readiness ledger, not just a green application URL.</p>
+    </aside>
+  </section>
+
+  <section id="readiness" data-segment="0" data-minutes="3.5" data-title="A green application is only one readiness fact">
+    <p class="eyebrow">Prepared-resource checkpoint</p>
+    <h2>A green application is only one readiness fact</h2>
+    <table>
+      <thead><tr><th scope="col">Recorded 10 October 2026, 12:08 UTC−5</th><th scope="col">State</th></tr></thead>
+      <tbody>
+        <tr><td>Infrastructure · Application · Frozen data</td><td><strong>true</strong></td></tr>
+        <tr><td>Untouched baseline · Data release · Attendee readiness</td><td><strong>false</strong></td></tr>
+      </tbody>
+    </table>
+    <ul class="tight">
+      <li><code>start-lab -Mode Readiness</code> is opt-in and read-only.</li>
+      <li>Prepared Foundry and Sandbox scopes are deliberately mixed.</li>
+      <li>Retained Sandbox groups are full; stopped instances still count.</li>
+    </ul>
+    <p class="statement">Do not allocate, reset, broaden permissions, or infer event approval.</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 3:30; cumulative 5:00. Give about two minutes to reading segment 0 and selecting Recorded Evidence.</p>
+      <p>The startup shorthand on screen is not a complete command. scripts\start-lab.ps1 requires PowerShell 7.2+, a resource-group name, a separately authorized environment, and explicit Readiness mode. Use the guide’s current invocation only if authorized. Do not improvise names or switch to Provision/Prepare. This deck/exporter never invokes startup or Azure.</p>
+      <p>The 12:08 UTC−5 observation pinned application name/digest/state, four local files, Express/registry scope, full live manifest/original source, and a state sample. Thirteen offline PowerShell groups and seven Python tests passed. These are development validations, not an attendee-health claim.</p>
+      <p>Foundry is in maintainer test2 while Sandboxes are in test1. Both retained Sandbox groups are full; stopping does not free capacity. Do not delete retained resources, allocate replacements, or claim single-scope per-attendee authorization.</p>
+      <p><strong>Checkpoint:</strong> Read infrastructure/application/frozen_data separately from baseline/data_release/attendee. Transition: inspect the portal as a development reference, not a distributed starter.</p>
+    </aside>
+  </section>
+
+  <section id="segment-1" class="heading-only" data-segment="1" data-minutes="1" data-title="1 · Open the research portal" data-opener="true">
+    <p class="eyebrow">Segment 1</p>
+    <h2>Open the research portal</h2>
+    <dl class="opener">
+      <dt>Goal</dt><dd>Read the portal’s candidate, condition, and source evidence.</dd>
+      <dt>Why</dt><dd>Honest empty results are better than invented research claims.</dd>
+      <dt>Services</dt><dd>ACA Express · React/TypeScript portal · Python API.</dd>
+      <dt>Outcome</dt><dd>Recognize expected outputs and the public dataset’s limits.</dd>
+    </dl>
+    <p class="target">4-minute segment target · Planned window 05:00–09:00</p>
+    <p class="slide-link"><a href="../instructions/01-open-research-portal.md">Segment 1 instructions</a></p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 1:00; cumulative 6:00.</p>
+      <p>The genuine portal starter is visual and its query features are unavailable. The completed development application is a presenter reference only; it cannot pass the starter check. Use Recorded Evidence when a starter has not been distributed. Do not present implemented retained work as a fresh editable starter.</p>
+      <p><strong>Checkpoint:</strong> Identify the two query features without assuming they already exist in a starter. Transition: show expected behavior in the completed reference.</p>
+    </aside>
+  </section>
+
+  <section id="portal" data-segment="1" data-minutes="3" data-title="Preview records, not medical conclusions">
+    <p class="eyebrow">Presenter reference walkthrough</p>
+    <h2>Preview records, not medical conclusions</h2>
+    <ul class="tight">
+      <li>Choose semaglutide, liraglutide, or tirzepatide.</li>
+      <li>A condition narrows <strong>trials only</strong>; it does not filter safety.</li>
+      <li>Tirzepatide safety is honestly empty in this frozen slice.</li>
+      <li>Original source fields support inspection, not clinical inference.</li>
+    </ul>
+    <p class="statement">No causation, incidence, comparative safety, treatment recommendations, or medical advice.</p>
+    <p class="small"><a href="https://caldova-research.livelyground-d7da6c65.westus3.azurecontainerapps.io" target="_blank" rel="noopener noreferrer">Development reference application</a> · These recorded exports do not guarantee live availability.</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 3:00; cumulative 9:00. By default read the guide’s expected behavior and evidence. If separately permitted, inspect the existing development app read-only: select semaglutide, change a condition, inspect source fields, then select tirzepatide safety.</p>
+      <p>Describe trials and adverse-event reports independently. There is no patient-level trial/report linkage. Trial conditions never narrow safety reports. Conservative exact generic-name selection leaves tirzepatide safety empty; this is expected, not a fault to repair.</p>
+      <p>Do not infer incidence from counts, causality from reports, or comparative safety across drugs. No expert clinical audit is claimed. If the app is unavailable, use Recorded Evidence; do not claim a live success or perform a deployment.</p>
+      <p><strong>Checkpoint:</strong> Ask why an empty result should remain empty. Transition: connect bounded portal features to the trusted orchestrator.</p>
+    </aside>
+  </section>
+
+  <section id="segment-2" class="heading-only" data-segment="2" data-minutes="1" data-title="2 · Configure the orchestrator" data-opener="true">
+    <p class="eyebrow">Segment 2</p>
+    <h2>Configure the orchestrator</h2>
+    <dl class="opener">
+      <dt>Goal</dt><dd>Trace the controller, persistent prompt agent, and tool boundary.</dd>
+      <dt>Why</dt><dd>Model instructions alone cannot enforce cloud or file scope.</dd>
+      <dt>Services</dt><dd>Microsoft Agent Framework for Python · Foundry · local stdio MCP.</dd>
+      <dt>Outcome</dt><dd>Recognize the SDK-created agent and controller-owned operations.</dd>
+    </dl>
+    <p class="target">15-minute segment target · Planned window 09:00–24:00</p>
+    <p class="slide-link"><a href="../instructions/02-configure-orchestrator.md">Segment 2 instructions</a></p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 1:00; cumulative 10:00.</p>
+      <p>Follow the guide’s Recorded Evidence controller inspection. The implementation provisions or reuses caldova-orchestrator through the Foundry SDK. It is a persistent prompt agent, not portal-attached GitHub MCP, not a hosted HTTP Sandbox tool endpoint, and not a worker with cloud credentials.</p>
+      <p><strong>Checkpoint:</strong> Identify the trusted Python controller before discussing portal configuration. Transition: walk the actual call path.</p>
+    </aside>
+  </section>
+
+  <section id="architecture" data-segment="2" data-minutes="4" data-title="The controller owns the trust boundary">
+    <p class="eyebrow">Implemented runtime, not a portal connection diagram</p>
+    <h2>The controller owns the trust boundary</h2>
+    <div class="architecture" role="group" aria-label="The trusted Python controller calls the persistent Foundry agent by SDK and owns the local stdio MCP bridge to remote Sandbox operations. Workers return bounded files to a separate primary for independent validation. ACR publication and separate approval precede ACA Express deployment.">
+      <div class="row">
+        <div class="node"><strong>Trusted Python controller</strong><br>Microsoft Agent Framework</div>
+        <div class="node"><strong>Foundry prompt agent · SDK</strong><br><code>caldova-orchestrator</code></div>
+      </div>
+      <div class="arrow">↓ Controller-owned local stdio MCP bridge → remote ACA operations</div>
+      <div class="row">
+        <div class="node"><strong>Baseline snapshot → 3 role clones</strong><br>Clinical · Safety · Governance</div>
+        <div class="node"><strong>Separate trusted primary</strong><br>Independent integration and checks</div>
+      </div>
+      <div class="arrow">↓ Accepted source → ACR image → separate human approval</div>
+      <div class="node"><strong>ACA Express development application</strong> · Pinned image digest</div>
+    </div>
+    <p class="small">Workers have no cloud credentials. No GitHub-MCP attachment or HTTP Sandbox endpoint is configured in Foundry.</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 4:00; cumulative 14:00.</p>
+      <p>Walk each boundary. The SDK provisions/reuses the persistent Foundry prompt agent. The Python controller supplies bounded tools via a local stdio MCP bridge; trusted code performs remote ACA operations. Specialists receive no cloud credentials.</p>
+      <p>A read-only staged repository and immutable data form the baseline. Its snapshot supplies three role clones; the trusted primary is separate. Clinical and safety run separately. The primary integrates only permitted feature files and runs independent deterministic checks before governance sees the candidate.</p>
+      <p>Accepted source can progress toward a published ACR digest. Separate human approval bound to run, dataset, and image is required for authorized development deployment. The diagram does not imply attendee allocation or event release authority.</p>
+      <p><strong>Checkpoint:</strong> Ask which component calls Azure and which cannot. Transition: inspect the small tool surface the model receives.</p>
+    </aside>
+  </section>
+
+  <section id="controller" data-segment="2" data-minutes="10" data-title="Small tools, exact identity, fixed verification">
+    <p class="eyebrow">Guided controller inspection</p>
+    <h2>Small tools, exact identity, fixed verification</h2>
+    <ul class="tight">
+      <li>Bind immutable run, role, Sandbox, dataset, and logical identity.</li>
+      <li>Expose only assigned work and structured reports.</li>
+      <li>Use zero-argument <code>verify_feature()</code>.</li>
+      <li>The model cannot choose the verifier’s command or scope.</li>
+    </ul>
+    <pre><code>Foundry agent: caldova-orchestrator
+Transport:    controller-owned local stdio MCP
+Verification: verify_feature()  # fixed shell and scope</code></pre>
+    <p class="statement">The controller validates identity and receipts; a confident response is not acceptance.</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 10:00; cumulative 24:00. Allocate about six minutes to segment 2’s Recorded Evidence inspection, two to the tool contract, and two to the checkpoint.</p>
+      <p>Inspect src\orchestrator\foundry.py, src\orchestrator\run.py, and src\sandbox-mcp\server.py using the guide. Read SDK creation/reuse instead of inventing a portal attachment. Any Live Exercise requires explicit facilitator authorization; the deck grants no execution authority.</p>
+      <p>Identity checks bind exact run ID, role, Sandbox, immutable dataset, and logical identity. Never accept another role/run/dataset’s report even if the narrative looks correct. verify_feature has no command arguments: trusted code fixes shell and scope so a worker cannot substitute its own passing command.</p>
+      <p>Staged source stays read-only; tests, shared modules, and frontend are protected. The code block is a contract summary, not a terminal command.</p>
+      <p><strong>Checkpoint:</strong> Explain why a model-selected verifier command weakens the boundary. Transition: inspect persistent Sandbox state and controls.</p>
+    </aside>
+  </section>
+
+  <section id="segment-3" class="heading-only" data-segment="3" data-minutes="1" data-title="3 · Prepare the Sandbox baseline" data-opener="true">
+    <p class="eyebrow">Segment 3</p>
+    <h2>Prepare the Sandbox baseline</h2>
+    <dl class="opener">
+      <dt>Goal</dt><dd>Inspect the frozen baseline, snapshot, clones, and egress proof.</dd>
+      <dt>Why</dt><dd>Isolation matters only when state and policy are verified.</dd>
+      <dt>Services</dt><dd>ACA Sandboxes · Snapshot/clone operations · Network controls.</dd>
+      <dt>Outcome</dt><dd>Distinguish a genuine starter from implemented, retained work.</dd>
+    </dl>
+    <p class="target">15-minute segment target · Planned window 24:00–39:00</p>
+    <p class="slide-link"><a href="../instructions/03-prepare-sandbox.md">Segment 3 instructions</a></p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 1:00; cumulative 25:00.</p>
+      <p>The prepared primary/clones contain implemented work. Code-preserving Reuse is not an untouched starter. A genuine worker baseline has missing query functions. With no allocation authority and full retained groups, default to descriptors and Recorded Evidence; do not create or reset Sandboxes.</p>
+      <p><strong>Checkpoint:</strong> Label starter, snapshot, retained clone, and separate primary correctly. Transition: inspect enforced controls and real HTTP evidence.</p>
+    </aside>
+  </section>
+
+  <section id="sandbox-controls" data-segment="3" data-minutes="6" data-title="Prove the controls without weakening them">
+    <p class="eyebrow">Snapshot + three role clones + separate primary</p>
+    <h2>Prove the controls without weakening them</h2>
+    <table>
+      <thead><tr><th scope="col">Boundary</th><th scope="col">Verified configuration / observation</th></tr></thead>
+      <tbody>
+        <tr><td>Egress</td><td>Default deny · <code>open.fda.gov</code> allowed · Full inspection</td></tr>
+        <tr><td>HTTP evidence</td><td>Approved destination <strong>200</strong> · Denied destination <strong>403</strong></td></tr>
+        <tr><td>Lifecycle</td><td>Auto-suspend <strong>900 s</strong> · Memory · Auto-delete <strong>false</strong></td></tr>
+        <tr><td>Worker execution</td><td>UID <strong>10001</strong> · Frozen source/data · No cloud credentials</td></tr>
+      </tbody>
+    </table>
+    <p class="statement">DNS errors, TLS errors, and timeouts are not denial proof. Never disable TLS.</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 6:00; cumulative 31:00. Give about three minutes to the policy/egress receipts in segment 3, then discuss the boundary.</p>
+      <p>Verified controls: default-deny egress, open.fda.gov allow with Full inspection, 900-second auto-suspend using Memory, auto-delete false, UID 10001. Actual approved HTTP returned 200; denied HTTP returned 403. DNS/TLS/timeout failures cannot substitute for a policy deny response.</p>
+      <p>Never disable TLS, widen egress, or install worker credentials. Stopped Sandboxes still consume capacity. Reuse preserves code; neither lifecycle controls nor a retained clone guarantee an untouched baseline.</p>
+      <p><strong>Checkpoint:</strong> Distinguish policy-generated 403 from transport failure. Transition: the immutable dataset, not live network retrieval, is authoritative for acceptance.</p>
+    </aside>
+  </section>
+
+  <section id="dataset" data-segment="3" data-minutes="8" data-title="One frozen public slice, explicit source limits">
+    <p class="eyebrow">Dataset · caldova-public-lab-use-v1</p>
+    <h2>One frozen public slice, explicit source limits</h2>
+    <ul class="tight">
+      <li><strong>60 trials · 20 reports</strong> · SQLite DB 4,206,592 bytes.</li>
+      <li>AACT-derived Nason/Hugging Face DuckDB conversion:<br><span class="small">Publisher’s conversion pinned 14 September 2026, not the CTTI-hosted original.</span></li>
+      <li>One disclosed openFDA 2026 Q2 shard: <strong>12,000 source reports</strong>.</li>
+      <li>DB + manifest + original-source JSON + frozen pipeline ZIP.</li>
+    </ul>
+    <p class="statement">“reviewed-public” means owner-selected lab-source use, not an expert clinical audit.</p>
+    <p class="small">Original fields preserved · Raw 7.07 GiB DB stays outside checkout, images, and Sandboxes.</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 8:00; cumulative 39:00. Allow five minutes to inspect the four-file manifest and provenance in segment 3, three for discussion/checkpoint.</p>
+      <p>Ten trials per candidate/topic; at most ten safety reports per candidate. Conservative exact generics: semaglutide, liraglutide, tirzepatide. Tirzepatide safety is empty. Original-source JSON is 74,073 bytes; frozen pipeline ZIP is 62,813 bytes. Raw 7.07 GiB DB stays in external cache, never checkout/images/Sandboxes.</p>
+      <p>Trials came from an AACT-derived Nason Hugging Face DuckDB conversion pinned September 14, 2026: the publisher’s conversion, not a CTTI-hosted original. Safety uses one disclosed openFDA 2026 Q2 shard of 12,000 reports, not the full quarter/database. No live fetch is required for acceptance.</p>
+      <p>Frozen pipeline provenance is uncommitted-development; never relabel it with a later checkout HEAD. Historical expert-review, publication, live-demo, and attendee-use flags stay false; separate later operational approval does not rewrite source-use history. “reviewed-public” means project-owner selection, not expert clinical audit.</p>
+      <p><strong>Checkpoint:</strong> Identify the four files and explain why condition cannot filter safety. Transition: assign just two feature implementations.</p>
+    </aside>
+  </section>
+
+  <section id="segment-4" class="heading-only" data-segment="4" data-minutes="1" data-title="4 · Run the agent team" data-opener="true">
+    <p class="eyebrow">Segment 4</p>
+    <h2>Run the agent team</h2>
+    <dl class="opener">
+      <dt>Goal</dt><dd>Follow bounded feature work through independent integration.</dd>
+      <dt>Why</dt><dd>Workers must not approve their candidate or weaken tests.</dd>
+      <dt>Services</dt><dd>Foundry · Agent Framework · ACA Sandboxes · stdio MCP.</dd>
+      <dt>Outcome</dt><dd>Read an accepted three-role run with deterministic checks.</dd>
+    </dl>
+    <p class="target">23-minute segment target · Planned window 39:00–62:00</p>
+    <p class="slide-link"><a href="../instructions/04-run-agent-team.md">Segment 4 instructions</a></p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 1:00; cumulative 40:00.</p>
+      <p>Default to the accepted Recorded Evidence run. Live Exercise needs explicit facilitator authorization. Do not invoke new work automatically on implemented full-capacity resources. Governance inspects only after independent integration checks and never approves release.</p>
+      <p><strong>Checkpoint:</strong> Name the two feature authors and separate governance reviewer. Transition: inspect each role’s file scope and function contract.</p>
+    </aside>
+  </section>
+
+  <section id="assignments" data-segment="4" data-minutes="5" data-title="Two feature authors, one governance reviewer">
+    <p class="eyebrow">Only two assigned query modules are editable</p>
+    <h2>Two feature authors, one governance reviewer</h2>
+    <table>
+      <thead><tr><th scope="col">Role</th><th scope="col">Assigned output</th></tr></thead>
+      <tbody>
+        <tr><td>Clinical-trials</td><td><code>trial_feature.py</code><br><code>query_trials(connection, candidate, condition)</code></td></tr>
+        <tr><td>Drug-safety</td><td><code>safety_feature.py</code><br><code>query_safety_reports(connection, candidate)</code></td></tr>
+        <tr><td>Quality-governance</td><td>Checks integrated candidate and evidence.<br><strong>No release approval.</strong></td></tr>
+      </tbody>
+    </table>
+    <p class="statement">Clinical and safety run separately. Shared source, tests, frontend, and data stay protected.</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 5:00; cumulative 45:00. Inspect role templates and feature contracts with segment 4.</p>
+      <p>Assigned candidate modules are backend trial_feature.py and safety_feature.py; genuine missing-function versions are under src\workers\starter. Each author edits only its assigned module, never shared query dispatch, tests, frontend, or data. Clinical and safety sessions run separately.</p>
+      <p>query_trials accepts connection, candidate, condition; query_safety_reports accepts only connection and candidate. Its lack of condition reflects the data boundary, not an omission to repair.</p>
+      <p>Governance examines the integrated candidate and responsible-use evidence. It can identify blockers but cannot approve release.</p>
+      <p><strong>Checkpoint:</strong> Which file may safety edit, and why not trial filtering? Transition: independent verification matters even after worker-reported success.</p>
+    </aside>
+  </section>
+
+  <section id="integration" data-segment="4" data-minutes="8" data-title="Integrate independently before governance">
+    <p class="eyebrow">Trusted primary, not worker self-certification</p>
+    <h2>Integrate independently before governance</h2>
+    <ol class="tight">
+      <li>Validate exact run, role, Sandbox, dataset, and logical identity.</li>
+      <li>Integrate <strong>only</strong> assigned feature modules.</li>
+      <li>Run strict source, shared-source, and order checks.</li>
+      <li>Run protected tests; then governance inspects the candidate.</li>
+    </ol>
+    <p class="statement"><strong>9 synthetic tests unchanged byte-for-byte</strong><br>+ 8 separate public, original-source-derived tests</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 8:00; cumulative 53:00. Give about five minutes to reading independent integration/check order in segment 4, then discuss results.</p>
+      <p>The primary does not trust worker test assertions. It independently integrates only assigned modules, checks strict source/shared-source protection and order, and runs public checks before governance inspects the candidate. Exact immutable run/role/Sandbox/dataset/logical identity binds reports.</p>
+      <p>Nine existing synthetic tests remain byte-for-byte unchanged. Eight public tests are separate, derived from original-source fields. Do not replace synthetic fixtures or weaken tests to fit public data. Honest empty safety is valid; trial/report linkage is not fabricated.</p>
+      <p><strong>Checkpoint:</strong> Locate an independent test receipt rather than worker narrative. Transition: repair cannot reset that trail.</p>
+    </aside>
+  </section>
+
+  <section id="repair" data-segment="4" data-minutes="5" data-title="Repair within one shared three-attempt budget">
+    <p class="eyebrow">Recovery without changing the rules</p>
+    <h2>Repair within one shared three-attempt budget</h2>
+    <ul class="tight">
+      <li>Feature and report repairs share <strong>three attempts</strong>.</li>
+      <li>Continue the same session and immutable identity.</li>
+      <li>Report-only repair has tools disabled.</li>
+      <li>No reset, test weakening, shell choice, or hidden scope change.</li>
+    </ul>
+    <p class="statement">An exhausted budget or unresolved blocker stops progression; it does not authorize a bypass.</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 5:00; cumulative 58:00. Read the bounded recovery path; do not corrupt retained prepared work for a demonstration.</p>
+      <p>Feature repair and report/schema repair share a three-attempt budget in one session with fixed identity. Report-only repair disables tools: correcting a structured report does not justify more code execution. No fresh session, reset, or weakened test can evade the limit.</p>
+      <p>The fixed zero-argument verifier remains the model’s verification path. Exhausted budget or unresolved blocker stops progression. Use real receipts, not destructive failure injection.</p>
+      <p><strong>Checkpoint:</strong> Does report repair get a fresh budget? No. Transition: inspect the genuine accepted public run.</p>
+    </aside>
+  </section>
+
+  <section id="accepted-run" data-segment="4" data-minutes="4" data-title="Accepted public run: three specialists, zero blockers">
+    <p class="eyebrow">Verified development evidence</p>
+    <h2>Accepted public run: three specialists, zero blockers</h2>
+    <p class="lead">Run <code>9bbcce44-7e7b-…</code></p>
+    <ul class="tight">
+      <li>Clinical-trials, drug-safety, and quality-governance completed.</li>
+      <li><strong>11 check categories · 0 blockers.</strong></li>
+      <li>Independent primary integration preceded governance.</li>
+      <li>Acceptance is candidate evidence, not release permission.</li>
+    </ul>
+    <p class="statement"><a href="../instructions/assets/development-evidence.html">Inspect the real, reduced development evidence</a></p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 4:00; cumulative 62:00. Open the linked reduced bundle and use segment 4’s worksheet to inspect assignments, three worker identities, blockers, and checks.</p>
+      <p>Full accepted public run: 9bbcce44-7e7b-4889-b7e4-4081ea9893dc. All three specialists completed; zero blockers and eleven check categories. This is verified development evidence, not a fresh presentation/attendee run.</p>
+      <p>The reduced bundle excludes candidate source, raw logs, tokens, and full raw data. Do not invent token counts, per-agent latency, issue IDs, or Foundry session IDs; the accepted result does not store them. Offline joins do not rerun tests.</p>
+      <p><strong>Checkpoint:</strong> Distinguish accepted candidate from publication/deployment authority. Transition: trace source to an immutable published image.</p>
+    </aside>
+  </section>
+
+  <section id="segment-5" class="heading-only" data-segment="5" data-minutes="1" data-title="5 · Build and publish" data-opener="true">
+    <p class="eyebrow">Segment 5</p>
+    <h2>Build and publish</h2>
+    <dl class="opener">
+      <dt>Goal</dt><dd>Trace accepted source to a published, immutable image.</dd>
+      <dt>Why</dt><dd>A successful no-push check is not a deployable artifact.</dd>
+      <dt>Services</dt><dd>Azure Container Registry · ACA Express.</dd>
+      <dt>Outcome</dt><dd>Separate validation, publication, approval, and observation.</dd>
+    </dl>
+    <p class="target">6-minute segment target · Planned window 62:00–68:00</p>
+    <p class="slide-link"><a href="../instructions/05-build-and-publish.md">Segment 5 instructions</a></p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 1:00; cumulative 63:00. Six minutes covers a recorded-run walkthrough, not a measured full build.</p>
+      <p>Default to prepared receipts. scripts\build-agent-candidate.ps1 is restricted to the maintainer registry/subscription; it is not a generalized participant publisher. Deployment helpers may refresh pull credentials. Do not invoke publication/deployment in this material walkthrough or treat it as harmless read-only work.</p>
+      <p><strong>Checkpoint:</strong> Identify the immutable digest field rather than a mutable tag. Transition: read each separate stage’s evidence.</p>
+    </aside>
+  </section>
+
+  <section id="image-chain" data-segment="5" data-minutes="3" data-title="Publication and approval are separate steps">
+    <p class="eyebrow">Actual ACR development sequence</p>
+    <h2>Publication and approval are separate steps</h2>
+    <table>
+      <thead><tr><th scope="col">Recorded stage</th><th scope="col">What it proves</th></tr></thead>
+      <tbody>
+        <tr><td><code>dsk</code> / <code>dsm</code> · <code>--no-push</code></td><td>Prepared validation; empty digest is not deployable.</td></tr>
+        <tr><td><code>dsn</code> · authorized publication</td><td>8 tests in 4.025 s; immutable image published.</td></tr>
+        <tr><td>Separate human approval</td><td>Bound to run + dataset + image; development deployment only.</td></tr>
+      </tbody>
+    </table>
+    <p>Published digest <code>sha256:e219757d2f40…</code></p>
+    <p class="statement">Model confidence or governance cannot substitute for that approval.</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 3:00; cumulative 66:00. Use segment 5 and the reduced evidence bundle to identify published image and separate approval.</p>
+      <p>Prepared ACR validation runs dsk/dsm used --no-push; their empty digest is nondeployable. Later separately authorized dsn ran eight public tests in 4.025 seconds and published sha256:e219757d2f40dd83f5445ea661aa8f56e9ff53864d34127b74acc7570306bd38.</p>
+      <p>Separate human approval tied full accepted run 9bbcce44-7e7b-4889-b7e4-4081ea9893dc, caldova-public-lab-use-v1, and this exact digest to development deployment only. The inspector checks joins/checksums; it does not authenticate the approver or evaluate release gates. Historical source-use flags remain unchanged.</p>
+      <p><strong>Checkpoint:</strong> Which of dsk/dsm/dsn yielded a deployable digest? Transition: the application observation is another recorded stage, not permanent health proof.</p>
+    </aside>
+  </section>
+
+  <section id="application-observation" data-segment="5" data-minutes="2" data-title="Observe the deployed application honestly">
+    <p class="eyebrow">Development app · caldova-research · test2</p>
+    <h2>Observe the deployed application honestly</h2>
+    <ul class="tight">
+      <li>All <strong>9 candidate/topic combinations</strong> checked.</li>
+      <li>Source and native hashes verified.</li>
+      <li>Application PID 1 ran as <strong>UID 10001</strong>.</li>
+      <li>Desktop, mobile, errors, and console checks passed.</li>
+    </ul>
+    <p class="statement">Diagnostic gateway exec UID 0 is not the application UID.</p>
+    <p class="small">Recorded development observations do not certify current live health or attendee readiness.</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 2:00; cumulative 68:00.</p>
+      <p>The reference is caldova-research in test2 at the earlier development URL. Recorded checks covered all nine candidate/topic combinations, source/native hashes, PID 1 UID 10001, desktop/mobile, error states, and console. Diagnostic gateway exec UID 0 is not the application process identity.</p>
+      <p>Preserve observed_at in the receipt. A historical observation is not a current-live-health guarantee, event release, or attendee starter.</p>
+      <p><strong>Checkpoint:</strong> Distinguish app runtime from diagnostic tooling identity. Transition: inspect the complete offline receipt chain.</p>
+    </aside>
+  </section>
+
+  <section id="segment-6" class="heading-only" data-segment="6" data-minutes="1" data-title="6 · Trace the evidence" data-opener="true">
+    <p class="eyebrow">Segment 6</p>
+    <h2>Trace the evidence</h2>
+    <dl class="opener">
+      <dt>Goal</dt><dd>Inspect checksums and cross-receipt identity joins offline.</dd>
+      <dt>Why</dt><dd>Keep explicit what each stage does not prove.</dd>
+      <dt>Services</dt><dd>Python inspector · recorded Foundry/Sandbox/ACR/ACA receipts.</dd>
+      <dt>Outcome</dt><dd>Explain the accepted chain and separate readiness gaps.</dd>
+    </dl>
+    <p class="target">7-minute segment target · Planned window 68:00–75:00</p>
+    <p class="slide-link"><a href="../instructions/06-trace-the-evidence.md">Segment 6 instructions</a></p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 1:00; cumulative 69:00.</p>
+      <p>No telemetry workbook exists. The actual tool is src\workers\inspect_evidence.py: offline stdlib checksums/cross-receipt joins, emitting JSON or static HTML with no network, candidate-code execution, or external assets.</p>
+      <p><strong>Checkpoint:</strong> Locate the actual inspector, not a fictional workbook/issue. Transition: follow identity joins in order.</p>
+    </aside>
+  </section>
+
+  <section id="receipt-chain" data-segment="6" data-minutes="2" data-title="Follow one identity through every receipt">
+    <p class="eyebrow">Offline evidence workflow</p>
+    <h2>Follow one identity through every receipt</h2>
+    <div class="flow" role="group" aria-label="Chain: accepted run, pinned dataset, baseline snapshot and three workers, independent checks, published image, separate approval, timestamped recorded application observation">
+      <p><strong>Accepted run → Pinned dataset</strong><br>
+      → Baseline snapshot + 3 worker clones<br>
+      → Independent checks → Published image<br>
+      → Separate human approval<br>
+      → Recorded application <code>observed_at</code></p>
+    </div>
+    <p class="statement">Actual public chain: <strong>11 checks passed · 0 missing stages.</strong></p>
+    <p class="small">Inspector tests: 6 passed. Integrity checks are not newly executed application tests.</p>
+    <p class="slide-link"><a href="../instructions/assets/development-evidence.html">Reduced evidence bundle</a></p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 2:00; cumulative 71:00. Trace run/dataset/worker/check/image/approval/observed_at fields in the reduced bundle and segment 6 worksheet.</p>
+      <p>The full inspector joins accepted result, baseline/prepared descriptor, pinned manifest/frozen files, optional image, separate human approval, and startup receipt. Missing optional stages remain visible; the supplied public chain included them and passed eleven checks with zero missing stages. Six focused inspector tests passed.</p>
+      <p>The reduced summary is a verified teaching extract, not a replacement for full receipt provenance or an authenticated approver. Preserve timestamped observation; this is history, not a live replay.</p>
+      <p><strong>Checkpoint:</strong> Point to one cross-stage identity and observed_at. Transition: make the proof boundary explicit.</p>
+    </aside>
+  </section>
+
+  <section id="inspector-boundary" data-segment="6" data-minutes="2" data-title="Integrity verified does not mean release approved">
+    <p class="eyebrow">Actual tool · no telemetry workbook</p>
+    <h2>Integrity verified ≠ release approved</h2>
+    <pre><code>python .\src\workers\inspect_evidence.py --help</code></pre>
+    <ul class="tight">
+      <li>Pin receipt paths and SHA-256 values from the guide.</li>
+      <li>JSON/static HTML: no network or candidate execution.</li>
+      <li>No approver authentication, rerun tests, or release-gate evaluation.</li>
+      <li>No current-live-health or attendee-readiness claim.</li>
+    </ul>
+    <p class="small">Token/timing detail, issue IDs, and Foundry session IDs are not stored in the accepted result.</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 2:00; cumulative 73:00. The displayed help command is safe locally from repository root with declared Python.</p>
+      <p>Use the guide’s complete pinned command. Required: result, baseline-descriptor, and manifest paths, their SHA-256 values, and purpose. Optional image-descriptor, approval, startup-receipt each need a hash when present. --format html emits static HTML. Never guess purpose or paste abbreviated slide hashes into commands.</p>
+      <p>The inspector never authenticates the approver, reruns tests, evaluates release gates, executes candidate code, uses network, or certifies current health/attendee readiness. The reduced bundle has no candidate source/raw logs/tokens/full raw data. Do not invent missing issue/session/token/timing details.</p>
+      <p><strong>Checkpoint:</strong> State one thing proved and two not proved. Transition: retain the separate execution gaps.</p>
+    </aside>
+  </section>
+
+  <section id="remaining-gaps" data-segment="6" data-minutes="1" data-title="Usable rehearsal material, separate execution gaps">
+    <p class="eyebrow">This material milestone</p>
+    <h2>Usable rehearsal material, separate execution gaps</h2>
+    <ul class="tight">
+      <li>Deck + shared guide support guided/self-paced reading.</li>
+      <li>Full event authorization/startup and starter distribution remain external.</li>
+      <li>Committed provenance and a fresh dry run remain external.</li>
+      <li>Videos, measured timing, and recording readiness are not claimed.</li>
+    </ul>
+    <p class="statement">Skillable-specific integration is excluded here, not a reason to block material creation.</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 1:00; cumulative 74:00.</p>
+      <p>This material supports facilitator-guided rehearsal using Recorded Evidence by default. Shared guide supports self-paced reading; narrated videos do not exist. A 75-minute target is not a measured rehearsal or cloud-operation duration guarantee.</p>
+      <p>Full event authorization/startup, starter distribution, committed provenance, and fresh dry run remain separate gaps. Skillable identity/auth/trigger/output is deliberately excluded. A future adapter must preserve infrastructure/application/frozen_data versus baseline/data_release/attendee and never reinterpret development approval as event approval.</p>
+      <p><strong>Checkpoint:</strong> Explain why successful development evidence is not attendee readiness. Transition: close with three reusable operational practices.</p>
+    </aside>
+  </section>
+
+  <section id="close" class="heading-only" data-segment="6" data-minutes="1" data-title="Keep authority outside the model">
+    <p class="eyebrow">LAB722 · Caldova Research Preview Factory</p>
+    <h2>Keep authority outside the model</h2>
+    <p class="lead">Bound the work.<br>Verify independently.<br>Keep approval separate.</p>
+    <p><a href="../instructions/README.md">Continue with the shared participant guide</a></p>
+    <p class="small">Simon Jakesch · Microsoft Ignite 2026</p>
+    <aside class="notes">
+      <p><strong>Target:</strong> 1:00; cumulative 75:00 of the planned schedule.</p>
+      <p>Who controls cloud operations, who verifies integration, and who separately authorizes deployment? Trusted controller owns operations; separate primary checks deterministically; model/governance cannot approve release.</p>
+      <p>Bound work to two feature modules, retain frozen public provenance/responsible-use limitations, and carry exact identity through image/approval/observation. The lesson is operational trust, not agent confidence.</p>
+      <p><strong>Checkpoint:</strong> Reopen the shared guide and select a separately authorized next step. Transition: end without event-release, measured-timing, or recording-readiness claims.</p>
+    </aside>
+  </section>
+
+</div>
+</main>
+<script src="node_modules/reveal.js/dist/reveal.js"></script>
+<script src="node_modules/reveal.js/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    width: 1280,
+    height: 720,
+    hash: true,
+    center: false,
+    slideNumber: true,
+    showNotes: false,
+    margin: 0,
+    preloadIframes: true,
+    autoPlayMedia: true,
+    plugins: [RevealNotes],
+    pdfSeparateFragments: true,
+    pdfMaxPagesPerSlide: 1,
+    pdfPageHeightOffset: 0,
+    transition: "none",
+    backgroundTransition: "none",
+    controls: true,
+    keyboard: true,
+    progress: true
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+name: ignite26-lab722
+metadata:
+  template: ignite26-lab722@0.1.0
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+requiredVersions:
+  azd: ">= 1.33.0"

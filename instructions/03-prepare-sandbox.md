@@ -1,61 +1,57 @@
-# Segment 3 - Prepare the Sandbox (15 minutes)
+# Segment 3 - Prepare the Sandbox (target: 15 minutes)
 
-Create the primary development Sandbox, stage the shared source and data, reproduce the missing feature, and snapshot the prepared workspace.
+**Goal:** establish one prepared primary, its snapshot and three distinct role clones. **Why:** matching frozen inputs and protected tooling make worker output comparable. **Services:** ACA Sandboxes and the prebuilt source/data bundle. **Outcome:** verified controller bindings, full frozen identity and a genuine missing-function baseline before new implementation.
 
-## Why this segment matters
+Preparation uses the existing tested source importer and prebuilt toolchains. It does not download the 7.07 GiB raw database into a Sandbox, restore arbitrary packages over a widened allowlist or clone unpinned source.
 
-Preparing dependencies and data once gives every worker an identical starting point. The snapshot also records the source and data versions used to produce the result.
+## Recorded-evidence path
 
-## Services used
+```powershell
+$evidence.baseline | Format-List
+$evidence.workers | Format-Table role, sandbox_id
+$evidence.dataset | Format-List
+```
 
-- Azure Container Apps Sandboxes
-- Shared GitHub release data artifact
-- Approved package and source endpoints
+The sample's baseline descriptor has mode `Reuse`: its pinned inputs were verified without resetting completed worker code. It is not proof that today's workers are still untouched starters. The preserved prepared snapshot precedes implementation; the controller transfers only the two assigned feature modules into the independent primary.
 
-## Learning objectives
+The verification boundary includes UID 10001, the fixed `/opt/caldova-lab` workspace, protected tests/data/frontend, Python/Node toolchains, snapshot lineage and explicit network/lifecycle settings. The retained public baseline was checked before snapshotting and cloning; later code-preserving reuse permits completed feature functions.
 
-- Create and inspect a development Sandbox.
-- Stage and verify a versioned shared dataset.
-- Create a reusable snapshot after reproducing the baseline.
+## Live-exercise path
 
-## Starting state
+The facilitator authorizes preparation only in an available group with **four free Sandbox slots**. Stopped Sandboxes still consume slots. Both retained maintainer groups are full; do not use their IDs, delete resources or raise capacity to complete this page.
 
-- The Sandbox Group and prepared developer image are available.
-- The orchestrator's plan is approved.
-- The dataset manifest and checksum are available.
+With the complete harness-owned development pins from Segment 0 and authorization for allocation, run:
 
-## Task 1 - Prepare the workspace
+```powershell
+$preparedText = .\scripts\start-lab.ps1 -ResourceGroupName $resourceGroupName `
+    -Region $region -Mode Prepare
+$prepared = $preparedText | ConvertFrom-Json
+if (-not $prepared.baseline_ready -or -not $prepared.frozen_data_verified) {
+    throw 'Primary/clone preparation did not establish a verified baseline.'
+}
+$baselineDescriptorPath = $prepared.outputs.CALDOVA_BASELINE_DESCRIPTOR_PATH
+$bindingsPath = $prepared.outputs.CALDOVA_WORKER_BINDINGS_PATH
+$preparedManifestPath = $prepared.outputs.CALDOVA_DATA_MANIFEST_PATH
+$validationSandboxId = $prepared.outputs.CALDOVA_VALIDATION_SANDBOX_ID
+$baselineDescriptor = Get-Content -LiteralPath $baselineDescriptorPath -Raw | ConvertFrom-Json
+$bindings = Get-Content -LiteralPath $bindingsPath -Raw | ConvertFrom-Json
+$bindings | Format-Table role, sandbox_id, snapshot_id, workspace
+$baselineDescriptor | Select-Object primary_id, snapshot_id, source_revision, dataset_version
+```
 
-1. Open `http://sandboxes.azure.com/`.
-2. Create the primary Sandbox from the prepared developer image.
-3. Stage the supplied source bundle or approved repository content.
-4. Stage the shared data artifact.
-5. Verify the data checksum and manifest version.
-6. Restore the supplied project dependencies from approved endpoints.
+The helper verifies scope and capacity before import/allocation, stages exact frozen bytes, creates the primary, verifies genuine missing functions and protected inputs, snapshots it, creates three clones and verifies their lineage/policies. Snapshot clones inherit resources; do not add CPU/memory overrides to snapshot creation.
 
-## Task 2 - Reproduce and snapshot
+Open `http://sandboxes.azure.com/` and select the allocated group. Compare the exact primary/snapshot/clone IDs to the report. Inspect default-deny egress, the `open.fda.gov` allow entry, Full traffic inspection, 900-second Memory suspension and disabled auto-delete. Do not manually broaden these policies or reinstall dependencies.
 
-1. Run the supplied baseline check.
-2. Confirm that the requested research panel is missing.
-3. Record the runtime, source commit, and data version.
-4. Create a snapshot of the prepared workspace.
-5. Record the snapshot identifier.
+`Prepare` does not deploy the application or authorize attendee data release. If it fails after a submitted import/allocation, the operation may still have completed: the facilitator inspects exact scoped metadata before recovery. Never repeat preparation blindly or adopt a failed import as successful. The retained test run required scoped recovery; a fresh complete preparation dry run is still unmeasured.
 
 ## Checkpoint
 
-- The primary Sandbox is healthy.
-- Source and data checksums match the manifest.
-- The baseline check reproduces the missing capability.
-- A snapshot exists for the correct source and data versions.
+Each role has exactly one distinct clone of the same snapshot, plus a separate trusted primary. The supplied manifest/DB/original JSON/pipeline ZIP identities match the prepared descriptor, and a new live baseline reproduces genuinely missing functions before implementation.
 
-## Troubleshooting
-
-| Symptom | Check | Recovery |
-|---|---|---|
-| Data checksum differs | Compare the manifest version | Restage the immutable artifact |
-| Dependency restore cannot reach a source | Review the approved destinations | Use the prepared dependency cache |
-| Snapshot action is unavailable | Confirm the attendee's preassigned role | Use the facilitator identity-recovery path |
-
-## Segment outcome
-
-An immutable prepared baseline is ready for parallel specialist work.
+| Symptom | Safe response |
+|---|---|
+| Capacity is full | Stop; facilitator supplies an explicitly authorized available scope |
+| A hash, clone lineage or policy differs | Retain the mismatch; do not replace the trust anchor or choose another clone |
+| Import timed out after submission | Inspect that exact operation and unique disk name; do not reimport automatically |
+| A reused worker already has code | Treat it as completed state; reuse is not a missing-function test or permission to reset |

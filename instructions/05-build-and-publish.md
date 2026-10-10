@@ -1,54 +1,62 @@
-# Segment 5 - Build and publish (6 minutes)
+# Segment 5 - Build and publish (target: 6 minutes)
 
-Approve the final image build, record its digest, and update the ACA Express application to the validated result.
+**Goal:** connect accepted source to a validated immutable image and separately approved development deployment. **Why:** a tag or model's recommendation cannot identify the exact approved artifact. **Services:** ACR Tasks and ACA Express. **Outcome:** recorded image/build/approval/application identities, or a newly validated result when the facilitator runs the authorized path.
 
-## Why this segment matters
+Six minutes is an unmeasured delivery target, not a guarantee that a fresh remote build completes in that time. Guided delivery may inspect the already-completed build while the facilitator stages another authorized run; it must label that evidence as recorded.
 
-The image digest connects the tested source to the deployed application. Publishing by digest prevents a later tag change from replacing the approved artifact.
+## Recorded-evidence path
 
-## Services used
+```powershell
+$evidence.candidate_sources | Format-List
+$evidence.image | Format-List registry, repository, digest, acr_run_id, reference
+$evidence.human_approval | Format-List
+$evidence.application_observation | Format-List
+$evidence.pipeline_provenance
+```
 
-- Azure Container Registry and ACR Tasks
-- Azure Container Apps Express
+The accepted public result was validation-built with `--no-push`, then separately authorized for publication. Publication run `dsn` passed all eight public tests and produced digest `sha256:e219757d2f40dd83f5445ea661aa8f56e9ff53864d34127b74acc7570306bd38`. A later human confirmation bound the exact run, logical dataset identity and digest for development deployment.
 
-## Learning objectives
+Distinguish four boundaries: source-use authorization, candidate validation, publication authorization, and exact-image deployment approval. A `--no-push` build has no deployable digest. Build-time descriptors keep `human_approval=false`, `release_approved=false` and `deployed=false`; later approvals/observations are separate records, not rewritten history.
 
-- Approve a build only after acceptance checks pass.
-- Record an immutable image digest.
-- Update and verify an Express application.
+## Live-exercise path
 
-## Starting state
+Publication and deployment are facilitator operations until a generalized participant adapter is validated. The current candidate helper deliberately restricts registry/subscription/repository to the authorized maintainer scope; this is not a portable per-attendee publisher. Never enter maintainer IDs into an unrelated participant scope.
 
-- The release candidate passes all required checks.
-- The ACR build task and Express application already exist.
+In the authorized maintainer environment only, the facilitator can stage an accepted result without cloud activity. All variables come from the newly accepted run and independently trusted pins:
 
-## Task 1 - Build the image (3 minutes)
+```powershell
+$packageArgs = @{
+    ResultPath = $resultPath
+    ResultSha256 = $resultSha256
+    BaselineDescriptorPath = $baselineDescriptorPath
+    FrozenArtifactDirectory = (Split-Path -Parent $env:LAB_DATA_MANIFEST)
+    ManifestSha256 = $env:LAB_DATA_MANIFEST_SHA256
+    ApprovedRunId = [guid] $runId
+    Purpose = $env:LAB_STARTUP_PURPOSE
+    RegistryName = $readiness.outputs.AZURE_CONTAINER_REGISTRY_NAME
+    SubscriptionId = [guid] $readiness.outputs.AZURE_SUBSCRIPTION_ID
+    Tag = ('participant-' + $runId)
+}
+$destination = Join-Path '.build-contexts' ('participant-stage-' + [guid]::NewGuid().ToString('N'))
+$stage = .\scripts\build-agent-candidate.ps1 @packageArgs -Destination $destination -StageOnly
+$stage | Format-List
+```
 
-1. Review the source commit and acceptance summary attached to the build request.
-2. Approve the ACR task.
-3. Record the resulting image digest.
+`ApprovedRunId` selects the accepted source; it is **not human release approval**. Staging executes no candidate code on the host. It verifies original result bytes, baseline/protected source, all frozen files and accepted module hashes. The container is where candidate code and the dataset-specific suite execute.
 
-## Task 2 - Publish with Express (3 minutes)
+The facilitator next runs the documented [candidate build and approval sequence](../scripts/README.md#agent-built-candidate). A non-`StageOnly` helper invocation stages into a **new** destination, runs container acceptance and publishes a new tag; it needs prior publication authorization. Do not overwrite or reuse the existing stage directory. Preserve the returned ACR run and exact digest, record separate image-bound approval, then authorize `deploy-research-preview.ps1` for the exact development image.
 
-1. Open `https://containerapps.azure.com/`.
-2. Update the Caldova application to the approved image digest.
-3. Open the public application URL.
-4. Confirm that the evidence panel displays the expected fixture-backed result, citations, and limitations.
+That deployment helper may create/refresh a repository-scoped pull credential and update the application. It is not a read-only action and must not be run merely because the model recommends release. Re-run pinned `Readiness` with the newly approved digest/reference state to establish the live image/data observation. Full API/runtime acceptance remains separate from this readiness sample.
+
+Open `https://containerapps.azure.com/` in the authorized scope and compare the exact image/app/URL to the returned records. The public preview reads frozen local data: absence of a live safety API call is expected, and tirzepatide's empty report selection is not an error.
 
 ## Checkpoint
 
-- The build source matches the validated commit.
-- The Express application uses the approved digest.
-- The completed research panel works at the original baseline URL.
+The accepted module hashes, dataset identity, build result, published digest, separate human approval and application observation all agree. The current public pipeline records `uncommitted-development`; development approval does not make it attendee-releasable or transform the ZIP into a committed pipeline.
 
-## Troubleshooting
-
-| Symptom | Check | Recovery |
-|---|---|---|
-| Build does not complete in the segment | Check the ACR task status | Use the prepared fallback digest tied to the same source |
-| Express update shows the old version | Compare the active digest | Refresh after the new revision is active |
-| Evidence panel cannot reach live data | Check the fallback state | Confirm the cached authoritative result is displayed |
-
-## Segment outcome
-
-The tested Caldova research application is live on ACA Express.
+| Symptom | Safe response |
+|---|---|
+| Build is incomplete or log streaming fails | Inspect the existing ACR run; do not queue another build merely to retrieve logs |
+| Only a no-push result is available | No deployment; there is no published immutable digest |
+| Approval refers to another run/dataset/digest | Stop; an old approval cannot authorize a new image |
+| Image differs from the verified app | Preserve the mismatch; facilitator inspects the exact operation rather than switching tags or revisions |

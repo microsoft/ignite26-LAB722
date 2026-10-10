@@ -10,21 +10,95 @@
 ## Intended public sources
 
 - AACT: `https://aact.ctti-clinicaltrials.org/`
+- User-supplied AACT-derived mirror: `https://huggingface.co/datasets/Nason/clinicaltrials-database`
 - openFDA drug adverse events: `https://open.fda.gov/apis/drug/event/`
 
 AACT describes its database as public, downloadable, and free to use, and asks users to acknowledge AACT and CTTI. openFDA states that its data is generally unrestricted and CC0 unless specific content is marked otherwise.
 
 The application must preserve the openFDA disclaimer. Adverse-event reports are signals for investigation. They must not be presented as proof that a product caused an event, as incidence rates, or as comparative safety rankings.
 
+## Raw AACT source cache
+
+The supplied mirror is anonymously accessible. Its publisher identifies the pinned revision in `aact-mirror.json` as an AACT flat-file snapshot from **September 14, 2026**, converted to DuckDB. This is a third-party conversion, not an official CTTI-hosted release; the snapshot and CC0 label are publisher claims, not a completed source review. The database is **7,588,032,512 bytes (7.59 GB / 7.07 GiB)**. The pin records the immutable commit, expected size, and publisher's LFS SHA-256 rather than a mutable `main` URL or CDN ETag.
+
+Run the maintainer-only standard-library script from the checkout. The check command performs a HEAD request and downloads no database bytes:
+
+```powershell
+python -m data.pipeline.download_aact --check
+```
+
+The following command actually downloads the full database into a cache outside the checkout:
+
+```powershell
+python -m data.pipeline.download_aact --cache-dir "$env:LOCALAPPDATA\Caldova\source-cache"
+```
+
+Without `--cache-dir`, the cache defaults to `%LOCALAPPDATA%\Caldova\source-cache` on Windows or `$XDG_CACHE_HOME/Caldova/source-cache` (otherwise `~/.cache/Caldova/source-cache`) on Linux. Repository-contained cache paths are rejected, including resolved paths through symlinks. Raw DuckDB files are also excluded from Git as a second guard.
+
+The downloader checks free space, uses TLS-verified HTTPS with allowlisted Hugging Face/CDN redirects, streams bounded chunks, and verifies the complete byte count and SHA-256 before publishing a cache entry and acquisition receipt. Transient signed CDN URLs are not recorded. Interrupted `.partial` inputs are retained and resumed only when the server honors the exact byte range. Reuse rehashes the entire cached file without a network request; corrupt inputs, mismatched receipts, unexpected responses, and insufficient space fail explicitly without silently restarting or replacing an existing file. A concurrent downloader holds `.download.lock`; after a terminated process, inspect that lock's PID before manually removing a stale lock.
+
+This script acquires raw maintainer input only. It does not execute the downloaded database, select candidates/aliases, approve privacy or reuse, build a public artifact, publish data, or change the deployed synthetic preview. Maintainers will extract and review only the required trial tables/fields; attendees will stage the smaller approved immutable lab artifact, not this full database.
+
+On October 10, 2026 (UTC), the authorized full download completed in the external cache. Both the downloader and a separate read-only inspection verified the pinned 7,588,032,512-byte input and SHA-256. The actual schemas and types of `studies`, `conditions`, `interventions`, and `intervention_other_names` were checked, with 602,514, 1,083,005, 1,019,126, and 486,506 rows respectively. Seven inspected duplicate/ID/orphan/join-mismatch counts were zero. The database has 48 source tables plus two publisher metadata tables. This verifies the inspected input and relationships, not clinical accuracy or approval for attendee use.
+
+Source inspection also found reasons not to infer aliases automatically: some `intervention_other_names` associations contain several different molecule names or generic class labels, and broader discovery includes studies with missing phases. The separately acquired openFDA shard contains combination/compound names and multi-brand harmonization arrays. The user-selected conservative extract below addresses these mapping risks. The project owner's subsequent October 10 instruction authorizes use of that selected slice for the lab; it does not claim an independent expert audit or authorize publication, live replacement or an attendee release.
+
+## Conservative public review draft
+
+The initial scope selection authorized conservative extraction; the subsequent source-use decision is recorded separately below. `python -m data.pipeline.extract_public` prepares a separate **`unreviewed-public`** draft in the data-aware Python environment. Unlike the standard-library downloader, this module uses the already declared DuckDB/Pydantic pipeline dependencies.
+
+Set `$aactDatabase` to the verified external cached database and `$openFdaArchive` to the verified external drug-event ZIP. The AACT `acquisition-receipt.json` and openFDA `intake-receipt.json` must be adjacent to their respective inputs. The intake URL, export date, archive/member sizes, record count and SHA-256 are pinned in `openfda-intake.json`; the downloaded catalog order is not used to claim recency.
+
+```powershell
+python -m data.pipeline.extract_public `
+    --aact-database $aactDatabase `
+    --openfda-archive $openFdaArchive `
+    --output "$env:LOCALAPPDATA\Caldova\review-drafts\new-review-version"
+```
+
+Both raw inputs and draft output must be outside the checkout; use paths native to the selected Python runtime. Existing output directories are never replaced. The command verifies the full source checksums and acquisition receipts before reading data, and publishes `public-review-draft.json` plus `draft-provenance.json` only after validation.
+
+The fixed mapping uses trimmed, case-insensitive equality to **semaglutide, liraglutide and tirzepatide** primary intervention names, with `DRUG` interventions and `INTERVENTIONAL` studies. Source condition labels are exactly **Obesity**, **Diabetes Mellitus, Type 2**, **Type 2 Diabetes**, and **Type 2 Diabetes Mellitus**. It does not infer broad aliases from other-name associations, generic Diabetes/Overweight labels, brands, development codes, or compound-name substrings. Null/invalid required trial fields are excluded with recorded counts rather than invented defaults.
+
+Safety matching uses an exact generic `medicinalproduct` or harmonized `generic_name`, excluding a matched drug object when `substance_name` lists additional substances. The latest report version is selected **within the complete acquired input before candidate filtering**, so an older matching version cannot replace an unmapped newer version. Conflicting complete raw copies of the same ID/version fail, even if the differing field would be excluded from the draft; identical copies are deduplicated. The existing normalization helper provides unique uppercase reaction terms, while original terms and matching source drug-name arrays remain separately available for review.
+
+Stable ascending IDs and strict budgets allow at most **10 trials per candidate/topic** and **10 reports per candidate**, measured against the complete retained records. A shared record is retained whole or skipped when any represented bucket is full; its other mapped candidates, conditions, or reactions are never dropped to make a limit pass. Original source conditions and intervention labels, including original case/whitespace, remain separate from canonical topic categories. Harmonized brand arrays are metadata, not proof that every listed brand was taken.
+
+The actual verified October 10 review draft contains **60 trials and 20 reports**, with **74,073 JSON bytes**. All six trial buckets contain 10 records; semaglutide/liraglutide each have 10 reports. Tirzepatide has a genuine empty safety result under this mapping in the disclosed single shard. This is a deliberately bounded software demonstration, neither complete nor representative clinical evidence. Four focused extraction tests and the four frozen-export regressions pass; an independent check compared every selected source field/collection, latest within-input version and actual limit with the original inputs.
+
+The historical draft remains intentionally rejected by `DatasetInput` and cannot pass the synthetic baseline's public-data gate. Its false approval flags are retained as extraction-time evidence, not rewritten after the project owner's later instruction. The public-freeze path records that subsequent decision, preserves the exact source projections and limitations, and does not pause the same selected source use for another generic review.
+
+## Freezing the authorized public lab slice
+
+On **October 10, 2026 at 00:17 UTC-5**, Simon Jakesch instructed continued use of the selected publicly available datasets. The source-use record has scope `project-owner-selected-public-lab-use` and binds the **74,073-byte draft SHA-256 `db1e39943ee51d6cf8fe87628aff905b20e4f13e9af2c1812fa3af2f73814d5c`** plus its original provenance checksum. It explicitly records that no independent expert audit, publication, live replacement or attendee release is authorized.
+
+For the already selected version, use that recorded decision rather than requesting it again. Future changed extracts need a decision bound to their own exact hashes. Set `$draftDirectory` to the verified external draft directory and `$sourceUseApproval` to the recorded JSON decision:
+
+```powershell
+python -m data.pipeline.freeze_public `
+    --draft-directory $draftDirectory `
+    --source-use-approval $sourceUseApproval `
+    --output "$env:LOCALAPPDATA\Caldova\artifacts\new-public-version" `
+    --dataset-version caldova-public-lab-use-v1
+```
+
+The command verifies draft/provenance hashes, pinned inputs, extraction-code identity and decision chronology, without redownloading the raw sources. It refuses an existing output directory or a checkout-contained draft/output. The original draft and acquisition receipts are never overwritten.
+
+The actual local build contains **60 trials, 20 reports, and a 4,206,592-byte database**, SHA-256 `c9a7b0c8202bd19c360d020af81278476b8813f791b8902c398f87984d69b21b`. Its four-file package retains the exact original `source-records.json` and a bounded `pipeline-source.zip`, including canonical input, source-use decision, original provenance and actual allowlisted source bytes. `pipeline_commit=uncommitted-development` is honest working-tree provenance, not a fabricated clean commit. The manifest trust anchor is `22a6ef07b06bbb7e8829d51ea5d0612c2122ffab786d4edbbd75d3a80a4d8039`.
+
+Validation independently compares every database record and complete canonical collection with the frozen extraction, preserves source identity/attribution, verifies auxiliary checksums and the ZIP's file inventory/checksums, and rejects unsafe archive entries. `data.pipeline.stage_dataset` stages all four files under the manifest trust anchor and preserves their bytes. Public API checks passed all nine actual candidate/condition combinations, complete original source projections, condition-independent safety results, true empty tirzepatide safety, and 404/422 errors. Twenty-six targeted tests, the original nine synthetic acceptance tests, and frontend type-check/build passed.
+
+The local portal displays a bounded-public-data banner, original source fields, dated provenance and the exact source-use scope; its legacy `reviewed-public` contract label does not claim clinical validation or an expert audit. This package is **unpublished**, the Azure preview remains synthetic, and the original synthetic worker baseline/candidate packager still rejects public data until a separate public acceptance path is implemented. A committed pipeline and exact-image approval remain attendee-release requirements.
+
 ## Build placeholders
 
-Use these values until a named data reviewer approves exact public URLs, releases, fields, and filters:
+The original source-config example retains these placeholders for integrations not using the implemented pinned-source path:
 
 - `TODO_TRIAL_DATA_SOURCE`
 - `TODO_SAFETY_DATA_SOURCE`
 - `TODO_OPTIONAL_COMMERCIAL_DATA_SOURCE`
 
-The source families are selected. Replace the placeholders only when the pipeline points to a fixed snapshot or endpoint and the manifest records the selection.
+The current AACT/openFDA public-freeze path uses `aact-mirror.json` and `openfda-intake.json`, with exact URLs, source dates, fields and mapping recorded in the frozen package; these example placeholders do not block it. Commercial context remains optional and unimplemented.
 
 ## Required approval record
 
@@ -38,4 +112,4 @@ Before generating the first release artifact, record:
 - License and attribution requirements
 - Responsible-use wording
 
-The generated manifest must include the pipeline commit, schema version, record counts, and artifact checksum.
+The generated manifest must include schema version, counts, checksums, source-use scope and honest pipeline identity. The local public-freeze package captures its working-tree source ZIP; an attendee release additionally requires a committed pipeline and independent exact-image approval.

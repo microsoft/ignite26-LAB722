@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "dataset_version": "caldova-synthetic-development-v1",
+  "dataset_kind": "synthetic-development",
+  "sources": [{
+    "source_id": "caldova-training-fixture",
+    "name": "Caldova synthetic development fixture",
+    "release": "development-v1",
+    "attribution": "LAB722 development team. All candidates, trials, and reports are invented.",
+    "license_notes": "Lab-authored test fixture. Not AACT or openFDA data; not clinical evidence."
+  }],
+  "candidates": [
+    {"candidate_id": "candidate-a", "name": "Example candidate A", "research_area": "Fictional GLP-1 research scenario"},
+    {"candidate_id": "candidate-b", "name": "Example candidate B", "research_area": "Fictional GLP-1 research scenario"},
+    {"candidate_id": "candidate-c", "name": "Example candidate C", "research_area": "Empty-result development fixture"}
+  ],
+  "trials": [
+    {"trial_id": "DEMO-TRIAL-001", "title": "Synthetic obesity research protocol A", "phase": "PHASE2", "status": "RECRUITING", "conditions": ["obesity"], "candidate_ids": ["candidate-a"], "source_id": "caldova-training-fixture", "source_record_id": "DEMO-TRIAL-001"},
+    {"trial_id": "DEMO-TRIAL-002", "title": "Synthetic type 2 diabetes research protocol A", "phase": "PHASE3", "status": "COMPLETED", "conditions": ["type-2-diabetes"], "candidate_ids": ["candidate-a"], "source_id": "caldova-training-fixture", "source_record_id": "DEMO-TRIAL-002"},
+    {"trial_id": "DEMO-TRIAL-003", "title": "Synthetic obesity research protocol B", "phase": "PHASE2", "status": "COMPLETED", "conditions": ["obesity"], "candidate_ids": ["candidate-b"], "source_id": "caldova-training-fixture", "source_record_id": "DEMO-TRIAL-003"},
+    {"trial_id": "DEMO-TRIAL-004", "title": "Synthetic type 2 diabetes research protocol B", "phase": "PHASE2", "status": "RECRUITING", "conditions": ["type-2-diabetes"], "candidate_ids": ["candidate-b"], "source_id": "caldova-training-fixture", "source_record_id": "DEMO-TRIAL-004"}
+  ],
+  "safety_reports": [
+    {"report_id": "DEMO-REPORT-001", "version": 1, "candidate_ids": ["candidate-a"], "reaction_terms": ["Nausea"], "source_id": "caldova-training-fixture", "source_record_id": "DEMO-REPORT-001"},
+    {"report_id": "DEMO-REPORT-001", "version": 2, "candidate_ids": ["candidate-a"], "reaction_terms": ["Nausea", "nausea", "Vomiting"], "source_id": "caldova-training-fixture", "source_record_id": "DEMO-REPORT-001"},
+    {"report_id": "DEMO-REPORT-002", "version": 1, "candidate_ids": ["candidate-a", "candidate-b"], "reaction_terms": ["Nausea"], "source_id": "caldova-training-fixture", "source_record_id": "DEMO-REPORT-002"},
+    {"report_id": "DEMO-REPORT-003", "version": 1, "candidate_ids": ["candidate-b"], "reaction_terms": ["Fatigue"], "source_id": "caldova-training-fixture", "source_record_id": "DEMO-REPORT-003"},
+    {"report_id": "DEMO-REPORT-003", "version": 1, "candidate_ids": ["candidate-b"], "reaction_terms": ["Fatigue"], "source_id": "caldova-training-fixture", "source_record_id": "DEMO-REPORT-003"}
+  ]
+}

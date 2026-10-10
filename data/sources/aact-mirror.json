@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "purpose": "raw-source-intake",
+  "publisher": "Nason/clinicaltrials-database",
+  "revision": "11b858f5f39519b92ee9a7a98129997f694c7833",
+  "publisher_snapshot_date": "2026-09-14",
+  "url": "https://huggingface.co/datasets/Nason/clinicaltrials-database/resolve/11b858f5f39519b92ee9a7a98129997f694c7833/clinicaltrials.duckdb",
+  "filename": "clinicaltrials.duckdb",
+  "bytes": 7588032512,
+  "sha256": "028741c0240e772d6116c27bb426b9b4d00bd24f833e9f7670339ba7d46ab722",
+  "publisher_license_label": "cc0-1.0",
+  "provenance_note": "Publisher identifies this as a DuckDB conversion of AACT flat files, not an official CTTI-hosted database. The license label and snapshot date are publisher claims requiring source review.",
+  "source_review_approved": false,
+  "attendee_release_approved": false
+}

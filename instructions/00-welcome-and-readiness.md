@@ -1,54 +1,70 @@
-# Segment 0 - Welcome and readiness (5 minutes)
+# Segment 0 - Welcome and readiness (target: 5 minutes)
 
-Review the Caldova request, confirm the automated deployment status, and identify the data and application versions used in the lab.
+**Goal:** choose recorded evidence or an authorized live exercise and identify the pinned inputs. **Why:** results from different runs, images or datasets cannot fill one acceptance chain. **Services:** the local evidence package, or scoped Azure CLI/ACA readiness for the live path. **Outcome:** an explicit execution path and recorded run/data identities.
 
-## Why this segment matters
-
-Every worker must start from the same source, data, and acceptance criteria. The readiness check prevents later results from being compared across different versions.
-
-## Services used
-
-- Skillable lab environment for identity and deployment startup
-- GitHub for the feature request and source version
-- Azure Monitor for deployment readiness
-
-## Learning objectives
-
-- Identify the lab's trust boundaries and definition of done.
-- Confirm that the environment is ready without provisioning infrastructure manually.
-- Record the source commit and shared data version.
-
-## Starting state
-
-- You are signed in with the credentials provided by the event platform.
-- Automated deployment has started.
-- The Caldova feature request and source repository are available read-only.
+Skillable-specific sign-in, triggers and output mapping are outside this materials milestone. No platform account is needed for the recorded path. All segment timings are targets, not measured participant results.
 
 ## Task 1 - Review the request
 
-1. Open the supplied feature request.
-2. Review the expected clinical-trial panel, safety-signal panel, citations, and responsible-use wording.
-3. Record the issue identifier and source commit in the lab worksheet.
+Read [the lab overview](README.md). Caldova is fictional. Clinical and safety specialists implement two bounded query functions; governance checks the independently integrated result. All use the same frozen data and protected acceptance criteria.
 
-## Task 2 - Check readiness
+Trial-topic filtering and candidate mentions in adverse-event reports are independent. Do not link trials to reports or interpret counts as causation, incidence, comparative safety or treatment advice. Record an actual GitHub issue if one is supplied; the accepted-result contract does not pin an issue identifier.
 
-1. Run the supplied readiness check from the lab environment.
-2. Confirm the result identifies the deployment as running, ready, or failed with a named resource.
-3. If deployment is still running, continue reviewing the architecture until the check reports ready.
+## Task 2 - Verify the recorded package (default path)
+
+Open PowerShell 7.2+ at the repository root and retain these variables for subsequent segments:
+
+```powershell
+$evidenceDirectory = Join-Path (Get-Location).Path 'instructions\assets'
+$bundleManifest = Get-Content -LiteralPath (Join-Path $evidenceDirectory `
+    'development-evidence-manifest.json') -Raw | ConvertFrom-Json -AsHashtable
+$expectedFiles = @('development-evidence.json', 'development-evidence.html')
+if ($bundleManifest.files.Count -ne 2 -or
+    @($bundleManifest.files.Keys | Where-Object { $_ -cnotin $expectedFiles }).Count) {
+    throw 'Unexpected evidence file inventory.'
+}
+foreach ($name in $expectedFiles) {
+    $path = Join-Path $evidenceDirectory $name
+    $expected = $bundleManifest.files[$name]
+    $actualHash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ((Get-Item -LiteralPath $path).Length -ne $expected.bytes -or
+        $actualHash -cne $expected.sha256) {
+        throw "Recorded evidence changed: $name"
+    }
+}
+$evidence = Get-Content -LiteralPath (Join-Path $evidenceDirectory `
+    'development-evidence.json') -Raw | ConvertFrom-Json
+$evidence | Select-Object status, run_id, worker_blockers, current_live_state_checked, attendee_ready
+$evidence.dataset | Format-List
+```
+
+The bundle is an integrity-checked projection of the accepted development receipts, not a new test run or signed release. Its HTML is self-contained; it includes no candidate executable code, raw dataset, credentials or external assets. Checksums verify consistency with the supplied manifest, not the authenticity of an arbitrary download. Keep `recorded` beside the worksheet entries.
+
+## Optional live readiness
+
+Use only facilitator-supplied authentication and allocated scope. The harness/facilitator owns the [complete immutable app/data pins](../scripts/README.md#pinned-application-readiness); they are not extra participant deployment inputs. Do not select a maintainer subscription, infer your identity or provision infrastructure on this page.
+
+```powershell
+$resourceGroupName = Read-Host 'Allocated resource-group name'
+$region = Read-Host 'Workload region'
+$readiness = .\scripts\start-lab.ps1 -ResourceGroupName $resourceGroupName `
+    -Region $region -Mode Readiness | ConvertFrom-Json
+$readiness | Select-Object infrastructure_ready, application_ready, `
+    application_manifest_verified, frozen_data_verified, baseline_ready, data_ready, attendee_ready
+$readiness.pending_reasons
+```
+
+`Readiness` creates no resources, changes no image/credentials and performs no inference. It verifies six current infrastructure resources. With complete app pins it checks the scoped app/Express/registry image, HTTPS health, exact local frozen bytes, live manifest/original sources and one ready/unavailable sample.
+
+Stop live execution if infrastructure, application, manifest or frozen-data verification fails. `baseline_ready=false` means this invocation did not inspect a worker baseline. `data_ready=false` and `attendee_ready=false` explicitly preserve the unfinished release/platform gates; a development reference cannot authorize an event release. The recorded path remains usable without changing those flags. A separately authorized facilitator rehearsal follows [the handoff checklist](facilitator.md), never an assumed event identity.
 
 ## Checkpoint
 
-- The readiness check reports that the required resources are healthy.
-- You have recorded the issue identifier, source commit, and data version.
+Record the execution path, run, dataset, manifest/logical hashes and pipeline provenance. The public package records `uncommitted-development` plus a checksummed source ZIP; do not substitute checkout `HEAD` as proof that those frozen working-tree bytes were committed.
 
-## Troubleshooting
-
-| Symptom | Check | Recovery |
-|---|---|---|
-| Deployment is still running | Confirm the current elapsed time | Continue the architecture review and retry at minute 5 |
-| Readiness reports one failed resource | Record the resource and operation | Use the facilitator recovery path for that resource |
-| Data version is missing | Check the deployment outputs | Use the prepared fallback manifest |
-
-## Segment outcome
-
-The environment, request, source version, and data version are ready for the hands-on work.
+| Symptom | Safe response |
+|---|---|
+| Bundled file checksum differs | Stop and obtain the intended materials version; do not rewrite the manifest |
+| No application settings are supplied | `Readiness` remains infrastructure-only; use recorded evidence or have the facilitator supply trusted pins |
+| Image/source/manifest differs | Retain the mismatch; no fixture fallback or new trust anchor |
+| A submitted deployment times out | Facilitator inspects that scoped operation; timeout is not cancellation |

@@ -1,60 +1,61 @@
-# Segment 6 - Trace the evidence (7 minutes)
+# Segment 6 - Trace the evidence (target: 7 minutes)
 
-Use the prepared telemetry view to trace the feature request through agent planning, Sandbox execution, validation, image publication, and the Express URL.
+**Goal:** audit the chain from the run and frozen inputs to the recorded image, human approval and application observation. **Why:** model confidence and a green portal are not a reproducible release decision. **Services:** the offline receipt viewer, ACR/ACA records and optionally a fresh read-only startup check. **Outcome:** an explainable integrity chain with explicit missing evidence and freshness limits.
 
-## Why this segment matters
+There is no implemented Azure Monitor correlation workbook in this repository. This segment uses the real checksummed workflow receipts, not a promised dashboard or invented event/session identifiers. Infrastructure monitoring resources do not mean every desired event has been emitted.
 
-Agent output is easier to trust when the source, data, execution environment, tests, approvals, and deployed artifact can be correlated.
+## Recorded-evidence path
 
-## Services used
+Open the self-contained viewer verified in Segment 0:
 
-- Azure Monitor Application Insights
-- Log Analytics
-- Azure Container Registry
-- Azure Container Apps Express
+```powershell
+Start-Process (Join-Path $evidenceDirectory 'development-evidence.html')
+$evidence.receipt_sha256 | Format-List
+$evidence.application_observation | Format-List
+$evidence.not_evidenced
+```
 
-## Learning objectives
+Follow one run through the viewer's tables: dataset/manifest/logical identity, source revision, baseline snapshot and independent primary, three role assignments, 11 check categories, two accepted source hashes, published image/ACR run, separate human approval, and timestamped application observation.
 
-- Follow one correlation identifier across the complete workflow.
-- Verify that the deployed image matches the tested candidate.
-- Identify the evidence needed to investigate or reproduce the result.
+The bundled sample is a reduced, integrity-checked projection of the real development receipts. It does not contain candidate code, raw logs, the full source dataset or authentication material. Its timestamp records when the application was checked; opening the HTML does **not** check the application again.
 
-## Starting state
+## Inspect original receipts when supplied
 
-- The Express application is running the approved image digest.
-- Agent, Sandbox, test, and deployment telemetry has been emitted.
+The facilitator can supply the original result, baseline descriptor/prepared file, local four-file frozen package, image descriptor, separate approval and startup observation, with independent trust anchors. Run the stdlib-only inspector; optional later-stage receipts must each be supplied with their pin:
 
-## Task 1 - Follow the workflow
+```powershell
+$inspectionArgs = @(
+    '.\src\workers\inspect_evidence.py'
+    '--result', $resultPath, '--result-sha256', $resultSha256
+    '--baseline-descriptor', $baselineDescriptorPath
+    '--baseline-descriptor-sha256', $baselineDescriptorSha256
+    '--manifest', $env:LAB_DATA_MANIFEST
+    '--manifest-sha256', $env:LAB_DATA_MANIFEST_SHA256
+    '--purpose', $env:LAB_STARTUP_PURPOSE
+)
+$summaryText = & python @inspectionArgs
+if ($LASTEXITCODE -ne 0) { throw 'Receipt integrity or cross-run identity failed.' }
+$summary = ($summaryText -join "`n") | ConvertFrom-Json
+$summary.checks | Format-Table name, passed, exit_code, sandbox_id
+$summary.missing_stages
+```
 
-1. Open the supplied telemetry workbook.
-2. Filter by the feature-request correlation identifier.
-3. Locate the orchestrator plan and approval events.
-4. Locate the primary Sandbox, snapshot, and three clone identifiers.
-5. Locate the egress, schema, acceptance, and responsible-use results.
-6. Compare the approved image digest with the active Express revision.
-7. Open the final application URL from the trace.
+This minimal invocation validates the accepted workflow but honestly lists later stages as absent. To include them, the facilitator appends `--image-descriptor`/`--image-descriptor-sha256`, `--approval`/`--approval-sha256`, and `--startup-receipt`/`--startup-receipt-sha256`. `--format html` produces the same validated projection for local viewing. A checksum calculated from an untrusted file is not an independent approval or trusted download verification.
+
+The inspector performs no network operation or candidate execution, authenticates no approver, reruns no acceptance tests and grants no release. It rejects missing/modified/foreign identity pins and widened historical flags. Raw output hashes bind the recorded controller checks; the viewer does not possess/replay every raw output. GitHub issue IDs, Foundry session IDs and detailed token/timing telemetry are not stored in this accepted-result contract and remain explicitly unevidenced.
 
 ## Checkpoint
 
-The trace contains:
+Use the worksheet to distinguish:
 
-- Feature-request identifier
-- Source commit and data version
-- Orchestrator and worker session identifiers
-- Primary Sandbox, snapshot, and clone identifiers
-- Allowed and denied egress results
-- Acceptance and governance results
-- Image digest
-- Express URL and active revision
+- Verified integrity of caller-pinned bytes vs a signed/authenticated authorization.
+- Recorded check categories vs a new acceptance run.
+- A timestamped application observation vs current live health.
+- Named development approval vs attendee release.
 
-## Troubleshooting
-
-| Symptom | Check | Recovery |
-|---|---|---|
-| One stage is missing | Check that all views use the same correlation identifier | Open the prepared recorded trace for comparison |
-| Digest does not match | Compare the build and active revision timestamps | Return to Segment 5 and activate the approved digest |
-| Live telemetry is delayed | Check the workbook time range | Use the prepared trace while ingestion completes |
-
-## Segment outcome
-
-You have a live application and an auditable chain from the request to the deployed artifact.
+| Symptom | Safe response |
+|---|---|
+| Optional stage is absent | Record it as missing; do not borrow a receipt from another run |
+| Hash or image/run identity differs | Stop and retain the mismatch; do not hash the new file and call it approved |
+| A live check cannot be made | Use recorded evidence with its time/freshness label, not a claim of current health |
+| No token/session/workbook detail exists | State the limitation; monitoring resources alone cannot manufacture it |
