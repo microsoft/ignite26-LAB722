@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "purpose": "raw-source-intake",
+  "url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip",
+  "bytes": 4960888,
+  "sha256": "15f1925aea62384da9db34018cd2ea0447e786716dbd5d7868358f3a6bffe616",
+  "zip_member": "drug-event-0020-of-0036.json",
+  "zip_member_bytes": 67381390,
+  "records": 12000,
+  "quarter": "2026q2",
+  "export_date": "2026-10-05",
+  "source_review_approved": false,
+  "attendee_release_approved": false
+}

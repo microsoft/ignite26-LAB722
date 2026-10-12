@@ -1,0 +1,10 @@
+{
+  "license": "MIT",
+  "template_path": ".agents/skills/make-revealjs-presentation/assets/index.html",
+  "skill_sha256": "65604eef8459f3bfee961afb44317522c5edabd16fc56f840327b73d0c76d36b",
+  "copyright": "Copyright (c) 2024 Pamela Fox",
+  "adaptation": "Copied pinned template to index.html; retain simple system-font black-on-white shell and heading-only dividers. Local coherent Reveal 4.5.0 assets and Notes replace mixed CDN versions/Menu/Highlight for offline exports, notes and accessible named controls.",
+  "template_sha256": "f0e37a71bd631dcbe40251f1d7fbc992b934a7cef855b1853947c052e23f94e7",
+  "upstream_revision": "2b809b3a8d2ffdd2a5fb30da890d0e7ce6aeb53c",
+  "upstream_repository": "pamelafox/presentation-skills"
+}

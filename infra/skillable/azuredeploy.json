@@ -1,0 +1,749 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.40.2.10011",
+      "templateHash": "13738278945605043209"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "westus3",
+      "metadata": {
+        "description": "Azure region used for LAB722 resources."
+      }
+    },
+    "environmentName": {
+      "type": "string",
+      "defaultValue": "[format('caldova-{0}', uniqueString(resourceGroup().id))]",
+      "minLength": 2,
+      "maxLength": 32,
+      "metadata": {
+        "description": "Short environment name used for tags and deterministic naming. azd supplies its explicit name; a harness can omit it."
+      }
+    },
+    "labUserPrincipalId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Object ID granted Sandbox and project-scoped Foundry data-plane access. Leave empty until attendee identity integration is enabled."
+      }
+    },
+    "labUserPrincipalType": {
+      "type": "string",
+      "defaultValue": "User",
+      "allowedValues": [
+        "User",
+        "Group",
+        "ServicePrincipal"
+      ],
+      "metadata": {
+        "description": "Microsoft Entra principal type for the Sandbox and Foundry data-plane role assignments."
+      }
+    },
+    "foundryUserRoleAssignmentName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Existing project-scoped Foundry User assignment name. Empty generates a deterministic name."
+      }
+    },
+    "modelName": {
+      "type": "string",
+      "defaultValue": "gpt-4.1-mini",
+      "metadata": {
+        "description": "Foundry model name."
+      }
+    },
+    "modelVersion": {
+      "type": "string",
+      "defaultValue": "2025-04-14",
+      "metadata": {
+        "description": "Foundry model version."
+      }
+    },
+    "modelFormat": {
+      "type": "string",
+      "defaultValue": "OpenAI",
+      "metadata": {
+        "description": "Foundry model provider format."
+      }
+    },
+    "modelSkuName": {
+      "type": "string",
+      "defaultValue": "GlobalStandard",
+      "metadata": {
+        "description": "Foundry model deployment SKU."
+      }
+    },
+    "modelCapacity": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 1,
+      "metadata": {
+        "description": "Foundry model deployment capacity."
+      }
+    },
+    "sandboxMaxCount": {
+      "type": "int",
+      "defaultValue": 8,
+      "minValue": 4,
+      "maxValue": 16,
+      "metadata": {
+        "description": "Sandbox group capacity; increase only for retained development evidence plus new worker clones."
+      }
+    }
+  },
+  "variables": {
+    "suffix": "[uniqueString(subscription().id, resourceGroup().id, parameters('environmentName'))]",
+    "baseName": "[format('lab722-{0}', variables('suffix'))]",
+    "tags": {
+      "azd-env-name": "[parameters('environmentName')]",
+      "lab": "LAB722",
+      "scenario": "caldova-research-preview-factory"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "core",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[variables('baseName')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.40.2.10011",
+              "templateHash": "9406154403983430794"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for all core resources."
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Deterministic LAB722 resource name prefix."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags."
+              }
+            }
+          },
+          "variables": {
+            "registryName": "[replace(format('{0}acr', parameters('baseName')), '-', '')]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}-logs', parameters('baseName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "retentionInDays": 30,
+                "features": {
+                  "enableLogAccessUsingOnlyResourcePermissions": true
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "[format('{0}-appi', parameters('baseName'))]",
+              "location": "[parameters('location')]",
+              "kind": "web",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('baseName')))]",
+                "DisableLocalAuth": true
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('baseName')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2023-07-01",
+              "name": "[variables('registryName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Basic"
+              },
+              "properties": {
+                "adminUserEnabled": false,
+                "publicNetworkAccess": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[format('{0}-sandbox-mi', parameters('baseName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            }
+          ],
+          "outputs": {
+            "containerRegistryName": {
+              "type": "string",
+              "value": "[variables('registryName')]"
+            },
+            "containerRegistryId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ContainerRegistry/registries', variables('registryName'))]"
+            },
+            "applicationInsightsConnectionString": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('baseName'))), '2020-02-02').ConnectionString]"
+            },
+            "logAnalyticsWorkspaceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('baseName')))]"
+            },
+            "sandboxIdentityId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-sandbox-mi', parameters('baseName')))]"
+            },
+            "sandboxIdentityPrincipalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-sandbox-mi', parameters('baseName'))), '2023-01-31').principalId]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "foundry",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[variables('baseName')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "modelName": {
+            "value": "[parameters('modelName')]"
+          },
+          "modelVersion": {
+            "value": "[parameters('modelVersion')]"
+          },
+          "modelFormat": {
+            "value": "[parameters('modelFormat')]"
+          },
+          "modelSkuName": {
+            "value": "[parameters('modelSkuName')]"
+          },
+          "modelCapacity": {
+            "value": "[parameters('modelCapacity')]"
+          },
+          "labUserPrincipalId": {
+            "value": "[parameters('labUserPrincipalId')]"
+          },
+          "labUserPrincipalType": {
+            "value": "[parameters('labUserPrincipalType')]"
+          },
+          "foundryUserRoleAssignmentName": {
+            "value": "[parameters('foundryUserRoleAssignmentName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.40.2.10011",
+              "templateHash": "12778540012898922592"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for the Foundry resources."
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Deterministic LAB722 resource name prefix."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags."
+              }
+            },
+            "modelName": {
+              "type": "string",
+              "metadata": {
+                "description": "Foundry model name."
+              }
+            },
+            "modelVersion": {
+              "type": "string",
+              "metadata": {
+                "description": "Foundry model version."
+              }
+            },
+            "modelFormat": {
+              "type": "string",
+              "metadata": {
+                "description": "Foundry model provider format."
+              }
+            },
+            "modelSkuName": {
+              "type": "string",
+              "metadata": {
+                "description": "Foundry model deployment SKU."
+              }
+            },
+            "modelCapacity": {
+              "type": "int",
+              "metadata": {
+                "description": "Foundry model deployment capacity."
+              }
+            },
+            "labUserPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Object ID granted project-scoped Foundry data-plane access. Empty skips the role assignment."
+              }
+            },
+            "labUserPrincipalType": {
+              "type": "string",
+              "allowedValues": [
+                "User",
+                "Group",
+                "ServicePrincipal"
+              ],
+              "metadata": {
+                "description": "Microsoft Entra principal type for the Foundry role assignment."
+              }
+            },
+            "foundryUserRoleAssignmentName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Existing project-scoped Foundry User assignment name, if present. Empty generates a deterministic name."
+              }
+            }
+          },
+          "variables": {
+            "foundryAccountName": "[format('{0}-ai', parameters('baseName'))]",
+            "foundryProjectName": "caldova",
+            "foundryUserRoleId": "53ca6127-db72-4b80-b1b0-d745d6d5456d"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2025-06-01",
+              "name": "[variables('foundryAccountName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "kind": "AIServices",
+              "sku": {
+                "name": "S0"
+              },
+              "properties": {
+                "allowProjectManagement": true,
+                "customSubDomainName": "[variables('foundryAccountName')]",
+                "disableLocalAuth": true,
+                "publicNetworkAccess": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/projects",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}', variables('foundryAccountName'), variables('foundryProjectName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {},
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('labUserPrincipalId')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryAccountName'), variables('foundryProjectName'))]",
+              "name": "[if(empty(parameters('foundryUserRoleAssignmentName')), guid(resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryAccountName'), variables('foundryProjectName')), parameters('labUserPrincipalId'), variables('foundryUserRoleId')), parameters('foundryUserRoleAssignmentName'))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('foundryUserRoleId'))]",
+                "principalId": "[parameters('labUserPrincipalId')]",
+                "principalType": "[parameters('labUserPrincipalType')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryAccountName'), variables('foundryProjectName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}', variables('foundryAccountName'), parameters('modelName'))]",
+              "sku": {
+                "name": "[parameters('modelSkuName')]",
+                "capacity": "[parameters('modelCapacity')]"
+              },
+              "properties": {
+                "model": {
+                  "format": "[parameters('modelFormat')]",
+                  "name": "[parameters('modelName')]",
+                  "version": "[parameters('modelVersion')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))]",
+                "[resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryAccountName'), variables('foundryProjectName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "foundryAccountName": {
+              "type": "string",
+              "value": "[variables('foundryAccountName')]"
+            },
+            "foundryProjectName": {
+              "type": "string",
+              "value": "[variables('foundryProjectName')]"
+            },
+            "foundryProjectEndpoint": {
+              "type": "string",
+              "value": "[format('https://{0}.services.ai.azure.com/api/projects/{1}', variables('foundryAccountName'), variables('foundryProjectName'))]"
+            },
+            "modelDeploymentName": {
+              "type": "string",
+              "value": "[parameters('modelName')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "express",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[variables('baseName')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.40.2.10011",
+              "templateHash": "14674736140711147706"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for the Express environment."
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Deterministic LAB722 resource name prefix."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/managedEnvironments",
+              "apiVersion": "2026-03-02-preview",
+              "name": "[format('{0}-express', parameters('baseName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "environmentMode": "Express"
+              }
+            }
+          ],
+          "outputs": {
+            "expressEnvironmentName": {
+              "type": "string",
+              "value": "[format('{0}-express', parameters('baseName'))]"
+            },
+            "expressEnvironmentId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/managedEnvironments', format('{0}-express', parameters('baseName')))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "sandboxes",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[variables('baseName')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "sandboxIdentityId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'core'), '2025-04-01').outputs.sandboxIdentityId.value]"
+          },
+          "labUserPrincipalId": {
+            "value": "[parameters('labUserPrincipalId')]"
+          },
+          "labUserPrincipalType": {
+            "value": "[parameters('labUserPrincipalType')]"
+          },
+          "maxSandboxCount": {
+            "value": "[parameters('sandboxMaxCount')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.40.2.10011",
+              "templateHash": "4719685968381517459"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for the Sandbox group."
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Deterministic LAB722 resource name prefix."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags."
+              }
+            },
+            "sandboxIdentityId": {
+              "type": "string",
+              "metadata": {
+                "description": "User-assigned identity resource ID used by the Sandbox group."
+              }
+            },
+            "labUserPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Object ID granted Sandbox data-plane access. Empty skips the role assignment."
+              }
+            },
+            "labUserPrincipalType": {
+              "type": "string",
+              "allowedValues": [
+                "User",
+                "Group",
+                "ServicePrincipal"
+              ],
+              "metadata": {
+                "description": "Microsoft Entra principal type for the Sandbox role assignment."
+              }
+            },
+            "maxSandboxCount": {
+              "type": "int",
+              "defaultValue": 8,
+              "minValue": 4,
+              "maxValue": 16,
+              "metadata": {
+                "description": "Bounded Sandbox group capacity. The attendee scenario needs a primary and three workers."
+              }
+            }
+          },
+          "variables": {
+            "sandboxDataOwnerRoleId": "c24cf47c-5077-412d-a19c-45202126392c"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/sandboxGroups",
+              "apiVersion": "2026-02-01-preview",
+              "name": "[format('{0}-sandboxes', parameters('baseName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', parameters('sandboxIdentityId'))]": {}
+                }
+              },
+              "properties": {
+                "defaultCpu": "2",
+                "defaultMemory": "4Gi",
+                "defaultDisk": "20Gi",
+                "maxSandboxCount": "[parameters('maxSandboxCount')]",
+                "defaultTimeoutSeconds": 7200
+              }
+            },
+            {
+              "condition": "[not(empty(parameters('labUserPrincipalId')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.App/sandboxGroups', format('{0}-sandboxes', parameters('baseName')))]",
+              "name": "[guid(resourceId('Microsoft.App/sandboxGroups', format('{0}-sandboxes', parameters('baseName'))), parameters('labUserPrincipalId'), variables('sandboxDataOwnerRoleId'))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('sandboxDataOwnerRoleId'))]",
+                "principalId": "[parameters('labUserPrincipalId')]",
+                "principalType": "[parameters('labUserPrincipalType')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.App/sandboxGroups', format('{0}-sandboxes', parameters('baseName')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "sandboxGroupName": {
+              "type": "string",
+              "value": "[format('{0}-sandboxes', parameters('baseName'))]"
+            },
+            "sandboxGroupId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/sandboxGroups', format('{0}-sandboxes', parameters('baseName')))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'core')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "AZURE_SUBSCRIPTION_ID": {
+      "type": "string",
+      "value": "[subscription().subscriptionId]"
+    },
+    "AZURE_RESOURCE_GROUP": {
+      "type": "string",
+      "value": "[resourceGroup().name]"
+    },
+    "AZURE_LOCATION": {
+      "type": "string",
+      "value": "[parameters('location')]"
+    },
+    "AZURE_ENV_NAME": {
+      "type": "string",
+      "value": "[parameters('environmentName')]"
+    },
+    "AZURE_CONTAINER_REGISTRY_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'core'), '2025-04-01').outputs.containerRegistryName.value]"
+    },
+    "APPLICATION_INSIGHTS_CONNECTION_STRING": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'core'), '2025-04-01').outputs.applicationInsightsConnectionString.value]"
+    },
+    "FOUNDRY_ACCOUNT_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'foundry'), '2025-04-01').outputs.foundryAccountName.value]"
+    },
+    "FOUNDRY_PROJECT_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'foundry'), '2025-04-01').outputs.foundryProjectName.value]"
+    },
+    "FOUNDRY_PROJECT_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'foundry'), '2025-04-01').outputs.foundryProjectEndpoint.value]"
+    },
+    "FOUNDRY_MODEL_DEPLOYMENT_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'foundry'), '2025-04-01').outputs.modelDeploymentName.value]"
+    },
+    "EXPRESS_ENVIRONMENT_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'express'), '2025-04-01').outputs.expressEnvironmentName.value]"
+    },
+    "SANDBOX_GROUP_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'sandboxes'), '2025-04-01').outputs.sandboxGroupName.value]"
+    },
+    "SANDBOX_REGION": {
+      "type": "string",
+      "value": "[parameters('location')]"
+    }
+  }
+}

@@ -35,7 +35,7 @@ Fill in the sections below yourself, then:
 ## 🔥LAB722: Operate secure, multi-tenant agentic apps on Azure Container Apps
 ### Session description
 
-Add your session description here. Keep it concise — 2-3 sentences about what attendees will learn and why it matters.
+Build a governed research workflow for Caldova, a fictional pharmaceutical company. Configure a Microsoft Foundry orchestrator, run specialist agents in isolated Azure Container Apps Sandboxes, prove outbound network controls, and publish a validated research application to Azure Container Apps Express. The materials support guided and self-paced study; narrated segment videos are still planned.
 
 ### 🚀 Getting started
 
@@ -43,33 +43,38 @@ Add your session description here. Keep it concise — 2-3 sentences about what 
 
 If you're following along during a live session:
 
-1. Step 1
-2. Step 2
-3. Open [`instructions/`](instructions/README.md) when this session includes
-   attendee step-by-step guidance
+1. Open the [participant instructions](instructions/README.md) and choose recorded evidence or the facilitator-authorized live path.
+2. Verify the recorded package or supplied scoped readiness report, then follow the seven segments.
+3. Use the [presentation and speaker notes](presentations/README.md) alongside the guide. The 75-minute schedule is a target, not a measured dry run.
 
 #### On your own
 
 If you're learning at your own pace:
 
 1. Clone this repository
-2. Set up your environment
-3. Follow the session guidance in [`instructions/`](instructions/README.md), or
-   use the linked docs-site entry point when this repository uses that pattern
+2. Start with the bundled recorded-evidence path in the [participant instructions](instructions/README.md); it needs no Azure account or raw dataset download
+3. Follow the same segments and checkpoint worksheet. A live run requires the [facilitator handoff](instructions/facilitator.md); Skillable-specific integration and narrated videos are outside the current materials milestone
 
 ### 🎯 Learning outcomes
 
 By the end of this session, you will be able to:
 
-- Outcome 1
-- Outcome 2
-- Outcome 3
+- Configure a Microsoft Foundry orchestrator that assigns bounded work to specialist agents and requires approval for sensitive actions.
+- Prepare, snapshot, and clone Azure Container Apps Sandboxes while enforcing approved and denied outbound network destinations.
+- Validate agent-produced application changes with deterministic evidence and publish the approved image to Azure Container Apps Express.
 
 ### 💻 Technologies used
 
-- Technology 1
-- Technology 2
-- Technology 3
+- Azure Container Apps Sandboxes
+- Azure Container Apps Express
+- Microsoft Foundry Agent Service
+- Microsoft Agent Framework for Python
+- Azure Container Registry
+- Azure Monitor Application Insights
+- Azure Developer CLI (`azd`)
+- Bicep and Azure Resource Manager templates
+- React and TypeScript
+- GitHub source and the controller-owned stdio Model Context Protocol bridge
 
 ### 📚 Continue your learning
 
@@ -94,24 +99,20 @@ The Microsoft Learn MCP Server gives your AI agent direct access to Microsoft's 
 copilot plugin install microsoftdocs/mcp
 ```
 
-**VS Code** — One-click install:  
+**VS Code** — One-click install:
+
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Microsoft_Learn_MCP-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=microsoft-learn&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Flearn.microsoft.com%2Fapi%2Fmcp%22%7D)
 
 For more information, visit the [Learn MCP Server repo](https://aka.ms/learnmcp).
 
 ### 👥 Content owners
 
-<!-- TODO: Add yourself as a content owner
-1. Change the src in the image tag to {your github url}.png
-2. Change INSERT NAME HERE to your name
-3. Change the github url in the final href to your url. -->
-
 <table>
 <tr>
-    <td align="center"><a href="http://github.com/yourGitHubHandle">
-        <img src="https://github.com/yourGitHubHandle.png" width="100px;" alt="INSERT NAME HERE"/><br />
-        <sub><b>INSERT NAME HERE</b></sub></a><br />
-            <a href="https://github.com/yourGitHubHandle" title="talk">📢</a>
+    <td align="center"><a href="https://github.com/simonjj">
+        <img src="https://github.com/simonjj.png" width="100px;" alt="simonjj"/><br />
+        <sub><b>simonjj</b></sub></a><br />
+            <a href="https://github.com/simonjj" title="GitHub profile">📢</a>
     </td>
 </tr></table>
 
