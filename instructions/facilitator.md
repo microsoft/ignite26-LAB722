@@ -1,6 +1,6 @@
 # Platform-neutral facilitator handoff
 
-This checklist supports the presentation and participant instructions without covering Skillable-specific authentication, replacement tokens, triggers or output adapters. The recorded-evidence path is available independently of those decisions. A new live participant run needs explicit scope/access and its own evidence; the current materials are not proof of a measured event dry run.
+This checklist supports the presentation and participant instructions. The [Skillable panel manual](skillable.md) adds the existing profile's Windows login tokens, prepared checkout path and separate native SDK environments; [its export and publishing procedure](../scripts/README.md#skillable-instruction-panel) keeps the panel derived from the same seven segments. Azure authentication, live startup triggers and output adapters remain separate handoff work. The recorded-evidence path is available independently of those decisions. A new live participant run needs explicit scope/access and its own evidence; the current materials are not proof of a measured event dry run.
 
 ## Recorded-evidence delivery
 

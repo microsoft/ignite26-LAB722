@@ -8,6 +8,7 @@ The repository's `.gitattributes` preserves authored bytes across Windows and Li
 
 | Script | Purpose |
 |---|---|
+| `export-skillable-instructions.ps1` | Generate the nine-page Skillable panel manual from the overview, seven participant segments and worksheet, with VM tokens and prepared native interpreter paths |
 | `compile-arm.ps1` | Compile `infra/main.bicep` to the checked-in Skillable ARM template |
 | `start-lab.ps1` | Validate/provision infrastructure, inspect opt-in pinned application/data readiness, or explicitly prepare a pinned development worker baseline using two visible scope inputs |
 | `deploy-test.ps1` | Create or update an `azd` test environment in the ACAPMS subscription |
@@ -28,6 +29,22 @@ For the user-supplied AACT mirror, the maintainer module `python -m data.pipelin
 After acquisition, `python -m data.pipeline.extract_public` uses the existing data-aware runtime to prepare a bounded, checksum/provenance-bound **unreviewed** draft outside the checkout. Its conservative mapping, strict record limits and source fidelity are tested; it does not build an approved artifact, update startup or deploy the app. See [review draft commands and human approval requirements](../data/sources/README.md#conservative-public-review-draft).
 
 `python -m data.pipeline.freeze_public` builds a small local public artifact using the project owner's separately recorded approval for the exact selected draft/provenance. It preserves original fields, pins actual working-tree source bytes, validates complete records and stages all four frozen files; the freeze command itself never publishes or deploys. The real package contains 60 trials and 20 reports in a 4,206,592-byte database. See [public-freeze commands and scope](../data/sources/README.md#freezing-the-authorized-public-lab-slice). The opt-in public worker branch now has independently verified remote/container/live-development results and separate operational approvals described above. Neither those later approvals nor the freeze step rewrite historical source-use flags or approve attendee release.
+
+## Skillable instruction panel
+
+The lab checkout source of truth is `main` in the private `simonjj/ignite26-LAB722` fork. A published feature branch alone does not update what a normal clone receives. Stage the completed checkout at `C:\Users\LabUser\code\ignite26-LAB722` using authorized GitHub access; preserve existing user work and fast-forward an existing clean checkout rather than cloning over it. Do not put GitHub credentials into the shared VM image.
+
+Regenerate the versioned panel manual whenever its source instructions change:
+
+```powershell
+.\scripts\export-skillable-instructions.ps1
+```
+
+The export writes `instructions\skillable.md` as UTF-8 without a BOM. It adds the VM login tokens exposed by LAB722 profile 224872's editor (`Win11-Pro-Base` is the instance's token name), the prepared checkout path and the separate native SDK interpreters. It preserves fenced commands except for Segment 2's explicit controller interpreter adaptation. Repository links become local VM file references; the panel must not request private repository documents as relative Skillable URLs. Relative images, missing references and a changed controller snippet stop export rather than producing a broken manual.
+
+In a running lab, use the tiny gear at the **top right of the instruction panel**, select **Edit Instructions**, and import `instructions\skillable.md` into the code editor, replacing only the placeholder welcome manual. Save the changes, refresh the panel and inspect all nine pages, Next/Previous navigation, code blocks and resolved VM login typing controls. Reopen the profile's editor to confirm the saved content. This updates instructions independently of a VM disk capture.
+
+The current recorded path needs neither new Azure resources nor a raw dataset. Installing tools, cloning source or publishing this panel does not make the optional live path attendee-ready. Keep the facilitator gates in the source segments intact. Source staged after a tools-only image capture also needs a separately verified future-launch delivery mechanism; a successful clone in one running instance is not proof that every launch receives it.
 
 ## Platform-neutral startup
 

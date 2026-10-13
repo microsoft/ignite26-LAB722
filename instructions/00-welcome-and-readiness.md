@@ -2,7 +2,7 @@
 
 **Goal:** choose recorded evidence or an authorized live exercise and identify the pinned inputs. **Why:** results from different runs, images or datasets cannot fill one acceptance chain. **Services:** the local evidence package, or scoped Azure CLI/ACA readiness for the live path. **Outcome:** an explicit execution path and recorded run/data identities.
 
-Skillable-specific sign-in, triggers and output mapping are outside this materials milestone. No platform account is needed for the recorded path. All segment timings are targets, not measured participant results.
+The [Skillable panel manual](skillable.md) supplies the prepared Windows VM login and checkout steps. Azure identity, live startup triggers and output mapping still require the facilitator's verified handoff. No platform account is needed for the standalone recorded path. All segment timings are targets, not measured participant results.
 
 ## Task 1 - Review the request
 
