@@ -135,7 +135,7 @@ Do not merge the environments: their Pydantic pins differ. The base `python` on 
 $pages = foreach ($relative in $sources) {
     Convert-InstructionContent -SourcePath (Join-Path $repositoryRoot $relative)
 }
-$pages[0] = $welcome.TrimEnd() + "`n`n" + $pages[0]
+$pages[0] = $welcome.Replace("`r`n", "`n").TrimEnd() + "`n`n" + $pages[0]
 $manual = ($pages -join "`n`n===`n`n") + "`n"
 [void] [IO.Directory]::CreateDirectory((Split-Path $outputFile -Parent))
 [IO.File]::WriteAllText($outputFile, $manual, [Text.UTF8Encoding]::new($false))
