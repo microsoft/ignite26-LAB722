@@ -113,11 +113,13 @@ The live path starts with prepared resources and explicitly supplied authenticat
 
 The lab uses one versioned, read-only dataset shared by all attendees. Your primary Sandbox stages the artifact once. The worker clones inherit it from the baseline snapshot.
 
-The development preview uses the frozen `caldova-public-lab-use-v1` package: 60 trial records and 20 adverse-event reports across three exact-name candidate selections. Trial records come from the pinned September 14, 2026 AACT-derived DuckDB conversion by Nason; report records come from one disclosed openFDA 2026 Q2 export shard. Neither source is queried live by the application, and the report selection is not complete or representative.
+The checkout's new live-path bundle is `caldova-public-lab-use-v2`: **168 trial records and 38 adverse-event reports** across the same three exact-name candidate selections. The release record (VM file: `data\lab-release.json`) pins its manifest and committed pipeline provenance. The recorded evidence and retained development preview still use v1 (60 trials and 20 reports); do not combine their image/run receipts with v2 pins.
 
-The small package includes a database, manifest, original source-record JSON and frozen pipeline-source ZIP. Attendees must not download the full 7.07 GiB raw AACT-derived database into their checkout or Sandboxes. Trial conditions select trials only; they do not filter safety reports, link reports to trials or imply causation. The selected shard has no retained tirzepatide reports, which the portal displays honestly.
+Trial records come from the pinned September 14, 2026 AACT-derived DuckDB conversion by Nason; report records come from one disclosed openFDA 2026 Q2 export shard. Neither source is queried live by the application, and the report selection is not complete or representative. The portal adds trial phase/status summaries, conjunctive filters and incremental display; these describe source coverage, not comparative efficacy or safety.
 
-The project owner separately approved the exact development image. The historical dataset flags remain unchanged. Attendee distribution/release still needs committed pipeline provenance and a validated delivery contract; those decisions are not implied by the recorded-evidence materials. See the data-source record (VM file: `data\sources\README.md`) for pinned identities, coverage and the separate source-use decision.
+The small four-file package is included in the checkout and staged before the clean VM is snapshotted; no attendee raw-source rebuild is required. The offline `stage-lab-data.ps1` helper verifies/reuses those exact files. Attendees must not download the full 7.07 GiB raw AACT-derived database into their checkout or Sandboxes. Trial condition/phase/status filters select trials only; they do not filter safety reports, link reports to trials or imply causation. The selected shard still has no retained tirzepatide reports, which the portal displays honestly.
+
+The project owner separately approved the v2 selected slice for fork/VM distribution. Its extraction-time flags and the historical v1 flags remain unchanged; source-use and distribution are separate records. New v2 starter/reference images, actual attendee permissions/startup and a fresh timed walkthrough still require validation. See the data-source record (VM file: `data\sources\README.md`) for identities, coverage and the exact source-use decision.
 
 ===
 
@@ -167,6 +169,8 @@ The bundle is an integrity-checked projection of the accepted development receip
 
 Use only facilitator-supplied authentication and allocated scope. The harness/facilitator owns the complete immutable app/data pins (VM file: `scripts\README.md`; section: `pinned-application-readiness`); they are not extra participant deployment inputs. Do not select a maintainer subscription, infer your identity or provision infrastructure on this page.
 
+The prepared VM includes the pinned four-file v2 dataset, not the raw source databases. The facilitator/harness can call `.\scripts\stage-lab-data.ps1 -ConfigureSession` to verify/reuse it and set the current process's existing data pins without Azure calls. This does not create worker Sandboxes or make an old v1 image compatible with v2.
+
 ```powershell
 $resourceGroupName = Read-Host 'Allocated resource-group name'
 $region = Read-Host 'Workload region'
@@ -183,7 +187,7 @@ Stop live execution if infrastructure, application, manifest or frozen-data veri
 
 ## Checkpoint
 
-Record the execution path, run, dataset, manifest/logical hashes and pipeline provenance. The public package records `uncommitted-development` plus a checksummed source ZIP; do not substitute checkout `HEAD` as proof that those frozen working-tree bytes were committed.
+Record the execution path, run, dataset, manifest/logical hashes and pipeline provenance. Recorded v1 evidence honestly retains `uncommitted-development`; the new v2 manifest binds source bytes to its recorded full Git commit. Do not substitute the current checkout `HEAD` or combine either version's receipts.
 
 | Symptom | Safe response |
 |---|---|
@@ -252,6 +256,8 @@ if ($sample.status -cne 'unavailable' -or @($sample.trials).Count -ne 0 -or
 
 The starter's unavailable UI is not the missing-function source check. Segment 3 verifies the worker baseline's source, UID, protected files, policy and snapshot lineage independently.
 
+If building the starter is blocked, the facilitator may supply a separately verified **ready-made v2 starter** from `simon.azurecr.io/lab722-$AppName`, deployed by its own immutable digest with `PreviewState=starter`. It must pass the same data/state checks above. A completed ready-made **reference** uses a different digest and cannot pass this starter checkpoint; it is available only as the explicitly labelled later recovery path (VM file: `instructions\05-build-and-publish.md`; section: `recovery---use-the-ready-made-reference-image`). If no tested image/pull access is supplied, use recorded evidence rather than guessing an image.
+
 ## Checkpoint
 
 You can explain why the recorded reference is useful demonstration evidence but cannot substitute for the new starter or worker-baseline verification.
@@ -259,6 +265,7 @@ You can explain why the recorded reference is useful demonstration evidence but 
 | Symptom | Safe response |
 |---|---|
 | App is not listed | Facilitator resolves identity/subscription/group; do not create another app |
+| Starter build is blocked | Facilitator can deploy an approved ready-made v2 starter; a completed reference does not satisfy this checkpoint |
 | A supposed starter shows evidence | Compare expected state/digest; stop rather than accepting completed code |
 | UI and API disagree | Reload the same verified URL; persistent mismatch stops the live checkpoint |
 | Recorded URL is unavailable | Continue recorded inspection with its timestamp; do not claim current health |
@@ -340,6 +347,8 @@ You can identify all three assignments, their exact ownership and the data/run i
 **Goal:** establish one prepared primary, its snapshot and three distinct role clones. **Why:** matching frozen inputs and protected tooling make worker output comparable. **Services:** ACA Sandboxes and the prebuilt source/data bundle. **Outcome:** verified controller bindings, full frozen identity and a genuine missing-function baseline before new implementation.
 
 Preparation uses the existing tested source importer and prebuilt toolchains. It does not download the 7.07 GiB raw database into a Sandbox, restore arbitrary packages over a widened allowlist or clone unpinned source.
+
+For the new live path, the clean VM snapshot already carries the checkout and v2 dataset. The offline data-staging handoff is separate from this exercise: **you still explicitly prepare the primary, snapshot it and create the three role clones here**. Platform startup must not silently consume those steps.
 
 ## Recorded-evidence path
 
@@ -488,9 +497,9 @@ Distinguish four boundaries: source-use authorization, candidate validation, pub
 
 ## Live-exercise path
 
-Publication and deployment are facilitator operations until a generalized participant adapter is validated. The current candidate helper deliberately restricts registry/subscription/repository to the authorized maintainer scope; this is not a portable per-attendee publisher. Never enter maintainer IDs into an unrelated participant scope.
+The default live path builds the accepted agent source in **your allocated ACR**, not Simon's shared registry. Supply the explicit subscription/resource group/registry from readiness; the helper validates that current LAB722 scope before any build. Publication and exact-image deployment still need the facilitator's explicit authorization. Never enter maintainer IDs into an unrelated participant scope.
 
-In the authorized maintainer environment only, the facilitator can stage an accepted result without cloud activity. All variables come from the newly accepted run and independently trusted pins:
+You can first stage an accepted result without cloud activity. All variables come from the newly accepted run and independently trusted pins:
 
 ```powershell
 $packageArgs = @{
@@ -503,6 +512,7 @@ $packageArgs = @{
     Purpose = $env:LAB_STARTUP_PURPOSE
     RegistryName = $readiness.outputs.AZURE_CONTAINER_REGISTRY_NAME
     SubscriptionId = [guid] $readiness.outputs.AZURE_SUBSCRIPTION_ID
+    ResourceGroupName = $resourceGroupName
     Tag = ('participant-' + $runId)
 }
 $destination = Join-Path '.build-contexts' ('participant-stage-' + [guid]::NewGuid().ToString('N'))
@@ -512,20 +522,53 @@ $stage | Format-List
 
 `ApprovedRunId` selects the accepted source; it is **not human release approval**. Staging executes no candidate code on the host. It verifies original result bytes, baseline/protected source, all frozen files and accepted module hashes. The container is where candidate code and the dataset-specific suite execute.
 
-The facilitator next runs the documented candidate build and approval sequence (VM file: `scripts\README.md`; section: `agent-built-candidate`). A non-`StageOnly` helper invocation stages into a **new** destination, runs container acceptance and publishes a new tag; it needs prior publication authorization. Do not overwrite or reuse the existing stage directory. Preserve the returned ACR run and exact digest, record separate image-bound approval, then authorize `deploy-research-preview.ps1` for the exact development image.
+Next follow the documented portable build and approval sequence (VM file: `scripts\README.md`; section: `portable-image-and-data-delivery`). A non-`StageOnly` helper invocation stages into a **new** destination, runs container acceptance and publishes a new tag; it needs prior publication authorization. Do not overwrite or reuse the existing stage directory/tag. Preserve the returned ACR run and exact digest, record separate image-bound approval, then call `deploy-research-preview.ps1` with the allocated scope, Express environment and `-AuthorizeDeployment`.
+
+If the facilitator supplies a known-working reference digest and pull access, the optional `-ImageSource SimonRegistry` path deploys `simon.azurecr.io/lab722-$AppName@sha256:...`. Label the result **reference deployment**: it does not publish your agents' newly generated functions. No shared reference image is assumed present, and no learner write access to Simon's registry is required or granted.
 
 That deployment helper may create/refresh a repository-scoped pull credential and update the application. It is not a read-only action and must not be run merely because the model recommends release. Re-run pinned `Readiness` with the newly approved digest/reference state to establish the live image/data observation. Full API/runtime acceptance remains separate from this readiness sample.
 
 Open `https://containerapps.azure.com/` in the authorized scope and compare the exact image/app/URL to the returned records. The public preview reads frozen local data: absence of a live safety API call is expected, and tirzepatide's empty report selection is not an error.
 
+## Recovery - Use the ready-made reference image
+
+If your image build is blocked by tooling, build capacity or time, ask the facilitator for the **ready-made v2 reference digest** and confirmed pull access. Keep the failed run's evidence; do not repeatedly queue builds. If the facilitator has not supplied a published, tested image, use the recorded-evidence path instead of guessing a tag or digest.
+
+After explicit deployment authorization, use the same allocated infrastructure and frozen v2 data:
+
+```powershell
+$referenceTarget = @{
+    SubscriptionId = [guid] $readiness.outputs.AZURE_SUBSCRIPTION_ID
+    ResourceGroupName = $resourceGroupName
+    RegistryName = $readiness.outputs.AZURE_CONTAINER_REGISTRY_NAME
+    ExpressEnvironmentName = $readiness.outputs.EXPRESS_ENVIRONMENT_NAME
+}
+$referenceDeployment = .\scripts\deploy-research-preview.ps1 @referenceTarget `
+    -ImageSource SimonRegistry -AppName caldova-research `
+    -ImageDigest $approvedReferenceDigest -PreviewState reference -AuthorizeDeployment
+$referenceDeployment | Format-List
+$env:LAB_APPLICATION_NAME = $referenceDeployment.AppName
+$env:LAB_APPLICATION_IMAGE_SOURCE = 'SimonRegistry'
+$env:LAB_APPLICATION_IMAGE_DIGEST = $approvedReferenceDigest
+$env:LAB_APPLICATION_PREVIEW_STATE = 'reference'
+$readiness = .\scripts\start-lab.ps1 -ResourceGroupName $resourceGroupName `
+    -Region $region -Mode Readiness | ConvertFrom-Json
+```
+
+`$approvedReferenceDigest` is the facilitator's independently verified immutable digest, not one discovered from an untrusted endpoint. The private registry needs facilitator-provided read-only pull credentials in the current process; do not enter registry admin credentials, request writes in Simon's registry, or put passwords in commands, files or the VM snapshot. Stop if pull access was not supplied.
+
+Record **ready-made reference** in the worksheet and continue inspecting the UI and reference evidence. This does not make your own source/build accepted, repair a failed agent run, or transfer another run's approval. Scope, permission, checksum and acceptance failures still require facilitator investigation. If your own image is later approved, return `LAB_APPLICATION_IMAGE_SOURCE` to `LabRegistry` and pin that different digest before checking readiness again.
+
 ## Checkpoint
 
-The accepted module hashes, dataset identity, build result, published digest, separate human approval and application observation all agree. The current public pipeline records `uncommitted-development`; development approval does not make it attendee-releasable or transform the ZIP into a committed pipeline.
+For a participant-built image, accepted module hashes, dataset identity, build result, published digest, separate approval and application observation agree. For the optional reference, record its different provenance explicitly. Recorded v1 evidence retains its working-tree identity; v2 has its own committed pipeline and must produce a new image/run chain.
 
 | Symptom | Safe response |
 |---|---|
 | Build is incomplete or log streaming fails | Inspect the existing ACR run; do not queue another build merely to retrieve logs |
 | Only a no-push result is available | No deployment; there is no published immutable digest |
+| Local tooling/build capacity prevents publication | With facilitator approval, use the ready-made v2 reference above; otherwise continue with explicitly recorded evidence |
+| Reference digest or private pull access is missing | Stop and contact the facilitator; no guessed image, admin credential or implicit public pull |
 | Approval refers to another run/dataset/digest | Stop; an old approval cannot authorize a new image |
 | Image differs from the verified app | Preserve the mismatch; facilitator inspects the exact operation rather than switching tags or revisions |
 

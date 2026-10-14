@@ -44,6 +44,8 @@ The bundle is an integrity-checked projection of the accepted development receip
 
 Use only facilitator-supplied authentication and allocated scope. The harness/facilitator owns the [complete immutable app/data pins](../scripts/README.md#pinned-application-readiness); they are not extra participant deployment inputs. Do not select a maintainer subscription, infer your identity or provision infrastructure on this page.
 
+The prepared VM includes the pinned four-file v2 dataset, not the raw source databases. The facilitator/harness can call `.\scripts\stage-lab-data.ps1 -ConfigureSession` to verify/reuse it and set the current process's existing data pins without Azure calls. This does not create worker Sandboxes or make an old v1 image compatible with v2.
+
 ```powershell
 $resourceGroupName = Read-Host 'Allocated resource-group name'
 $region = Read-Host 'Workload region'
@@ -60,7 +62,7 @@ Stop live execution if infrastructure, application, manifest or frozen-data veri
 
 ## Checkpoint
 
-Record the execution path, run, dataset, manifest/logical hashes and pipeline provenance. The public package records `uncommitted-development` plus a checksummed source ZIP; do not substitute checkout `HEAD` as proof that those frozen working-tree bytes were committed.
+Record the execution path, run, dataset, manifest/logical hashes and pipeline provenance. Recorded v1 evidence honestly retains `uncommitted-development`; the new v2 manifest binds source bytes to its recorded full Git commit. Do not substitute the current checkout `HEAD` or combine either version's receipts.
 
 | Symptom | Safe response |
 |---|---|

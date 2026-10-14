@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "purpose": "public-lab-development",
+  "dataset_version": "caldova-public-lab-use-v2",
+  "manifest": {
+    "path": "data/lab-datasets/caldova-public-lab-use-v2/data-manifest.json",
+    "sha256": "99810e57a77cd3bc8b107287037e54fb2521795a96ec71d431fd585c03289f91"
+  },
+  "distribution_authorization": {
+    "authorized_by": "Simon (project owner; interactive confirmation)",
+    "authorized_at": "2026-10-14T20:25:12.515902Z",
+    "instruction": "Explicit confirmation to include the exact v2 slice, draft SHA-256 5c31dcd20478c1644b50eff7a7286b9c568094dd1e26427843afd23fc9dfe57c, containing 168 trials and 38 safety reports across the same three candidates, in the fork and prepared Skillable VM snapshot. Original attribution and limitations remain included. This is selected-source use and distribution authorization, not independent clinical/expert validation, live deployment approval, or confirmation that the attendee walkthrough has passed."
+  }
+}

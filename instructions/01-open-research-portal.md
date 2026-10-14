@@ -56,6 +56,8 @@ if ($sample.status -cne 'unavailable' -or @($sample.trials).Count -ne 0 -or
 
 The starter's unavailable UI is not the missing-function source check. Segment 3 verifies the worker baseline's source, UID, protected files, policy and snapshot lineage independently.
 
+If building the starter is blocked, the facilitator may supply a separately verified **ready-made v2 starter** from `simon.azurecr.io/lab722-$AppName`, deployed by its own immutable digest with `PreviewState=starter`. It must pass the same data/state checks above. A completed ready-made **reference** uses a different digest and cannot pass this starter checkpoint; it is available only as the explicitly labelled [later recovery path](05-build-and-publish.md#recovery---use-the-ready-made-reference-image). If no tested image/pull access is supplied, use recorded evidence rather than guessing an image.
+
 ## Checkpoint
 
 You can explain why the recorded reference is useful demonstration evidence but cannot substitute for the new starter or worker-baseline verification.
@@ -63,6 +65,7 @@ You can explain why the recorded reference is useful demonstration evidence but 
 | Symptom | Safe response |
 |---|---|
 | App is not listed | Facilitator resolves identity/subscription/group; do not create another app |
+| Starter build is blocked | Facilitator can deploy an approved ready-made v2 starter; a completed reference does not satisfy this checkpoint |
 | A supposed starter shows evidence | Compare expected state/digest; stop rather than accepting completed code |
 | UI and API disagree | Reload the same verified URL; persistent mismatch stops the live checkpoint |
 | Recorded URL is unavailable | Continue recorded inspection with its timestamp; do not claim current health |

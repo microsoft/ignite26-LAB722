@@ -5,7 +5,7 @@
 - Clinical topic: diabetes and obesity, including a bounded GLP-1 research scenario.
 - Trial-data format: curated AACT-derived relational data packaged as DuckDB.
 - Safety-data format: cached openFDA-derived fixtures with an optional live request.
-- Artifact distribution: GitHub release asset with a checked-in manifest and checksum.
+- Artifact distribution: versioned four-file lab bundle in the checkout, pinned by `data/lab-release.json`, then staged into the clean prepared VM snapshot.
 
 ## Intended public sources
 
@@ -62,7 +62,7 @@ The fixed mapping uses trimmed, case-insensitive equality to **semaglutide, lira
 
 Safety matching uses an exact generic `medicinalproduct` or harmonized `generic_name`, excluding a matched drug object when `substance_name` lists additional substances. The latest report version is selected **within the complete acquired input before candidate filtering**, so an older matching version cannot replace an unmapped newer version. Conflicting complete raw copies of the same ID/version fail, even if the differing field would be excluded from the draft; identical copies are deduplicated. The existing normalization helper provides unique uppercase reaction terms, while original terms and matching source drug-name arrays remain separately available for review.
 
-Stable ascending IDs and strict budgets allow at most **10 trials per candidate/topic** and **10 reports per candidate**, measured against the complete retained records. A shared record is retained whole or skipped when any represented bucket is full; its other mapped candidates, conditions, or reactions are never dropped to make a limit pass. Original source conditions and intervention labels, including original case/whitespace, remain separate from canonical topic categories. Harmonized brand arrays are metadata, not proof that every listed brand was taken.
+Stable ascending IDs and versioned strict budgets allow at most **10 trials per candidate/topic and 10 reports per candidate in v1**, or **30 trials per candidate/topic and 50 reports per candidate in v2**, measured against complete retained records. V1 validation still rejects larger counts; relabelling an expanded slice as v1 does not widen its policy. A shared record is retained whole or skipped when any represented bucket is full; its other mapped candidates, conditions, or reactions are never dropped to make a limit pass. Original source conditions and intervention labels, including original case/whitespace, remain separate from canonical topic categories. Harmonized brand arrays are metadata, not proof that every listed brand was taken.
 
 The actual verified October 10 review draft contains **60 trials and 20 reports**, with **74,073 JSON bytes**. All six trial buckets contain 10 records; semaglutide/liraglutide each have 10 reports. Tirzepatide has a genuine empty safety result under this mapping in the disclosed single shard. This is a deliberately bounded software demonstration, neither complete nor representative clinical evidence. Four focused extraction tests and the four frozen-export regressions pass; an independent check compared every selected source field/collection, latest within-input version and actual limit with the original inputs.
 
@@ -88,7 +88,19 @@ The actual local build contains **60 trials, 20 reports, and a 4,206,592-byte da
 
 Validation independently compares every database record and complete canonical collection with the frozen extraction, preserves source identity/attribution, verifies auxiliary checksums and the ZIP's file inventory/checksums, and rejects unsafe archive entries. `data.pipeline.stage_dataset` stages all four files under the manifest trust anchor and preserves their bytes. Public API checks passed all nine actual candidate/condition combinations, complete original source projections, condition-independent safety results, true empty tirzepatide safety, and 404/422 errors. Twenty-six targeted tests, the original nine synthetic acceptance tests, and frontend type-check/build passed.
 
-The local portal displays a bounded-public-data banner, original source fields, dated provenance and the exact source-use scope; its legacy `reviewed-public` contract label does not claim clinical validation or an expert audit. This package is **unpublished**, the Azure preview remains synthetic, and the original synthetic worker baseline/candidate packager still rejects public data until a separate public acceptance path is implemented. A committed pipeline and exact-image approval remain attendee-release requirements.
+The portal displays a bounded-public-data banner, original source fields, dated provenance and exact source-use scope; its legacy `reviewed-public` label does not claim clinical validation or an expert audit. The later separately approved v1 agent-built development deployment is documented in [the script history](../../scripts/README.md); those image/run receipts do not apply to v2.
+
+## Versioned v2 lab bundle
+
+On October 14, 2026, the project owner approved a modest expansion of the same conservative selection, then explicitly confirmed distribution of the exact **168-trial, 38-report** slice in the fork and prepared Skillable VM. Its draft SHA-256 is `5c31dcd20478c1644b50eff7a7286b9c568094dd1e26427843afd23fc9dfe57c`; the original draft/provenance flags remain false. The separate source-use decision is frozen in the ZIP, while [the release record](../lab-release.json) records distribution authorization and pins the new manifest.
+
+The v2 extractor uses `--mapping-version conservative-exact-generics-v2`. It reads the same pinned inputs, does not infer new names, and retains all 38 eligible reports (21 semaglutide and 17 liraglutide mentions). Tirzepatide still has no matching reports in this shard. Five candidate/topic trial buckets reach 30; tirzepatide/type-2-diabetes has 26. Whole shared trials make this 168 unique records rather than the sum of the buckets. Phase/status summaries and filters make the additional source coverage inspectable without changing complete record arrays or filtering safety reports.
+
+The freeze uses `--pipeline-commit <full-commit-SHA>`. Every allowlisted pipeline/backend/frontend/test source is compared byte-for-byte with Git before the archive is labelled `git-commit`; a missing file, dirty allowlisted source or mismatched commit fails. The manifest and ZIP bind the same source revision. V1 is neither regenerated nor relabelled.
+
+The four files under `data/lab-datasets/caldova-public-lab-use-v2` are the only dataset payload: database, manifest, original JSON and pipeline-source ZIP, totalling **4,468,808 bytes (4.26 MiB)**. `stage-lab-data.ps1` verifies them offline with the release pin, atomically stages a new destination, or checks an identical existing copy. The final bundle's native Windows local staging measured **0.37 seconds**, with an identical repeat verified as reused. No source download or extraction belongs in the attendee session. The measured local cached-input v2 extraction took 88.24 seconds; neither local measurement is Skillable timing, a remote build or a 75-minute rehearsal result.
+
+Distribution authorization is not independent clinical/expert validation, live deployment approval, effective attendee permissions, or a successful fresh walkthrough. Existing source-use flags remain historical records rather than being edited to claim those later stages.
 
 ## Build placeholders
 
