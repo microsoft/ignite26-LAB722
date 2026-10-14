@@ -4,6 +4,14 @@ This folder contains the source configuration, schemas, deterministic fixtures, 
 
 All attendees use the same immutable data version. The primary Sandbox stages it once and records its checksum before creating the baseline snapshot. Worker clones inherit the staged artifact.
 
+## Bundled v2 delivery
+
+The new live-path checkout includes **`caldova-public-lab-use-v2`**, with **168 trials and 38 safety reports** across the same three candidates. Its four files total **4.26 MiB** and live in `lab-datasets/caldova-public-lab-use-v2`; [lab-release.json](lab-release.json) pins the manifest and records the project owner's exact-slice distribution confirmation. The frozen pipeline ZIP verifies allowlisted source bytes against its recorded full Git commit. V1 files and recorded development evidence remain unchanged.
+
+Run `.\scripts\stage-lab-data.ps1 -ConfigureSession` from the repository root to verify and atomically stage/reuse the bundle offline. The helper uses only Python's standard library and sets the existing data pins in the current process; no raw download, Azure call, worker allocation or package installation occurs. Stage this checkout on the clean VM before capture, then configure each launched session explicitly. See [the full handoff](../scripts/README.md#portable-image-and-data-delivery).
+
+The project owner approved selected-source use and fork/VM distribution, not independent clinical validation or a completed attendee walkthrough. The same disclosed shard still has no matching tirzepatide safety reports. Trial phase/status summaries and filters affect trials only. New starter/reference images must match v2 pins; old v1 image/run receipts cannot approve them.
+
 ## Implemented development slice
 
 `fixtures/research-data.json` is an explicitly fictional `synthetic-development` fixture: three candidates, four trials, and five raw safety-report records that normalize to three distinct reports. It is not an AACT/openFDA extract and does not supply fabricated clinical citations. It remains the retained developer-image baseline; the separately authorized public lab artifact is described below.
@@ -20,7 +28,7 @@ python -m data.pipeline.stage_dataset --manifest data\artifacts\development\data
 
 The builder and stager refuse to overwrite existing output directories. Remote staging requires an HTTPS manifest URL and `--manifest-sha256` containing the independently published manifest checksum. The validator checks database size, SHA-256, dataset identity, and the complete table-count contract; unsafe artifact filenames and symlinked database inputs are rejected.
 
-Repeated builds preserve logical identity and query results, not necessarily identical database bytes or build timestamps. Freeze one artifact and its manifest for an attendee release, rather than rebuilding it independently for each attendee. Public inputs require recorded source-use approval, source metadata and citations. The local public-freeze path captures an exact source ZIP rather than falsely assigning an old commit to uncommitted implementation; the attendee release gate still requires a full pipeline commit.
+Repeated builds preserve logical identity and query results, not necessarily identical database bytes or build timestamps. Freeze one artifact and its manifest rather than rebuilding it for each attendee. Public inputs require recorded source-use approval, source metadata and citations. `freeze_public --pipeline-commit` verifies every allowlisted source byte before recording committed provenance; the legacy no-commit path honestly retains a working-tree identity. Committed provenance alone does not pass the attendee-release gate.
 
 ## Frozen public lab slice
 
@@ -30,12 +38,15 @@ The package includes `data-manifest.json`, `caldova-research.duckdb`, the byte-p
 
 The portal exposes original condition/intervention/drug/reaction fields alongside the canonical query fields and provides `/api/source-records` for the complete frozen extraction. It distinguishes historical draft flags from the subsequent source-use decision, displays partial-coverage notes, and keeps the genuine empty tirzepatide safety result. An independent check passed all nine real candidate/condition combinations. Twenty-six targeted regressions, the nine unchanged synthetic acceptance tests, and frontend type-check/build passed.
 
-See [the public-freeze command and scope](sources/README.md#freezing-the-authorized-public-lab-slice). The public package is local and unpublished. The existing synthetic Azure preview, original fixture tests, and synthetic-only worker-baseline/candidate packaging path remain unchanged; public worker acceptance and attendee startup integration are still required.
+This section preserves the initial v1 freeze history. Later separately approved public-worker and development-deployment evidence is recorded in [the script history](../scripts/README.md); it is not a v2 image or a fresh participant run. See [the public-freeze command and scope](sources/README.md#freezing-the-authorized-public-lab-slice).
 
 ## Release layout
 
 ```text
 data/
+|-- lab-release.json
+|-- lab-datasets/
+|   `-- caldova-public-lab-use-v2/
 |-- sources/
 |   |-- README.md
 |   `-- source-config.example.json
@@ -52,7 +63,7 @@ The approved relational artifact will use the implemented DuckDB pipeline. Its p
 - Cached openFDA-derived safety fixtures.
 - An optional commercial-context dataset only if it fits the lab timing and approval requirements.
 
-The bounded immutable attendee artifact is planned for a GitHub release asset after explicit publication authorization. Raw maintainer inputs remain outside the checkout. The local public artifact has not been published.
+The bounded v2 bundle is distributed with the checkout after the project owner's explicit confirmation; a separate GitHub release-asset download is not required. Raw maintainer inputs remain outside the checkout. Clean VM capture, actual attendee access, image publication and the fresh live walkthrough remain separate operations.
 
 ## Source use
 
