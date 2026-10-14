@@ -4,7 +4,7 @@
 
 Deliver a 75-minute guided and self-paced lab in which attendees configure a Foundry orchestrator, prepare and clone ACA Sandboxes, validate parallel agent work, and publish a Caldova research application to ACA Express.
 
-The current project-owner request is to complete the presentation and participant instructions without covering Skillable-specific work. The recorded-evidence path is the default for this materials milestone; a new live participant run, platform integration and final video readiness remain separate.
+The original materials milestone supplied the presentation and recorded-evidence participant path. The subsequent delivery work adds portable participant image publication, an explicit ready-made-image alternative and a bundled v2 dataset. A fresh live participant run, completed Skillable integration and final video readiness remain separate.
 
 ## Confirmed decisions
 
@@ -13,7 +13,7 @@ The current project-owner request is to complete the presentation and participan
 | Clinical topic | Diabetes and obesity with a bounded GLP-1 scenario |
 | Trial data | Curated AACT-derived DuckDB artifact |
 | Safety data | Frozen exact-name selection from one disclosed openFDA export shard; no live application query |
-| Artifact storage | Full frozen package outside the checkout; reduced recorded evidence in `instructions/assets`; immutable data-release publication remains separate |
+| Artifact storage | Approved four-file v2 bundle and manifest pin in the checkout; raw inputs and retained immutable v1 outside it; reduced historical evidence in `instructions/assets` |
 | Backend and agents | Python using Microsoft Agent Framework |
 | Portal | React and TypeScript |
 | Deployment scope | Harness supplies subscription/authentication and an existing resource group; only region and resource-group name are visible configuration |
@@ -21,13 +21,22 @@ The current project-owner request is to complete the presentation and participan
 | Foundry resources | Deploy an API and Foundry endpoint for each attendee |
 | GitHub access | Staged read-only repository source; the implemented controller does not require a portal-attached GitHub MCP connection |
 | Sandbox authorization | Preassigned by the event platform |
+| Application images | Default build of accepted agent source in each allocated ACR; optional Simon reference requires a real published digest and verified read-only pull access |
 | Presentation output | RevealJS source, PDF, and slide images |
 | Video output | Seven segment videos and one combined cut on Microsoft Stream or SharePoint |
 | Browser baseline | Current Microsoft Edge at 1440x900 or higher |
 | Service fallback | Explicitly labelled recorded-evidence delivery, never a substitute approval, starter or successful live check |
 | Resource cleanup | Requires explicit project-owner approval |
 
-## Progress as of October 10, 2026
+## Progress as of October 14, 2026
+
+The fork now contains portable scoped publication/deployment helpers, the offline dataset handoff and updated participant/facilitator instructions, including an explicit [ready-made reference recovery path](../instructions/05-build-and-publish.md#recovery---use-the-ready-made-reference-image). The normal exercise still publishes accepted participant-generated application source in the allocated ACR. Choosing a reference image does not prove that source was deployed.
+
+The checked-in `caldova-public-lab-use-v2` bundle contains 168 trials and 38 reports in four files totaling 4.26 MiB. Its [release pin](../data/lab-release.json) records exact-slice fork/VM distribution confirmation, while the frozen source ZIP is verified against full commit `8ac43eb5765e5edcffef7da6c057100b40fec6c9`. Historical source-use flags and v1 files/receipts remain unchanged. Dataset/API, source export, offline publication/deployment/handoff/startup, frontend build/filter and desktop/mobile browser checks passed; this is not a new live image deployment or an attendee rehearsal.
+
+Actual v2 starter/reference image publication and cross-tenant pulls, Skillable Foundry/Sandbox access, a clean credential-free VM capture, live instruction-panel import and a fresh timed walkthrough remain unfinished. The existing presentation exports and generated notes retain the earlier recorded-evidence milestone; they were not regenerated during this delivery update.
+
+## Retained progress as of October 10, 2026
 
 **Current state:** the public agent-built development preview is deployed and healthy; earlier synthetic images and resources remain retained. The project-owner-authorized public lab slice contains 60 trials, 20 reports and a 4,206,592-byte database, with original source projections and honest working-tree provenance. Public live run `9bbcce44-7e7b-4889-b7e4-4081ea9893dc` passes all three test-1 specialists, strict source/shared-record/ordering checks, the independent unchanged eight-test public suite, actual allowed HTTP 200/denied HTTP 403 egress and worker-schema checks with zero blockers. Prepared-baseline ACR run `dsk` and candidate-validation run `dsm` used `--no-push`. Subsequent separately approved publication run `dsn` passed the eight public tests in 4.025 seconds and produced digest `sha256:e219757d2f40dd83f5445ea661aa8f56e9ff53864d34127b74acc7570306bd38`, then received separate exact-run/dataset/image development-deployment approval. Attendee authorization, committed-source release provenance, fresh end-to-end startup, timed guidance and recording readiness remain pending. Earlier entries below retain development history.
 
