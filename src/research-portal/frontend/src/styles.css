@@ -44,6 +44,15 @@ select { min-width: 230px; color: #17313b; background: white; padding: 9px 12px;
 .record-tags { display: flex; gap: 7px; margin-bottom: 8px; }
 .record-tags span { font-size: 11px; text-transform: capitalize; padding: 3px 8px; border-radius: 4px; background: #eaf2f4; color: #395965; }
 .trial-card p, .report-context { color: #526b76; font-size: 12px; }
+.trial-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 14px; margin-bottom: 14px; background: #edf5f3; border-radius: 6px; }
+.trial-summary h3 { font-size: 12px; margin-bottom: 8px; }
+.trial-summary dl { margin: 0; }
+.trial-summary dl > div { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
+.trial-summary dt { font-weight: 400; text-transform: capitalize; }
+.trial-summary dd { margin: 0; font-weight: 650; }
+.trial-filters { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0; }
+.trial-filters label { flex: 1; min-width: 150px; }
+.trial-filters select { min-width: 0; width: 100%; }
 .citation { color: #526b76; font-size: 11px; display: flex; flex-direction: column; gap: 3px; margin-top: 12px; }
 .citation code { color: #235369; font-size: 11px; }
 .panel-note { font-size: 12px; color: #526b76; margin: -3px 0 15px; }

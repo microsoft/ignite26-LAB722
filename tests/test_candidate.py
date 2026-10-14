@@ -40,11 +40,12 @@ class CandidatePackagingTests(unittest.TestCase):
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(b"raise RuntimeError('Synthetic trusted bundle must not execute locally')\n")
-        for name in packager.BUILDER_FILES | {"scripts/build-agent-candidate.ps1"}:
+        for name in packager.BUILDER_FILES | {"scripts/build-agent-candidate.ps1", "scripts/lab-image-target.ps1"}:
             destination = self.root / name
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, destination)
         shutil.copyfile(ROOT / "src/workers/frozen_contract.py", self.root / "src/workers/frozen_contract.py")
+        shutil.copyfile(ROOT / "data/pipeline/public_policy.py", self.root / "data/pipeline/public_policy.py")
         database = b"Exact synthetic artifact bytes; not a database rebuilt for a frozen run.\x00\xfe"
         (self.frozen / "caldova-research.duckdb").write_bytes(database)
         self.manifest = {
@@ -339,6 +340,23 @@ function global:az {
     $native = @($args)
     [IO.File]::AppendAllText($env:CANDIDATE_TEST_CALLS, (ConvertTo-Json -InputObject $native -Compress) + "`n")
     $global:LASTEXITCODE = 0
+    $options = $env:CANDIDATE_TEST_OPTIONS | ConvertFrom-Json
+    if ($native[0] -eq 'account') {
+        $id = $options.SubscriptionId
+        if ($env:CANDIDATE_TEST_FAULT -eq 'wrong-account') { $id = '10000000-0000-0000-0000-000000000001' }
+        return (@{id=$id;state='Enabled'} | ConvertTo-Json)
+    }
+    if ($native[0] -eq 'resource') {
+        $id = "/subscriptions/$($options.SubscriptionId)/resourceGroups/$($options.ResourceGroupName)/providers/Microsoft.ContainerRegistry/registries/$($options.RegistryName)"
+        if ($env:CANDIDATE_TEST_FAULT -eq 'wrong-registry-scope') { $id += '-foreign' }
+        return (@{id=$id;name=$options.RegistryName;type='Microsoft.ContainerRegistry/registries'
+            tags=@{lab='LAB722'};properties=@{provisioningState='Succeeded';loginServer="$($options.RegistryName).azurecr.io"}} |
+            ConvertTo-Json -Depth 5)
+    }
+    if ($native[0] -eq 'acr' -and $native[1] -eq 'repository' -and $native[2] -eq 'list') {
+        if ($env:CANDIDATE_TEST_FAULT -eq 'empty-registry') { return '[]' }
+        return '["caldova/research-portal"]'
+    }
     if ($native[1] -eq 'repository') {
         if ($env:CANDIDATE_TEST_FAULT -eq 'tag-failure') { $global:LASTEXITCODE = 1; return }
         if ($env:CANDIDATE_TEST_FAULT -eq 'existing-tag') { return '["offline-candidate-test"]' }
@@ -361,7 +379,7 @@ function global:az {
     }
     if ($env:CANDIDATE_TEST_FAULT -eq 'build-failure') { $global:LASTEXITCODE = 1; return }
     $image = @{
-        registry = 'lab7222tf3zuqwfs4huacr.azurecr.io'
+        registry = "$($options.RegistryName).azurecr.io"
         repository = 'caldova/research-portal'; tag = 'offline-candidate-test'; digest = ('sha256:' + ('d' * 64))
     }
     if ($env:CANDIDATE_TEST_FAULT -eq 'bad-digest') { $image.digest = 'not-a-digest' }
@@ -407,6 +425,30 @@ catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }
                 self.assertEqual(calls, [])
                 self.assertTrue((destination / "candidate-provenance.json").is_file())
                 self.assertFalse((destination / "candidate-image.json").exists())
+
+    def test_portable_publication_checks_the_current_registry_before_build_and_preserves_offline_staging(self):
+        scope = {"SubscriptionId": str(uuid4()), "RegistryName": "participantregistry",
+                 "ResourceGroupName": "participant-rg"}
+        result, calls, destination = self.invoke_native("portable", extra=scope)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([call[:2] for call in calls],
+                         [["account", "show"], ["resource", "show"],
+                          ["acr", "repository"], ["acr", "repository"], ["acr", "build"]])
+        image = json.loads((destination / "candidate-image.json").read_text())["image"]
+        self.assertTrue(image["reference"].startswith("participantregistry.azurecr.io/"))
+        self.assertEqual(image["resource_group"], "participant-rg")
+        result, calls, _ = self.invoke_native("portable-stage", extra={**scope, "StageOnly": True})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(calls, [])
+        result, calls, _ = self.invoke_native("first-repository", "empty-registry", scope)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(any(call[:2] == ["acr", "build"] for call in calls))
+        self.assertFalse(any(call[:3] == ["acr", "repository", "show-tags"] for call in calls))
+        for fault in ("wrong-account", "wrong-registry-scope"):
+            result, calls, destination = self.invoke_native(fault, fault, scope)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(any(call[:2] == ["acr", "build"] for call in calls))
+            self.assertFalse((destination / "candidate-image.json").exists())
 
     def test_native_evidence_failure_blocks_before_any_acr_operation(self):
         self.result["egress_evidence"][0]["passed"] = False

@@ -8,7 +8,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $savedEnvironment = @{}
 foreach ($name in @('AZURE_SUBSCRIPTION_ID', 'LAB_USER_PRINCIPAL_ID', 'LAB_USER_PRINCIPAL_TYPE',
     'LAB_STARTUP_PURPOSE', 'LAB_DATA_MANIFEST', 'LAB_DATA_MANIFEST_SHA256', 'LAB_PYTHON_EXECUTABLE',
-    'LAB_APPLICATION_NAME', 'LAB_APPLICATION_IMAGE_DIGEST', 'LAB_APPLICATION_PREVIEW_STATE')) {
+    'LAB_APPLICATION_NAME', 'LAB_APPLICATION_IMAGE_DIGEST', 'LAB_APPLICATION_PREVIEW_STATE', 'LAB_APPLICATION_IMAGE_SOURCE')) {
     $savedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name)
 }
 . (Join-Path (Join-Path $root 'scripts') 'start-lab.ps1') -ResourceGroupName 'stub-rg'
@@ -36,7 +36,7 @@ function Reset-Test([string] $Fault = '', [switch] $Existing) {
     $env:AZURE_SUBSCRIPTION_ID = $script:subscription
     Remove-Item Env:LAB_USER_PRINCIPAL_ID,Env:LAB_USER_PRINCIPAL_TYPE -ErrorAction SilentlyContinue
     foreach ($name in @('LAB_STARTUP_PURPOSE', 'LAB_DATA_MANIFEST', 'LAB_DATA_MANIFEST_SHA256', 'LAB_PYTHON_EXECUTABLE',
-        'LAB_APPLICATION_NAME', 'LAB_APPLICATION_IMAGE_DIGEST', 'LAB_APPLICATION_PREVIEW_STATE')) {
+        'LAB_APPLICATION_NAME', 'LAB_APPLICATION_IMAGE_DIGEST', 'LAB_APPLICATION_PREVIEW_STATE', 'LAB_APPLICATION_IMAGE_SOURCE')) {
         Remove-Item "Env:$name" -ErrorAction SilentlyContinue
     }
     $script:calls = [Collections.Generic.List[object]]::new()
@@ -277,6 +277,12 @@ function Invoke-LabNative {
                 containers = @(@{ name = 'stub-app'; image = "stubregistry.azurecr.io/caldova/research-portal@$env:LAB_APPLICATION_IMAGE_DIGEST" })
                 ingress = @{ fqdn = 'stub-app.example.azurecontainerapps.io'; external = $true; targetPort = 8080 }
             }
+            if ($env:LAB_APPLICATION_IMAGE_SOURCE -ceq 'SimonRegistry') {
+                $json.containers[0].image = "simon.azurecr.io/lab722-stub-app@$env:LAB_APPLICATION_IMAGE_DIGEST"
+            }
+            if ($script:fault -eq 'DnlRegistry') {
+                $json.containers[0].image = "stubregistry-hash.azurecr.io/caldova/research-portal@$env:LAB_APPLICATION_IMAGE_DIGEST"
+            }
             switch ($script:fault) {
                 'ApplicationMissing' { return @{ exit_code = 3; stdout = 'untrusted secret diagnostic' } }
                 'ApplicationWrongScope' { $json.id += '-other' }
@@ -301,6 +307,11 @@ function Invoke-LabNative {
         $path = $id.Substring(($script:groupId + '/providers/').Length)
         Assert-Test ($expected.ContainsKey($path)) 'Current resource lookup did not correspond to a deployment output.'
         Assert-Test ((Get-TestArgument $Arguments '--api-version') -ceq $expected[$path][2]) 'Resource lookup used an unreviewed API version.'
+        if ((Get-TestArgument $Arguments '--query') -ceq '{id:id,loginServer:properties.loginServer}') {
+            Assert-Test ($path -ceq 'Microsoft.ContainerRegistry/registries/stubregistry') 'Login-server lookup escaped the allocated registry.'
+            $server = if ($script:fault -eq 'DnlRegistry') { 'stubregistry-hash.azurecr.io' } else { 'stubregistry.azurecr.io' }
+            return @{ exit_code = 0; stdout = (@{id=$id;loginServer=$server} | ConvertTo-Json -Compress) }
+        }
         Assert-Test ((Get-TestArgument $Arguments '--query') -ceq '{id:id,type:type,name:name,state:properties.provisioningState,location:location}') 'Resource lookup requested unnecessary metadata or secrets.'
         $json = @{ id = $id; type = $expected[$path][0]; name = $expected[$path][1]; state = 'Succeeded'; location = 'westus3' }
         if ($path -like '*/managedEnvironments/*') { $json.location = 'West US 3' }
@@ -540,6 +551,7 @@ try {
         @('LAB_APPLICATION_NAME', '../unsafe'),
         @('LAB_APPLICATION_IMAGE_DIGEST', ('sha256:' + ('A' * 64))),
         @('LAB_APPLICATION_PREVIEW_STATE', 'completed'),
+        @('LAB_APPLICATION_IMAGE_SOURCE', 'arbitrary-registry'),
         @('LAB_STARTUP_PURPOSE', 'attendee-release'),
         @('LAB_DATA_MANIFEST_SHA256', 'not-a-checksum')
     )) {
@@ -570,6 +582,23 @@ try {
             Assert-Test ($report.outputs.CALDOVA_APPLICATION_URL -ceq 'https://stub-app.example.azurecontainerapps.io' -and
                 $report.outputs.CALDOVA_APPLICATION_IMAGE.EndsWith($env:LAB_APPLICATION_IMAGE_DIGEST)) 'Verified application outputs were not published.'
         }
+    }
+    $script:passed++
+
+    foreach ($case in @('SimonRegistry', 'DnlRegistry')) {
+        Reset-Test -Fault $(if ($case -eq 'DnlRegistry') { 'DnlRegistry' } else { '' }) -Existing
+        $env:LAB_APPLICATION_NAME = 'stub-app'
+        $env:LAB_APPLICATION_IMAGE_DIGEST = 'sha256:' + ('a' * 64)
+        $env:LAB_APPLICATION_PREVIEW_STATE = 'reference'
+        if ($case -eq 'SimonRegistry') { $env:LAB_APPLICATION_IMAGE_SOURCE = $case }
+        $env:LAB_STARTUP_PURPOSE = 'public-lab-development'
+        $env:LAB_DATA_MANIFEST = 'stub-frozen-manifest.json'
+        $env:LAB_DATA_MANIFEST_SHA256 = $script:frozenHash
+        $env:LAB_PYTHON_EXECUTABLE = 'python-application-stub'
+        $report = Invoke-LabStartup -ResourceGroupName stub-rg -Mode Readiness
+        Assert-Test ($report.application_ready -and -not $report.attendee_ready) 'Explicit image source did not retain development-only readiness.'
+        $expected = if ($case -eq 'SimonRegistry') { 'simon.azurecr.io/lab722-stub-app@' } else { 'stubregistry-hash.azurecr.io/caldova/research-portal@' }
+        Assert-Test ($report.outputs.CALDOVA_APPLICATION_IMAGE.StartsWith($expected)) 'Readiness checked the wrong immutable image source.'
     }
     $script:passed++
 

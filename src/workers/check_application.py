@@ -1,7 +1,6 @@
 """Read-only application checks against locally staged, checksum-pinned data."""
 
 import argparse
-import hashlib
 import json
 import re
 import sys
@@ -12,8 +11,7 @@ from urllib.request import HTTPRedirectHandler, build_opener
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.workers.frozen_contract import (
-    MAX_BYTES, PUBLIC_PURPOSE, SYNTHETIC_PURPOSE, canonical_hash, digest, frozen_bytes, load_public_sources,
-    manifest_identity, read_json_bytes, require,
+    PUBLIC_PURPOSE, SYNTHETIC_PURPOSE, canonical_hash, read_json_bytes, require, verify_frozen_artifacts,
 )
 
 MAX_RESPONSE_BYTES = 1024 * 1024
@@ -41,22 +39,7 @@ def check_application(manifest_path, manifest_sha256, purpose, url, preview_stat
     require(preview_state in ("starter", "reference"), "Invalid expected application preview state.")
     require(0 < timeout_seconds <= 3600, "Application timeout must be positive and bounded.")
     deadline = time.monotonic() + timeout_seconds
-    identity = manifest_identity(manifest_path, manifest_sha256, purpose)
-    content = manifest_path.read_bytes()
-    require(hashlib.sha256(content).hexdigest() == manifest_sha256,
-            "Frozen manifest changed after identity verification.")
-    manifest = read_json_bytes(content)
-    database = manifest["database"]
-    require(
-        re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\.duckdb", database["path"]) and
-        type(database["bytes"]) is int and 0 < database["bytes"] <= MAX_BYTES,
-        "Invalid frozen database path or size.",
-    )
-    digest(database["sha256"])
-    frozen_bytes(manifest_path.parent, database)
-    draft = None
-    if purpose == PUBLIC_PURPOSE:
-        draft, _ = load_public_sources(manifest_path.parent, manifest)
+    identity, manifest, draft = verify_frozen_artifacts(manifest_path, manifest_sha256, purpose)
 
     opener = build_opener(NoRedirect())
 

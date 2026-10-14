@@ -1,13 +1,18 @@
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'Azd')]
 param(
-    [Parameter(Mandatory)]
+    [Parameter(Mandatory, ParameterSetName = 'Azd')]
     [string] $EnvironmentName,
 
+    [Parameter(Mandatory, ParameterSetName = 'Scope')] [guid] $SubscriptionId,
+    [Parameter(Mandatory, ParameterSetName = 'Scope')] [string] $ResourceGroupName,
+    [Parameter(Mandatory, ParameterSetName = 'Scope')] [string] $ExpressEnvironmentName,
+
+    [ValidatePattern('^[a-z][a-z0-9-]{0,30}[a-z0-9]$')]
     [string] $AppName = 'lab722-express-smoke',
 
     [string] $Image = 'docker.io/library/nginx:alpine',
 
-    [int] $RetryCount = 3
+    [ValidateRange(1, 5)] [int] $RetryCount = 3
 )
 
 $ErrorActionPreference = 'Stop'
@@ -16,22 +21,35 @@ Set-StrictMode -Version Latest
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $repositoryRoot
 
-azd env select $EnvironmentName | Out-Null
-$values = azd env get-values --output json | ConvertFrom-Json
-$resourceGroup = $values.AZURE_RESOURCE_GROUP
-$expressEnvironment = $values.EXPRESS_ENVIRONMENT_NAME
+if ($PSCmdlet.ParameterSetName -eq 'Azd') {
+    azd env select $EnvironmentName | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to select the requested azd environment.' }
+    $text = azd env get-values --output json
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to read the requested azd environment.' }
+    $values = $text | ConvertFrom-Json
+    $SubscriptionId = [guid] $values.AZURE_SUBSCRIPTION_ID
+    $ResourceGroupName = $values.AZURE_RESOURCE_GROUP
+    $ExpressEnvironmentName = $values.EXPRESS_ENVIRONMENT_NAME
+}
+$resourceGroup = $ResourceGroupName
+$expressEnvironment = $ExpressEnvironmentName
 
 if ([string]::IsNullOrWhiteSpace($resourceGroup) -or
     [string]::IsNullOrWhiteSpace($expressEnvironment)) {
     throw 'The azd environment is missing Express deployment outputs.'
 }
 
-az containerapp show `
-    --resource-group $resourceGroup `
-    --name $AppName `
-    --output none 2>$null
-
-$appExists = $LASTEXITCODE -eq 0
+. (Join-Path $PSScriptRoot 'lab-image-target.ps1')
+$target = Get-LabExpressTarget -SubscriptionId $SubscriptionId `
+    -ResourceGroupName $resourceGroup -ExpressEnvironmentName $expressEnvironment
+$apps = Invoke-LabImageAz @('containerapp', 'list', '--resource-group', $resourceGroup,
+    '--subscription', $SubscriptionId.ToString())
+$existing = @($apps | Where-Object { $_.name -ceq $AppName })
+if ($existing.Count -gt 1 -or ($existing.Count -eq 1 -and
+    $existing[0].properties.environmentId -ine $target.Id)) {
+    throw 'The existing application is not uniquely bound to the allocated Express environment.'
+}
+$appExists = $existing.Count -eq 1
 
 if (-not $appExists) {
     $created = $false
@@ -41,6 +59,7 @@ if (-not $appExists) {
 
         az containerapp create `
             --resource-group $resourceGroup `
+            --subscription $SubscriptionId `
             --name $AppName `
             --environment $expressEnvironment `
             --image $Image `
@@ -67,11 +86,12 @@ if (-not $appExists) {
 
 $fqdn = az containerapp show `
     --resource-group $resourceGroup `
+    --subscription $SubscriptionId `
     --name $AppName `
     --query properties.configuration.ingress.fqdn `
     --output tsv
 
-if ([string]::IsNullOrWhiteSpace($fqdn)) {
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($fqdn)) {
     throw 'The Express application FQDN is empty.'
 }
 

@@ -42,6 +42,7 @@ def build_inputs() -> list[Path]:
         if not matches:
             raise FileNotFoundError(f"No source files match {directory.name}/{pattern}.")
         files.update(matches)
+    files.update((frontend / "src").glob("*.ts"))
     for path in files:
         if not path.is_file() or path.is_symlink():
             raise ValueError(f"Source inputs must be regular files: {path.name}")

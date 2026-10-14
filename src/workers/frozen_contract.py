@@ -3,10 +3,14 @@
 import hashlib
 import json
 import re
+import sys
 import zipfile
 from datetime import datetime
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from data.pipeline.public_policy import PUBLIC_MAPPING_LIMITS, public_mapping_limits
 
 PUBLIC_PURPOSE = "public-lab-development"
 SYNTHETIC_PURPOSE = "synthetic-development"
@@ -18,8 +22,6 @@ APPROVAL_FLAGS = {
     "expert_audit_performed", "publication_authorized", "live_replacement_authorized",
     "attendee_release_approved",
 }
-
-
 def require(condition, message):
     if not condition:
         raise ValueError(message)
@@ -90,14 +92,15 @@ def check_public_manifest(manifest, purpose):
     require(manifest["review"] == {
         "approved_by": approval["approved_by"], "approved_at": approval["approved_at"],
     }, "Review identity must match the separate source-use decision exactly.")
-    require(public["mapping_version"] == "conservative-exact-generics-v1" and
-            type(public["coverage_notes"]) is list and bool(public["coverage_notes"]) and
+    trial_limit, report_limit = public_mapping_limits(public["mapping_version"])
+    require(type(public["coverage_notes"]) is list and bool(public["coverage_notes"]) and
             all(isinstance(note, str) and note.strip() for note in public["coverage_notes"]),
             "Frozen extraction mapping and coverage notes are required.")
     for field in ("trial_bucket_counts", "report_candidate_counts", "source_quality_counts"):
         require(type(public[field]) is dict and all(
             isinstance(name, str) and type(count) is int and count >= 0 and
-            (field == "source_quality_counts" or count <= 10)
+            (field == "source_quality_counts" or
+             count <= (trial_limit if field == "trial_bucket_counts" else report_limit))
             for name, count in public[field].items()
         ), "Invalid bounded public selection counts.")
     for field, suffix in (("source_records", ".json"), ("pipeline_source", ".zip")):
@@ -163,10 +166,14 @@ def load_public_sources(directory, manifest, repository_root=None):
         content = {item.filename: archive.read(item) for item in members}
     inventory = read_json_bytes(content.get("pipeline-source.json", b"null"))
     require(type(inventory) is dict and inventory.get("schema_version") == "1.0" and
-            inventory.get("source_kind") == "uncommitted-working-tree" and
+            inventory.get("source_kind") in {"uncommitted-working-tree", "git-commit"} and
             type(inventory.get("files")) is dict and
             set(content) == {*inventory["files"], "pipeline-source.json"},
             "Missing complete frozen pipeline checksum inventory.")
+    if inventory["source_kind"] == "git-commit":
+        require(re.fullmatch("[a-f0-9]{40}", str(inventory.get("source_revision", ""))) and
+                inventory["source_revision"] == manifest["pipeline_commit"],
+                "Frozen pipeline commit differs from the manifest.")
     for name, expected in inventory["files"].items():
         require(hashlib.sha256(content[name]).hexdigest() == digest(expected), "Frozen pipeline member changed.")
         if repository_root is not None and name.startswith("data/pipeline/"):
@@ -233,6 +240,26 @@ def manifest_identity(path, expected_sha256, purpose):
     if purpose == PUBLIC_PURPOSE:
         identity.update(public_identity(manifest))
     return identity
+
+
+def verify_frozen_artifacts(path, expected_sha256, purpose):
+    identity = manifest_identity(path, expected_sha256, purpose)
+    manifest = read_json_bytes(path.read_bytes())
+    require(hashlib.sha256(path.read_bytes()).hexdigest() == expected_sha256,
+            "Frozen manifest changed after identity verification.")
+    database = manifest["database"]
+    require(
+        isinstance(database["path"], str) and
+        re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\.duckdb", database["path"]) and
+        type(database["bytes"]) is int and 0 < database["bytes"] <= MAX_BYTES,
+        "Invalid frozen database path or size.",
+    )
+    digest(database["sha256"])
+    frozen_bytes(path.parent, database)
+    draft = None
+    if purpose == PUBLIC_PURPOSE:
+        draft, _ = load_public_sources(path.parent, manifest)
+    return identity, manifest, draft
 
 
 if __name__ == "__main__":

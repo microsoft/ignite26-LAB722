@@ -118,12 +118,25 @@ class PublicExtractTests(unittest.TestCase):
         }))
         return aact, fda
 
-    def extract(self):
+    def extract(self, mapping_version="conservative-exact-generics-v1"):
         aact, fda = self.pins()
         with patch.object(extractor, "load_source", return_value=aact), patch.object(
             extractor, "load_openfda_pin", return_value=fda
         ):
-            return extractor.extract_public(self.database, self.archive, self.output)
+            return extractor.extract_public(self.database, self.archive, self.output, mapping_version)
+
+    def test_v2_expands_real_selection_without_relaxing_v1_bounds(self):
+        result = self.extract("conservative-exact-generics-v2")
+        draft = json.loads((self.output / "public-review-draft.json").read_text())
+        self.assertEqual(result["maximum_trials_per_candidate_topic"], 30)
+        self.assertEqual(result["maximum_reports_per_candidate"], 50)
+        self.assertEqual(draft["trial_bucket_counts"]["semaglutide/obesity"], 13)
+        self.assertEqual(draft["report_candidate_counts"]["semaglutide"], 13)
+        self.assertFalse(draft["source_review_approved"])
+        self.assertFalse(draft["attendee_release_approved"])
+        draft["mapping_version"] = "conservative-exact-generics-v1"
+        with self.assertRaisesRegex(ValidationError, "bounds"):
+            extractor.PublicDraft.model_validate(draft)
 
     def test_draft_preserves_shared_source_records_and_enforces_actual_bounds(self):
         result = self.extract()

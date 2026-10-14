@@ -1,6 +1,7 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
+import { filterTrials, summarizeTrials } from "./trial-view";
 
 type Condition = "" | "obesity" | "type-2-diabetes";
 interface Candidate { candidate_id: string; name: string; research_area: string }
@@ -83,6 +84,9 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [retry, setRetry] = useState(0);
+  const [phase, setPhase] = useState("");
+  const [trialStatus, setTrialStatus] = useState("");
+  const [trialLimit, setTrialLimit] = useState(10);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -109,6 +113,9 @@ function App() {
     setError(null);
     getJson<Research>(`/api/research?${parameters}`, controller.signal).then(result => {
       setResearch(result);
+      setPhase("");
+      setTrialStatus("");
+      setTrialLimit(10);
     }).catch(error => {
       if (!controller.signal.aborted) setError(errorMessage(error));
     }).finally(() => {
@@ -118,6 +125,8 @@ function App() {
   }, [metadata, candidate, condition, retry]);
 
   const sources = metadata?.manifest.sources ?? [];
+  const trialSummary = summarizeTrials(research?.trials ?? []);
+  const matchingTrials = filterTrials(research?.trials ?? [], phase, trialStatus);
   return <>
     <a className="skip-link" href="#workspace">Skip to research workspace</a>
     <header className="topbar">
@@ -162,15 +171,32 @@ function App() {
       </section>}
       {research?.status === "ready" && <>
         <section className="metrics" aria-label="Evidence summary">
-          <div><span>Trials in this filter</span><strong>{research.trials.length}</strong><small>Source records, not an efficacy comparison</small></div>
+          <div><span>Trials matching the filters</span><strong>{matchingTrials.length}</strong><small>Source records, not an efficacy comparison</small></div>
           <div><span>Reports mentioning this candidate</span><strong>{research.safety_reports.length}</strong><small>Deduplicated reports, not an incidence rate</small></div>
           <div><span>Evidence mode</span><strong className="text-metric">{metadata?.manifest.dataset_kind === "synthetic-development" ? "Training fixture" : "Public lab extract"}</strong><small>No live clinical inference</small></div>
         </section>
         <div className="evidence-grid">
           <section className="evidence-panel" aria-labelledby="trials-heading">
-            <div className="panel-heading"><div><p className="eyebrow">Clinical-trial records</p><h2 id="trials-heading">Trial evidence</h2></div><span className="count-label">{research.trials.length} records</span></div>
-            {research.trials.length === 0 && <p className="empty-state">No trial records match this candidate and condition.</p>}
-            {research.trials.map(trial => <article className="trial-card" key={trial.trial_id}>
+            <div className="panel-heading"><div><p className="eyebrow">Clinical-trial records</p><h2 id="trials-heading">Trial evidence</h2></div><span className="count-label">{matchingTrials.length} of {research.trials.length} records</span></div>
+            <div className="trial-summary" aria-label="Trial source coverage">
+              <div><h3>By phase</h3><dl>{trialSummary.phases.map(([label, count]) =>
+                <div key={label}><dt>{label.replaceAll("PHASE", "Phase ")}</dt><dd>{count}</dd></div>)}</dl></div>
+              <div><h3>By status</h3><dl>{trialSummary.statuses.map(([label, count]) =>
+                <div key={label}><dt>{label.replaceAll("_", " ").toLowerCase()}</dt><dd>{count}</dd></div>)}</dl></div>
+            </div>
+            <p className="panel-note">Counts describe this candidate/condition extract, not efficacy or safety. Phase and status filters affect trials only.</p>
+            <div className="trial-filters">
+              <label>Trial phase<select value={phase} onChange={event => { setPhase(event.target.value); setTrialLimit(10); }}>
+                <option value="">All phases</option>{trialSummary.phases.map(([label]) =>
+                  <option key={label} value={label}>{label.replaceAll("PHASE", "Phase ")}</option>)}
+              </select></label>
+              <label>Trial status<select value={trialStatus} onChange={event => { setTrialStatus(event.target.value); setTrialLimit(10); }}>
+                <option value="">All statuses</option>{trialSummary.statuses.map(([label]) =>
+                  <option key={label} value={label}>{label.replaceAll("_", " ").toLowerCase()}</option>)}
+              </select></label>
+            </div>
+            {matchingTrials.length === 0 && <p className="empty-state">No trial records match the selected filters.</p>}
+            {matchingTrials.slice(0, trialLimit).map(trial => <article className="trial-card" key={trial.trial_id}>
               <div className="record-tags"><span>{trial.phase.replace("PHASE", "Phase ")}</span><span>{trial.status.replaceAll("_", " ").toLowerCase()}</span></div>
               <h3>{trial.title}</h3><p>Matched research topics: {trial.conditions.map(item => item === "type-2-diabetes" ? "Type 2 diabetes" : "Obesity").join(", ")}</p>
               {trial.source_conditions && <details><summary>Original source labels</summary>
@@ -180,6 +206,9 @@ function App() {
               </details>}
               <Citation evidence={trial} sources={sources} />
             </article>)}
+            {matchingTrials.length > trialLimit && <button onClick={() => setTrialLimit(previous => previous + 10)}>
+              Show 10 more trials ({trialLimit} of {matchingTrials.length} shown)
+            </button>}
           </section>
           <section className="evidence-panel" aria-labelledby="safety-heading">
             <div className="panel-heading"><div><p className="eyebrow">Report mentions</p><h2 id="safety-heading">Safety-report records</h2></div><span className="count-label">{research.safety_reports.length} reports</span></div>
@@ -208,7 +237,9 @@ function App() {
         </div>
         <details><summary>Artifact identity and source notes</summary>
           <dl><dt>SHA-256</dt><dd><code>{metadata.manifest.database.sha256}</code></dd><dt>Pipeline version</dt><dd>{metadata.manifest.pipeline_commit}</dd></dl>
-          {metadata.manifest.pipeline_source && <p>Frozen pipeline-source ZIP SHA-256: <code>{metadata.manifest.pipeline_source.sha256}</code>. This working-tree snapshot is not a committed attendee release.</p>}
+          {metadata.manifest.pipeline_source && <p>Frozen pipeline-source ZIP SHA-256: <code>{metadata.manifest.pipeline_source.sha256}</code>. {/^[0-9a-f]{40}$/.test(metadata.manifest.pipeline_commit)
+            ? "Source bytes are bound to the recorded Git commit; attendee readiness is a separate check."
+            : "This working-tree snapshot is not a committed attendee release."}</p>}
           {metadata.manifest.public_extract && <div>
             <p>Selected lab-source use approved by {metadata.manifest.public_extract.source_use.approved_by} at {metadata.manifest.public_extract.source_use.approved_at}; no independent expert audit is claimed.</p>
             {metadata.manifest.public_extract.coverage_notes.map(note => <p key={note}>{note}</p>)}

@@ -359,6 +359,9 @@ paket-files/
 .build-contexts/
 *.duckdb
 *.duckdb.partial
+!data/lab-datasets/
+!data/lab-datasets/caldova-public-lab-use-v2/
+!data/lab-datasets/caldova-public-lab-use-v2/caldova-research.duckdb
 
 # Cake - Uncomment if you are using it
 #tools/**
