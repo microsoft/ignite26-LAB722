@@ -186,11 +186,11 @@ function App() {
             </div>
             <p className="panel-note">Counts describe this candidate/condition extract, not efficacy or safety. Phase and status filters affect trials only.</p>
             <div className="trial-filters">
-              <label>Trial phase<select value={phase} onChange={event => { setPhase(event.target.value); setTrialLimit(10); }}>
+              <label>Trial phase<select id="trial-phase" name="phase" value={phase} onChange={event => { setPhase(event.target.value); setTrialLimit(10); }}>
                 <option value="">All phases</option>{trialSummary.phases.map(([label]) =>
                   <option key={label} value={label}>{label.replaceAll("PHASE", "Phase ")}</option>)}
               </select></label>
-              <label>Trial status<select value={trialStatus} onChange={event => { setTrialStatus(event.target.value); setTrialLimit(10); }}>
+              <label>Trial status<select id="trial-status" name="status" value={trialStatus} onChange={event => { setTrialStatus(event.target.value); setTrialLimit(10); }}>
                 <option value="">All statuses</option>{trialSummary.statuses.map(([label]) =>
                   <option key={label} value={label}>{label.replaceAll("_", " ").toLowerCase()}</option>)}
               </select></label>
