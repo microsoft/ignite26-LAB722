@@ -8,6 +8,8 @@ Scenario: Caldova Research Preview Factory, a fictional pharmaceutical company.
 
 This is facilitator-guided/rehearsal material with prepared resources and real development evidence. **Recorded Evidence is the default participant path**; optional Live Exercise requires explicit facilitator authorization. The [shared participant guide](..\instructions\README.md) supports guided and self-paced reading. Skillable-specific integration is excluded from this material milestone, not a reason to block it.
 
+**October 14 delivery update:** the participant guide now covers portable builds in the allocated ACR, the bundled v2 dataset and [ready-made-image recovery](../instructions/05-build-and-publish.md#recovery---use-the-ready-made-reference-image). This deck, its embedded/generated notes and its exports remain the earlier recorded-evidence snapshot, including its original maintainer-only publication description; they were not regenerated for the new flow. Use the current guide for live commands. Reference images are not available merely because recovery commands exist: publication, exact digests and actual attendee pull access still need verification.
+
 ## Deliverables
 
 - [RevealJS source](index.html): 24 slides; seven segment openers each state goal, why, services, outcome, and target timing.
@@ -92,8 +94,8 @@ The simple system-font, black-on-white sections, `heading-only` dividers, code b
 | 5 · Build/publish receipts | 6 min | 62:00–68:00 |
 | 6 · Trace evidence | 7 min | 68:00–75:00 |
 
-These are **targets, not measured timing**. Segment 5 walks recorded builds; the maintainer-specific build helper is not a generalized participant publisher, and deployment helpers may refresh pull credentials. Do not invoke them as a read-only exercise.
+These are **targets, not measured timing**. Segment 5 walks recorded builds. The current build helper supports explicit participant subscription/resource-group/registry scope; omitting the group retains the original maintainer-only guard. Publication/deployment mutate resources, and deployment helpers may refresh pull credentials. Do not invoke them as a read-only exercise.
 
-Full event authorization/startup, untouched starter distribution, committed provenance, and a fresh dry run remain external. Videos have not been created; event release and final recording readiness are not claimed. Prepared Foundry/Sandbox scopes are deliberately mixed, retained Sandbox capacity is full, and implemented Reuse is not an untouched starter.
+The v2 bundle now has committed-source provenance and exact-slice distribution confirmation, not a completed live release. Full event authorization/startup, actual v2 starter/reference image distribution, clean VM capture and a fresh dry run remain unfinished. Videos have not been created; event release and final recording readiness are not claimed. Prepared Foundry/Sandbox scopes are deliberately mixed, retained Sandbox capacity is full, and implemented Reuse is not an untouched starter.
 
 The offline evidence inspector verifies checksums/identity joins; it never authenticates approvers, reruns application tests, evaluates release gates, or claims current live health/attendee readiness. No telemetry workbook or invented issue/session/token details are presented. “reviewed-public” names owner-selected lab-source use, not an expert clinical audit. No clinical causation, incidence, comparative safety, treatment recommendation, or medical advice is implied.

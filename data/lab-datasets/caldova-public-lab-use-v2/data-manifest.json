@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0",
+  "dataset_version": "caldova-public-lab-use-v2",
+  "dataset_kind": "reviewed-public",
+  "built_at": "2026-10-14T20:55:30.042390Z",
+  "pipeline_commit": "8ac43eb5765e5edcffef7da6c057100b40fec6c9",
+  "logical_sha256": "6f23cdeeb1c1f04f79ba1c1bfff71acfdb732af5fcfc4861239684e6ba931c12",
+  "database": {
+    "path": "caldova-research.duckdb",
+    "sha256": "f12f3e239f7b439b5c4fde1b405bd4e2346fa49fba79b1c1b198f42874ef9559",
+    "bytes": 4206592
+  },
+  "source_records": {
+    "path": "source-records.json",
+    "sha256": "5c31dcd20478c1644b50eff7a7286b9c568094dd1e26427843afd23fc9dfe57c",
+    "bytes": 178012
+  },
+  "pipeline_source": {
+    "path": "pipeline-source.zip",
+    "sha256": "6b8711270201d8da064076ba6903fa745704d4da3de805c32cf2f791be352e28",
+    "bytes": 78404
+  },
+  "public_extract": {
+    "source_use": {
+      "approved_by": "Simon (project owner; interactive confirmation)",
+      "approved_at": "2026-10-14T20:25:12.515902Z",
+      "schema_version": "1.0",
+      "scope": "project-owner-selected-public-lab-use",
+      "draft_sha256": "5c31dcd20478c1644b50eff7a7286b9c568094dd1e26427843afd23fc9dfe57c",
+      "draft_provenance_sha256": "df6a6ff3e98c7c2cb6a2e5bae01415bf4eaeff49aa04a4a8080d2be4721f17b5",
+      "instruction": "The project owner explicitly confirmed including this exact v2 selected slice (168 trials and 38 safety reports across the same three candidates, with no matching tirzepatide safety reports) in the public fork and the prepared Skillable VM snapshot. This record binds selected-source use to the actual draft and provenance bytes. Distribution authorization is recorded separately in data/lab-release.json; this is not clinical/expert validation or confirmation of a completed attendee walkthrough.",
+      "expert_audit_performed": false,
+      "publication_authorized": false,
+      "live_replacement_authorized": false,
+      "attendee_release_approved": false
+    },
+    "mapping_version": "conservative-exact-generics-v2",
+    "coverage_notes": [
+      "Project-owner selected public lab extract; publication, live replacement and attendee release are separate.",
+      "Exact trimmed case-insensitive generic names only; no brand/code/substring expansion.",
+      "Trials require DRUG interventions, INTERVENTIONAL study type and the listed exact condition aliases.",
+      "Original source conditions and matched intervention names are separate from canonical topic categories.",
+      "Drug objects listing additional harmonized substances are excluded.",
+      "Harmonized brand arrays are source metadata, not proof of products taken.",
+      "A single disclosed openFDA shard is not complete or representative clinical evidence.",
+      "Latest report versions are selected within the input before candidate matching.",
+      "Conflicting full raw ID/version copies fail; identical copies and reaction terms are normalized.",
+      "Stable ascending IDs with strict bucket budgets; whole shared records are kept or skipped, never narrowed.",
+      "Trial registry links are live references; frozen record values come from the pinned mirror.",
+      "No demographic/contact, seriousness, outcome, dose, route or indication fields are retained.",
+      "No trial/report linkage or globally latest-version assertion is made."
+    ],
+    "trial_bucket_counts": {
+      "liraglutide/obesity": 30,
+      "liraglutide/type-2-diabetes": 30,
+      "semaglutide/obesity": 30,
+      "semaglutide/type-2-diabetes": 30,
+      "tirzepatide/obesity": 30,
+      "tirzepatide/type-2-diabetes": 26
+    },
+    "report_candidate_counts": {
+      "liraglutide": 17,
+      "semaglutide": 21
+    },
+    "source_quality_counts": {
+      "distinct_reports_within_input": 12000,
+      "eligible_reports_before_bound": 38,
+      "eligible_trials_before_bound": 426,
+      "raw_reports": 12000,
+      "reports_skipped_candidate_bound": 0,
+      "trials_skipped_bucket_bound": 258
+    }
+  },
+  "record_counts": {
+    "candidates": 3,
+    "trials": 168,
+    "trial_conditions": 173,
+    "trial_candidates": 171,
+    "safety_reports": 38,
+    "safety_report_candidates": 38,
+    "safety_reactions": 106,
+    "raw_safety_reports": 38
+  },
+  "sources": [
+    {
+      "source_id": "aact-mirror",
+      "name": "AACT-derived DuckDB mirror by Nason",
+      "url": "https://huggingface.co/datasets/Nason/clinicaltrials-database/resolve/11b858f5f39519b92ee9a7a98129997f694c7833/clinicaltrials.duckdb",
+      "release": "2026-09-14",
+      "retrieved_at": "2026-10-10T04:52:49.149721Z",
+      "attribution": "ClinicalTrials.gov; AACT / CTTI; DuckDB conversion by Nason.",
+      "license_notes": "Publisher CC0 label and upstream reuse/attribution terms require human review. Historical draft note; the project owner has now authorized this selected slice for local lab use, without claiming an independent expert audit."
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "name": "openFDA drug/event single-partition intake",
+      "url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip",
+      "release": "2026-10-05",
+      "retrieved_at": "2026-10-10T04:17:28.156279Z",
+      "attribution": "openFDA / U.S. Food and Drug Administration.",
+      "license_notes": "Rights, marked exceptions and residual privacy review remain pending. Historical draft note; the project owner has now authorized this selected slice for local lab use, without claiming an independent expert audit."
+    }
+  ],
+  "review": {
+    "approved_by": "Simon (project owner; interactive confirmation)",
+    "approved_at": "2026-10-14T20:25:12.515902Z"
+  },
+  "limitations": "Adverse-event reports do not establish causation, incidence rates, or comparative safety. This lab does not provide treatment recommendations or medical advice."
+}

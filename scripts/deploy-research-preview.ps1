@@ -1,13 +1,25 @@
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'Azd', SupportsShouldProcess)]
 param(
-    [Parameter(Mandatory)]
+    [Parameter(Mandatory, ParameterSetName = 'Azd')]
     [string] $EnvironmentName,
+
+    [Parameter(Mandatory, ParameterSetName = 'Scope')] [guid] $SubscriptionId,
+    [Parameter(Mandatory, ParameterSetName = 'Scope')] [string] $ResourceGroupName,
+    [Parameter(Mandatory, ParameterSetName = 'Scope')] [string] $RegistryName,
+    [Parameter(Mandatory, ParameterSetName = 'Scope')] [string] $ExpressEnvironmentName,
+    [Parameter(ParameterSetName = 'Scope')] [switch] $AuthorizeDeployment,
 
     [Parameter(Mandatory)]
     [ValidatePattern('^sha256:[0-9a-f]{64}$')]
     [string] $ImageDigest,
 
-    [string] $AppName = 'caldova-research',
+    [ValidatePattern('^[a-z][a-z0-9-]{0,30}[a-z0-9]$')] [string] $AppName = 'caldova-research',
+
+    [ValidateSet('LabRegistry', 'SimonRegistry')] [string] $ImageSource = 'LabRegistry',
+    [ValidateLength(1, 128)]
+    [ValidatePattern('^[a-z0-9]+(?:(?:[._-]|/)[a-z0-9]+)*$')]
+    [string] $Repository = 'caldova/research-portal',
+    [switch] $ReferenceAnonymousPull,
 
     [ValidateSet('starter', 'reference')]
     [string] $PreviewState = 'reference'
@@ -19,45 +31,86 @@ Set-StrictMode -Version Latest
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $repositoryRoot
 
-azd env select $EnvironmentName | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    throw "Unable to select azd environment '$EnvironmentName'."
+if ($ImageSource -eq 'SimonRegistry') {
+    $expectedRepository = "lab722-$AppName"
+    if ($PSBoundParameters.ContainsKey('Repository') -and $Repository -cne $expectedRepository) {
+        throw "Simon reference images must use the repository '$expectedRepository'."
+    }
+    $Repository = $expectedRepository
 }
-$values = azd env get-values --output json | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0) {
-    throw "Unable to read azd environment '$EnvironmentName'."
+elseif ($ReferenceAnonymousPull) {
+    throw 'ReferenceAnonymousPull is only valid for an already-public Simon reference image.'
 }
-$scope = @('--resource-group', $values.AZURE_RESOURCE_GROUP, '--subscription', $values.AZURE_SUBSCRIPTION_ID)
-$registryName = $values.AZURE_CONTAINER_REGISTRY_NAME
-if ([string]::IsNullOrWhiteSpace($registryName)) {
-    throw 'The azd environment is missing its registry output.'
+if (-not $PSCmdlet.ShouldProcess("$ImageSource/$Repository@$ImageDigest",
+    "Deploy $PreviewState image to the explicitly selected '$AppName' Express application")) {
+    [pscustomobject] @{ Deployed = $false; ImageSource = $ImageSource; AppName = $AppName }
+    return
 }
+if ($PSCmdlet.ParameterSetName -eq 'Scope' -and -not $AuthorizeDeployment) {
+    throw 'Portable deployment requires explicit AuthorizeDeployment after reviewing the target and pinned image.'
+}
+if ($ImageSource -eq 'SimonRegistry' -and -not $ReferenceAnonymousPull -and
+    ([string]::IsNullOrWhiteSpace($env:LAB_REFERENCE_PULL_USERNAME) -or
+     [string]::IsNullOrWhiteSpace($env:LAB_REFERENCE_PULL_PASSWORD))) {
+    throw 'A private Simon reference image requires facilitator-provided read-only LAB_REFERENCE_PULL_USERNAME and LAB_REFERENCE_PULL_PASSWORD in memory. No registry permissions or anonymous access will be enabled.'
+}
+if ($ImageSource -eq 'SimonRegistry' -and $ReferenceAnonymousPull -and
+    ($env:LAB_REFERENCE_PULL_USERNAME -or $env:LAB_REFERENCE_PULL_PASSWORD)) {
+    throw 'Choose either explicitly anonymous reference pulling or the private read-only credentials, not both.'
+}
+if ($PSCmdlet.ParameterSetName -eq 'Azd') {
+    azd env select $EnvironmentName | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Unable to select azd environment '$EnvironmentName'." }
+    $text = azd env get-values --output json
+    if ($LASTEXITCODE -ne 0) { throw "Unable to read azd environment '$EnvironmentName'." }
+    $values = $text | ConvertFrom-Json
+    $SubscriptionId = [guid] $values.AZURE_SUBSCRIPTION_ID
+    $ResourceGroupName = $values.AZURE_RESOURCE_GROUP
+    $RegistryName = $values.AZURE_CONTAINER_REGISTRY_NAME
+    $ExpressEnvironmentName = $values.EXPRESS_ENVIRONMENT_NAME
+}
+. (Join-Path $PSScriptRoot 'lab-image-target.ps1')
+$target = Get-LabImageTarget -SubscriptionId $SubscriptionId `
+    -ResourceGroupName $ResourceGroupName -RegistryName $RegistryName
+$expressTarget = Get-LabExpressTarget -SubscriptionId $SubscriptionId `
+    -ResourceGroupName $ResourceGroupName -ExpressEnvironmentName $ExpressEnvironmentName
+$scope = @('--resource-group', $ResourceGroupName, '--subscription', $SubscriptionId.ToString())
+$registryName = $RegistryName
 
-$apps = az containerapp list @scope --output json --only-show-errors | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0) {
-    throw 'Unable to check the Express application inventory.'
+$apps = Invoke-LabImageAz (@('containerapp', 'list') + $scope)
+$existing = @($apps | Where-Object { $_.name -ceq $AppName })
+if ($existing.Count -gt 1 -or ($existing.Count -eq 1 -and
+    $existing[0].properties.environmentId -ine $expressTarget.Id)) {
+    throw 'The existing application is not uniquely bound to the allocated Express environment.'
 }
-if (@($apps | Where-Object { $_.name -eq $AppName }).Count -eq 0) {
+if ($existing.Count -eq 0) {
     & (Join-Path $PSScriptRoot 'deploy-express-smoke.ps1') `
-        -EnvironmentName $EnvironmentName -AppName $AppName | Out-Null
+        -SubscriptionId $SubscriptionId -ResourceGroupName $ResourceGroupName `
+        -ExpressEnvironmentName $ExpressEnvironmentName -AppName $AppName | Out-Null
 }
 
-$registry = az acr show --name $registryName @scope --output json | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0) {
-    throw "Registry lookup failed for '$registryName'."
+$registry = @{ loginServer = $target.LoginServer }
+$credential = $null
+if ($ImageSource -eq 'SimonRegistry') {
+    $registry = @{ loginServer = 'simon.azurecr.io' }
+    if (-not $ReferenceAnonymousPull) {
+        $credential = @{ username = $env:LAB_REFERENCE_PULL_USERNAME
+            passwords = @(@{ value = $env:LAB_REFERENCE_PULL_PASSWORD }) }
+    }
 }
+else {
 $tokenName = "$AppName-pull"
 $scopeMaps = az acr scope-map list `
-    --registry $registryName --subscription $values.AZURE_SUBSCRIPTION_ID `
+    --registry $registryName --subscription $SubscriptionId `
     --output json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0) {
     throw 'Unable to check registry scope maps.'
 }
 if (@($scopeMaps | Where-Object { $_.name -eq $tokenName }).Count -eq 0) {
     az acr scope-map create `
-        --registry $registryName --subscription $values.AZURE_SUBSCRIPTION_ID `
+        --registry $registryName --subscription $SubscriptionId `
         --name $tokenName `
-        --repository caldova/research-portal content/read metadata/read `
+        --repository $Repository content/read metadata/read `
         --description 'LAB722 Express preview: read-only portal image access.' `
         --output none
     if ($LASTEXITCODE -ne 0) {
@@ -66,21 +119,21 @@ if (@($scopeMaps | Where-Object { $_.name -eq $tokenName }).Count -eq 0) {
 }
 
 $scopeMap = az acr scope-map show `
-    --registry $registryName --subscription $values.AZURE_SUBSCRIPTION_ID `
+    --registry $registryName --subscription $SubscriptionId `
     --name $tokenName --output json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0) {
     throw 'Unable to inspect the repository-scoped pull permissions.'
 }
 $expectedActions = @(
-    'repositories/caldova/research-portal/content/read',
-    'repositories/caldova/research-portal/metadata/read'
+    "repositories/$Repository/content/read",
+    "repositories/$Repository/metadata/read"
 )
 if (@(Compare-Object $expectedActions @($scopeMap.actions)).Count -ne 0) {
     throw 'The existing pull scope map does not match the approved read-only repository scope.'
 }
 
 $tokens = az acr token list `
-    --registry $registryName --subscription $values.AZURE_SUBSCRIPTION_ID `
+    --registry $registryName --subscription $SubscriptionId `
     --output json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0) {
     throw 'Unable to check registry tokens.'
@@ -88,7 +141,7 @@ if ($LASTEXITCODE -ne 0) {
 $existingToken = $tokens | Where-Object { $_.name -eq $tokenName }
 if ($null -eq $existingToken) {
     az acr token create `
-        --registry $registryName --subscription $values.AZURE_SUBSCRIPTION_ID `
+        --registry $registryName --subscription $SubscriptionId `
         --name $tokenName --scope-map $tokenName --no-passwords --output none
     if ($LASTEXITCODE -ne 0) {
         throw 'Unable to create the scoped registry pull token.'
@@ -99,19 +152,22 @@ elseif ($existingToken.scopeMapId -ne $scopeMap.id) {
 }
 
 $credential = az acr token credential generate `
-    --registry $registryName --subscription $values.AZURE_SUBSCRIPTION_ID `
+    --registry $registryName --subscription $SubscriptionId `
     --name $tokenName --password1 --expiration-in-days 7 `
     --output json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0 -or @($credential.passwords).Count -ne 1) {
     throw 'Unable to generate the seven-day scoped registry credential.'
+}
 }
 
 $applicationId = az containerapp show --name $AppName @scope --query id --output tsv
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($applicationId)) {
     throw 'Unable to locate the Express application resource.'
 }
+$expectedApplicationId = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.App/containerApps/$AppName"
+if ($applicationId -ine $expectedApplicationId) { throw 'The application lookup returned a foreign resource ID.' }
 $managementToken = az account get-access-token `
-    --subscription $values.AZURE_SUBSCRIPTION_ID `
+    --subscription $SubscriptionId `
     --resource https://management.azure.com/ --query accessToken --output tsv
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($managementToken)) {
     throw 'Unable to authenticate the application configuration update.'
@@ -119,21 +175,24 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($managementToken)) {
 $headers = @{ Authorization = "Bearer $managementToken" }
 $resourceUri = "https://management.azure.com${applicationId}?api-version=2025-10-02-preview"
 $application = Invoke-RestMethod -Method Get -Uri $resourceUri -Headers $headers
+if ($application.id -ine $expectedApplicationId -or
+    $application.properties.environmentId -ine $expressTarget.Id) {
+    throw 'The application configuration does not match the allocated Express target.'
+}
 $existingSecrets = Invoke-RestMethod -Method Post -Headers $headers `
     -Uri "https://management.azure.com${applicationId}/listSecrets?api-version=2025-10-02-preview" `
     -ContentType 'application/json' -Body '{}'
-$secretName = 'caldova-acr-pull'
-$secrets = @($existingSecrets.value | Where-Object { $null -ne $_ -and $_.name -ne $secretName }) + @(@{
-    name = $secretName
-    value = $credential.passwords[0].value
-})
+$secretName = if ($ImageSource -eq 'SimonRegistry') { 'caldova-reference-pull' } else { 'caldova-acr-pull' }
+$secrets = @($existingSecrets.value | Where-Object { $null -ne $_ })
 $registries = @($application.properties.configuration.registries |
-    Where-Object { $null -ne $_ -and $_.server -ne $registry.loginServer }) + @(@{
-    server = $registry.loginServer
-    username = $credential.username
-    passwordSecretRef = $secretName
-})
-$image = '{0}/caldova/research-portal@{1}' -f $registry.loginServer, $ImageDigest
+    Where-Object { $null -ne $_ -and $_.server -ne $registry.loginServer })
+if ($null -ne $credential) {
+    $secrets = @($secrets | Where-Object { $_.name -ne $secretName }) + @(@{
+        name = $secretName; value = $credential.passwords[0].value
+    })
+    $registries += @{ server = $registry.loginServer; username = $credential.username; passwordSecretRef = $secretName }
+}
+$image = '{0}/{1}@{2}' -f $registry.loginServer, $Repository, $ImageDigest
 $containers = @($application.properties.template.containers)
 if ($containers.Count -ne 1) {
     throw 'The Caldova Express preview requires exactly one application container.'
@@ -259,6 +318,8 @@ for ($attempt = 1; $attempt -le 20; $attempt++) {
                 AppName = $AppName
                 Url = $url
                 Image = $image
+                ImageSource = $ImageSource
+                ParticipantGeneratedCodeVerified = $false
                 PreviewState = $PreviewState
                 DatasetVersion = $health.dataset_version
                 DatasetKind = $health.dataset_kind

@@ -4,6 +4,8 @@
 
 Preparation uses the existing tested source importer and prebuilt toolchains. It does not download the 7.07 GiB raw database into a Sandbox, restore arbitrary packages over a widened allowlist or clone unpinned source.
 
+For the new live path, the clean VM snapshot already carries the checkout and v2 dataset. The offline data-staging handoff is separate from this exercise: **you still explicitly prepare the primary, snapshot it and create the three role clones here**. Platform startup must not silently consume those steps.
+
 ## Recorded-evidence path
 
 ```powershell

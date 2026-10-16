@@ -63,11 +63,15 @@ def read_pipeline_snapshot(path: Path) -> dict[str, bytes]:
     snapshot = json.loads(content.get("pipeline-source.json", b"null"))
     if (
         not isinstance(snapshot, dict) or snapshot.get("schema_version") != "1.0"
-        or snapshot.get("source_kind") != "uncommitted-working-tree"
+        or snapshot.get("source_kind") not in {"uncommitted-working-tree", "git-commit"}
         or not isinstance(snapshot.get("files"), dict)
         or set(content) != {*snapshot["files"], "pipeline-source.json"}
     ):
         raise ValueError("The pipeline source ZIP lacks its complete working-tree identity.")
+    if snapshot["source_kind"] == "git-commit" and not re.fullmatch(
+        "[a-f0-9]{40}", str(snapshot.get("source_revision", "")),
+    ):
+        raise ValueError("The pipeline source ZIP has no valid committed source revision.")
     for name, digest in snapshot["files"].items():
         if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
             raise ValueError("The pipeline source ZIP has an invalid file checksum.")
@@ -91,6 +95,9 @@ def validate_public_content(directory: Path, manifest: Manifest, connection) -> 
     draft = read_original_records(directory, manifest)
     public = manifest.public_extract
     content = read_pipeline_snapshot(directory / manifest.pipeline_source.path)
+    snapshot = json.loads(content["pipeline-source.json"])
+    if snapshot["source_kind"] == "git-commit" and snapshot["source_revision"] != manifest.pipeline_commit:
+        raise ValueError("The frozen pipeline commit differs from the manifest.")
     required = {"dataset-input.json", "source-use-approval.json", "draft-provenance.json"}
     if not required.issubset(content):
         raise ValueError("The frozen public source package lacks its input, decision or provenance.")

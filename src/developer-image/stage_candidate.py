@@ -50,6 +50,7 @@ TRUSTED_FILES = {
     "data/fixtures/research-data.json", "data/pipeline/requirements.txt",
     "data/pipeline/build_dataset.py", "data/pipeline/contracts.py",
     "data/pipeline/stage_dataset.py", "data/pipeline/validate_dataset.py",
+    "data/pipeline/public_policy.py",
     "src/research-portal/Containerfile", "src/research-portal/backend/requirements.txt",
     "src/research-portal/backend/app.py", "src/research-portal/backend/queries.py",
     "src/research-portal/frontend/package.json", "src/research-portal/frontend/package-lock.json",
@@ -355,7 +356,7 @@ def stage_candidate(*, result_path, result_sha256, baseline_descriptor_path, fro
     require(frontend.is_dir(), "Missing trusted frontend source.")
     for path in frontend.rglob("*"):
         if path.is_file():
-            require(path.suffix in {".tsx", ".css"}, "Unexpected frontend source input.")
+            require(path.suffix in {".ts", ".tsx", ".css"}, "Unexpected frontend source input.")
             trusted_files.add(path.relative_to(root).as_posix())
     require(any(name.endswith(".tsx") for name in trusted_files) and
             any(name.endswith(".css") for name in trusted_files), "Missing trusted frontend source inputs.")

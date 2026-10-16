@@ -1,6 +1,6 @@
-# Maintainer scripts
+# Lab delivery and maintainer scripts
 
-These scripts support repeatable development and rollout validation. The platform-neutral `start-lab.ps1 -Mode Readiness` is the read-only harness/facilitator check used in the first instruction segment. Allocation, image build and deployment scripts remain maintainer operations, not manual attendee startup.
+These scripts support repeatable development and rollout validation. The platform-neutral `start-lab.ps1 -Mode Readiness` is the read-only harness/facilitator check used in the first instruction segment. Authorized participants can publish into their allocated LAB722 registry using explicit scope; platform startup still does not silently build images or perform the participant's Sandbox preparation.
 
 The repository's `.gitattributes` preserves authored bytes across Windows and Linux checkouts. Do not apply automatic line-ending conversion to checksummed source or evidence; changes require new validation and provenance, not replacement trust anchors.
 
@@ -8,8 +8,10 @@ The repository's `.gitattributes` preserves authored bytes across Windows and Li
 
 | Script | Purpose |
 |---|---|
+| `export-skillable-instructions.ps1` | Generate the nine-page Skillable panel manual from the overview, seven participant segments and worksheet, with VM tokens and prepared native interpreter paths |
 | `compile-arm.ps1` | Compile `infra/main.bicep` to the checked-in Skillable ARM template |
 | `start-lab.ps1` | Validate/provision infrastructure, inspect opt-in pinned application/data readiness, or explicitly prepare a pinned development worker baseline using two visible scope inputs |
+| `stage-lab-data.ps1` | Verify or idempotently stage the versioned checkout dataset offline; optionally configure the current process for startup/Prepare |
 | `deploy-test.ps1` | Create or update an `azd` test environment in the ACAPMS subscription |
 | `validate-foundry.ps1` | Verify project-scoped agent access and a bounded live Responses inference contract |
 | `validate-agent-workflow.ps1` | Validate planning/tool dispatch or run scoped implementors, independent integration, and governance against an explicit prepared baseline |
@@ -27,7 +29,63 @@ For the user-supplied AACT mirror, the maintainer module `python -m data.pipelin
 
 After acquisition, `python -m data.pipeline.extract_public` uses the existing data-aware runtime to prepare a bounded, checksum/provenance-bound **unreviewed** draft outside the checkout. Its conservative mapping, strict record limits and source fidelity are tested; it does not build an approved artifact, update startup or deploy the app. See [review draft commands and human approval requirements](../data/sources/README.md#conservative-public-review-draft).
 
-`python -m data.pipeline.freeze_public` builds a small local public artifact using the project owner's separately recorded approval for the exact selected draft/provenance. It preserves original fields, pins actual working-tree source bytes, validates complete records and stages all four frozen files; the freeze command itself never publishes or deploys. The real package contains 60 trials and 20 reports in a 4,206,592-byte database. See [public-freeze commands and scope](../data/sources/README.md#freezing-the-authorized-public-lab-slice). The opt-in public worker branch now has independently verified remote/container/live-development results and separate operational approvals described above. Neither those later approvals nor the freeze step rewrite historical source-use flags or approve attendee release.
+`python -m data.pipeline.freeze_public` builds a public artifact using the project owner's recorded approval for the exact selected draft/provenance. It preserves original fields, validates complete records and stages four frozen files; the freeze command itself never publishes or deploys. `--pipeline-commit` additionally requires every allowlisted source byte to match that full Git commit. The retained v1 has 60 trials and 20 reports; the new v2 slice has 168 trials and 38 reports. See [versioned v2 delivery](../data/sources/README.md#versioned-v2-lab-bundle). Neither generation nor distribution rewrites historical source-use flags or proves attendee readiness.
+
+## Portable image and data delivery
+
+The normal image path is unchanged: agents implement the two application queries, independent validation accepts their source, and the candidate helper builds it in the participant's allocated ACR. Supplying `ResourceGroupName` opts into portable publication. Before any ACR build, the helper verifies the explicit subscription, exact registry resource ID, `lab=LAB722` tag, provisioning state and real login server. A successful empty repository inventory permits the first image; authentication/inventory failures never mean "repository absent." Existing tags are not overwritten. Omitting the group retains the original maintainer-only guard. `-StageOnly` and `-WhatIf` remain offline.
+
+Clone the completed fork onto a **clean, credential-free VM**, stage the dataset, then capture that VM. The checkout ships the four-file v2 bundle and [release pin](../data/lab-release.json); the raw multi-GiB inputs stay outside it. Run from the repository root using the prepared Python interpreter:
+
+```powershell
+.\scripts\stage-lab-data.ps1 -ValidateOnly
+$dataset = .\scripts\stage-lab-data.ps1 -ConfigureSession
+$dataset | Format-List
+```
+
+This uses only Python's standard library, makes no network/Azure calls, verifies all four files and their original-source/provenance binding, stages atomically, and reuses only an already identical destination. Corrupt data fails without replacement. The default staging destination is `data\artifacts\lab-use-v2`; `-Destination` permits an explicit machine-local alternative. `-ConfigureSession` sets the existing `LAB_STARTUP_PURPOSE`, `LAB_DATA_MANIFEST`, `LAB_DATA_MANIFEST_SHA256` and `LAB_PYTHON_EXECUTABLE` in the current process only. A later PowerShell session or Skillable launch must call it again or receive the verified values from the harness.
+
+Provision infrastructure separately with `azd up` or explicitly authorized `start-lab.ps1 -Mode Provision`, then use `Readiness` outputs for image scope. Build/deploy the genuine starter with the existing `build-developer-image.ps1` and `deploy-research-preview.ps1`; pass the staged manifest, its release SHA and `public-lab-development` purpose to the starter builder. A new starter digest must be built for v2: old v1 starter/reference images cannot pass v2 data checks. Only the participant's explicit Segment 3 `Prepare` creates the primary, snapshot and three clones. Staging the VM does not perform that learning exercise.
+
+After publication and a **separate approval of the exact image digest**, deployment no longer requires an azd environment:
+
+```powershell
+$imageTarget = @{
+    SubscriptionId = [guid] $readiness.outputs.AZURE_SUBSCRIPTION_ID
+    ResourceGroupName = $resourceGroupName
+    RegistryName = $readiness.outputs.AZURE_CONTAINER_REGISTRY_NAME
+    ExpressEnvironmentName = $readiness.outputs.EXPRESS_ENVIRONMENT_NAME
+}
+.\scripts\deploy-research-preview.ps1 @imageTarget -ImageDigest $approvedDigest `
+    -PreviewState reference -AuthorizeDeployment
+```
+
+The optional known-working source is explicit, not a substitute for publishing the participant's accepted code:
+
+```powershell
+.\scripts\deploy-research-preview.ps1 @imageTarget -ImageDigest $approvedReferenceDigest `
+    -ImageSource SimonRegistry -AppName caldova-research -PreviewState reference -AuthorizeDeployment
+```
+
+The verified registry endpoint is **`simon.azurecr.io`**, and this path requires repository **`lab722-$AppName`** and an immutable digest. It never creates scope maps/tokens, enables anonymous/admin access, or grants participant writes in Simon's registry. For a private image, the facilitator supplies a verified repository-scoped read-only token through `LAB_REFERENCE_PULL_USERNAME` and `LAB_REFERENCE_PULL_PASSWORD` in memory; keep it out of the VM snapshot, arguments, transcripts and files. Remove those process variables after use. `-ReferenceAnonymousPull` is only for a separately approved, **already-public** image; it does not enable public access. There is no fallback from private pull failure.
+
+No `lab722-*` image was present in Simon's registry on October 14, 2026. Publishing and validating a real reference digest and its cross-tenant pull configuration remain operational work; no digest is invented here. Deployment output identifies `ImageSource` and does not claim to verify participant-generated source. For opt-in application readiness, set `LAB_APPLICATION_IMAGE_SOURCE=SimonRegistry`; its default is `LabRegistry`. Reset that source when returning to a participant-built image. Both paths require the exact dataset pins and preserve `attendee_ready=false` until the separate delivery gates pass.
+
+## Skillable instruction panel
+
+The lab checkout source of truth is `main` in the private `simonjj/ignite26-LAB722` fork. A published feature branch alone does not update what a normal clone receives. Stage the completed checkout at `C:\Users\LabUser\code\ignite26-LAB722` using authorized GitHub access; preserve existing user work and fast-forward an existing clean checkout rather than cloning over it. Do not put GitHub credentials into the shared VM image.
+
+Regenerate the versioned panel manual whenever its source instructions change:
+
+```powershell
+.\scripts\export-skillable-instructions.ps1
+```
+
+The export writes `instructions\skillable.md` as UTF-8 without a BOM. It adds the VM login tokens exposed by LAB722 profile 224872's editor (`Win11-Pro-Base` is the instance's token name), the prepared checkout path and the separate native SDK interpreters. It preserves fenced commands except for Segment 2's explicit controller interpreter adaptation. Repository links become local VM file references; the panel must not request private repository documents as relative Skillable URLs. Relative images, missing references and a changed controller snippet stop export rather than producing a broken manual.
+
+In a running lab, use the tiny gear at the **top right of the instruction panel**, select **Edit Instructions**, and import `instructions\skillable.md` into the code editor, replacing only the placeholder welcome manual. Save the changes, refresh the panel and inspect all nine pages, Next/Previous navigation, code blocks and resolved VM login typing controls. Reopen the profile's editor to confirm the saved content. This updates instructions independently of a VM disk capture.
+
+The current recorded path needs neither new Azure resources nor a raw dataset. Installing tools, cloning source or publishing this panel does not make the optional live path attendee-ready. Keep the facilitator gates in the source segments intact. Source staged after a tools-only image capture also needs a separately verified future-launch delivery mechanism; a successful clone in one running instance is not proof that every launch receives it.
 
 ## Platform-neutral startup
 
@@ -61,7 +119,8 @@ On October 9, 2026, eight focused offline regression groups passed, including mi
 | Harness setting | Required application check |
 |---|---|
 | `LAB_APPLICATION_NAME` | Exact existing container app in the supplied subscription/resource group |
-| `LAB_APPLICATION_IMAGE_DIGEST` | Lowercase `sha256:` digest expected in the derived registry's `caldova/research-portal` repository |
+| `LAB_APPLICATION_IMAGE_DIGEST` | Lowercase `sha256:` digest expected in the explicitly selected image source |
+| `LAB_APPLICATION_IMAGE_SOURCE` | Optional `LabRegistry` (default: verified allocated ACR login server, `caldova/research-portal`) or `SimonRegistry` (`simon.azurecr.io/lab722-$LAB_APPLICATION_NAME`) |
 | `LAB_APPLICATION_PREVIEW_STATE` | Exactly `starter` or `reference`; a completed reference cannot pass a starter request |
 | `LAB_STARTUP_PURPOSE` | Explicit `synthetic-development` or `public-lab-development`, never attendee release |
 | `LAB_DATA_MANIFEST` | Locally staged frozen manifest with its adjacent database and, for public data, original JSON/pipeline ZIP |
@@ -201,7 +260,7 @@ This recorded the first synthetic agent implementation/integration milestone, no
 
 ## Agent-built candidate
 
-`build-agent-candidate.ps1` requires the accepted result's SHA-256, approved run ID, verified baseline descriptor, and local byte-identical frozen artifact. It never executes generated source on the maintainer host or changes the repository's reference implementation. The stager rejects foreign/failed/duplicate evidence, changed source/artifact bytes, unsupported schema, and existing destinations. `-StageOnly` and `-WhatIf` do not call ACR.
+`build-agent-candidate.ps1` requires the accepted result's SHA-256, approved run ID, verified baseline descriptor, and local byte-identical frozen artifact. It never executes generated source on the host or changes the repository's reference implementation. Supply the participant's explicit `ResourceGroupName`, `SubscriptionId` and `RegistryName` for the [portable path](#portable-image-and-data-delivery); without a group, only the original maintainer registry/subscription is accepted. The stager rejects foreign/failed/duplicate evidence, changed source/artifact bytes, unsupported schema, and existing destinations. `-StageOnly` and `-WhatIf` do not call ACR.
 
 On October 9, 2026, ACR run `dsg` built `agent-9b37caac-20261009-191955`, using the exact two specialist modules and frozen database/manifest bytes. All nine original research tests passed as UID 10001 in 3.059 seconds, with frozen/source identity checked before and after validation. The candidate target depends on that validation stage and contains `candidate-validation.json`.
 

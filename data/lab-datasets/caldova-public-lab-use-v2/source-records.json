@@ -1,0 +1,6226 @@
+{
+  "schema_version": "1.0",
+  "dataset_kind": "unreviewed-public",
+  "dataset_version": "caldova-public-review-draft-v2",
+  "built_at": "2026-10-14T20:11:33.960213Z",
+  "mapping_version": "conservative-exact-generics-v2",
+  "source_review_approved": false,
+  "attendee_release_approved": false,
+  "candidates": [
+    {
+      "candidate_id": "semaglutide",
+      "name": "semaglutide",
+      "research_area": "Bounded diabetes/obesity software demonstration"
+    },
+    {
+      "candidate_id": "liraglutide",
+      "name": "liraglutide",
+      "research_area": "Bounded diabetes/obesity software demonstration"
+    },
+    {
+      "candidate_id": "tirzepatide",
+      "name": "tirzepatide",
+      "research_area": "Bounded diabetes/obesity software demonstration"
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "aact-mirror",
+      "name": "AACT-derived DuckDB mirror by Nason",
+      "url": "https://huggingface.co/datasets/Nason/clinicaltrials-database/resolve/11b858f5f39519b92ee9a7a98129997f694c7833/clinicaltrials.duckdb",
+      "release": "2026-09-14",
+      "retrieved_at": "2026-10-10T04:52:49.149721Z",
+      "attribution": "ClinicalTrials.gov; AACT / CTTI; DuckDB conversion by Nason.",
+      "license_notes": "Publisher CC0 label and upstream reuse/attribution terms require human review."
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "name": "openFDA drug/event single-partition intake",
+      "url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip",
+      "release": "2026-10-05",
+      "retrieved_at": "2026-10-10T04:17:28.156279Z",
+      "attribution": "openFDA / U.S. Food and Drug Administration.",
+      "license_notes": "Rights, marked exceptions and residual privacy review remain pending."
+    }
+  ],
+  "trials": [
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00154401",
+      "source_url": "https://clinicaltrials.gov/study/NCT00154401",
+      "trial_id": "NCT00154401",
+      "title": "Effect of Liraglutide on Blood Glucose Control in Subjects With Type 2 Diabetes",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397253675,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00154414",
+      "source_url": "https://clinicaltrials.gov/study/NCT00154414",
+      "trial_id": "NCT00154414",
+      "title": "Effect of Liraglutide on Blood Glucose Control in Japanese Subjects With Type 2 Diabetes",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397106845,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00294723",
+      "source_url": "https://clinicaltrials.gov/study/NCT00294723",
+      "trial_id": "NCT00294723",
+      "title": "To Evaluate the Effect of Liraglutide Versus Glimepiride (Amaryl®) on Haemoglobin A1c",
+      "phase": "PHASE3",
+      "status": "TERMINATED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397085331,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397085333,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00318422",
+      "source_url": "https://clinicaltrials.gov/study/NCT00318422",
+      "trial_id": "NCT00318422",
+      "title": "Effect of Liraglutide on Blood Glucose Control in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397559542,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00318461",
+      "source_url": "https://clinicaltrials.gov/study/NCT00318461",
+      "trial_id": "NCT00318461",
+      "title": "To Compare the Effect of Liraglutide When Given Together With Metformin With the Effect of Metformin Given Alone and With the Effect of Glimepiride and Metformin Given Together",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397118267,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397118272,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397118273,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00331851",
+      "source_url": "https://clinicaltrials.gov/study/NCT00331851",
+      "trial_id": "NCT00331851",
+      "title": "Effect of Liraglutide on Blood Glucose Control in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396806169,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00333151",
+      "source_url": "https://clinicaltrials.gov/study/NCT00333151",
+      "trial_id": "NCT00333151",
+      "title": "Effect of Liraglutide on Blood Glucose Control in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397188708,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00393718",
+      "source_url": "https://clinicaltrials.gov/study/NCT00393718",
+      "trial_id": "NCT00393718",
+      "title": "Effect of Liraglutide on Blood Glucose Control in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396932367,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00395746",
+      "source_url": "https://clinicaltrials.gov/study/NCT00395746",
+      "trial_id": "NCT00395746",
+      "title": "Effect of Liraglutide in Combination With Sulfonylurea (SU) on Blood Glucose Control in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397482936,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397482937,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00422058",
+      "source_url": "https://clinicaltrials.gov/study/NCT00422058",
+      "trial_id": "NCT00422058",
+      "title": "The Effect of Liraglutide on Body Weight in Obese Subjects Without Diabetes",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397069711,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00518882",
+      "source_url": "https://clinicaltrials.gov/study/NCT00518882",
+      "trial_id": "NCT00518882",
+      "title": "Effect of Liraglutide or Exenatide Added to an Ongoing Treatment on Blood Glucose Control in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397162348,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00614120",
+      "source_url": "https://clinicaltrials.gov/study/NCT00614120",
+      "trial_id": "NCT00614120",
+      "title": "Effect of Liraglutide or Glimepiride Added to Metformin on Blood Glucose Control in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397246004,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397246006,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397246007,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00620282",
+      "source_url": "https://clinicaltrials.gov/study/NCT00620282",
+      "trial_id": "NCT00620282",
+      "title": "The Effect of Liraglutide on Endothelial Function in Subjects With Type 2 Diabetes Mellitus",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396853510,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00696657",
+      "source_url": "https://clinicaltrials.gov/study/NCT00696657",
+      "trial_id": "NCT00696657",
+      "title": "A Randomised Controlled Clinical Trial in Type 2 Diabetes Comparing Semaglutide to Placebo and Liraglutide",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide",
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396965865,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396965866,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396965867,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396965868,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396965869,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396965870,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396965876,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396965877,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00700817",
+      "source_url": "https://clinicaltrials.gov/study/NCT00700817",
+      "trial_id": "NCT00700817",
+      "title": "The Effect of Liraglutide Compared to Sitagliptin, Both in Combination With Metformin on Glycaemic Control in Subjects With Type 2 Diabetes Mellitus",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397171734,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397171737,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00781937",
+      "source_url": "https://clinicaltrials.gov/study/NCT00781937",
+      "trial_id": "NCT00781937",
+      "title": "Comparison of Liraglutide Versus Placebo in Weight Loss Maintenance in Obese Subjects: SCALE - Maintenance",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396816524,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00813020",
+      "source_url": "https://clinicaltrials.gov/study/NCT00813020",
+      "trial_id": "NCT00813020",
+      "title": "A Clinical Trial Investigating the Comparison of Three Different Concentrations of NN9535 in Healthy Male Subjects",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397547063,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397547064,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397547065,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00833716",
+      "source_url": "https://clinicaltrials.gov/study/NCT00833716",
+      "trial_id": "NCT00833716",
+      "title": "Effect of Renal Impairment on the Pharmacokinetics of NN9535",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2",
+        "Renal Impairment"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397549997,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00856986",
+      "source_url": "https://clinicaltrials.gov/study/NCT00856986",
+      "trial_id": "NCT00856986",
+      "title": "The Effect of Insulin Detemir in Combination With Liraglutide and Metformin Compared to Liraglutide and Metformin in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397012813,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00873223",
+      "source_url": "https://clinicaltrials.gov/study/NCT00873223",
+      "trial_id": "NCT00873223",
+      "title": "Examination of the Effects of Liraglutide on the Mode of Action of Insulin Detemir",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397562747,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00943501",
+      "source_url": "https://clinicaltrials.gov/study/NCT00943501",
+      "trial_id": "NCT00943501",
+      "title": "Safety of Liraglutide in Pediatric Patients With Type 2 Diabetes",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397255170,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397255172,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00978393",
+      "source_url": "https://clinicaltrials.gov/study/NCT00978393",
+      "trial_id": "NCT00978393",
+      "title": "A Trial to Assess the Effect of Liraglutide on Gastric Emptying in Healthy Obese Volunteers",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397273074,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397273075,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397273076,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397273077,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397273078,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397273079,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT00993304",
+      "source_url": "https://clinicaltrials.gov/study/NCT00993304",
+      "trial_id": "NCT00993304",
+      "title": "A Trial to Assess the Effect of Liraglutide on Blood Triglyceride (Fat) Levels After a Meal in Type 2 Diabetics",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397002650,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01029886",
+      "source_url": "https://clinicaltrials.gov/study/NCT01029886",
+      "trial_id": "NCT01029886",
+      "title": "Safety and Efficacy of Exenatide Once Weekly Versus Liraglutide in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes Mellitus"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396989838,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01117350",
+      "source_url": "https://clinicaltrials.gov/study/NCT01117350",
+      "trial_id": "NCT01117350",
+      "title": "Efficacy Assessment of Insulin Glargine Versus LiraglutidE After Oral Agents Failure",
+      "phase": "PHASE4",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397346058,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01128894",
+      "source_url": "https://clinicaltrials.gov/study/NCT01128894",
+      "trial_id": "NCT01128894",
+      "title": "A Study to Determine the Efficacy and Safety of Albiglutide as Compared With Liraglutide.",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396866468,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01175473",
+      "source_url": "https://clinicaltrials.gov/study/NCT01175473",
+      "trial_id": "NCT01175473",
+      "title": "Effects of Lixisenatide Compared to Liraglutide on the Postprandial Plasma Glucose in Patients With Type 2 Diabetes",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes Mellitus"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397148667,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01179048",
+      "source_url": "https://clinicaltrials.gov/study/NCT01179048",
+      "trial_id": "NCT01179048",
+      "title": "Liraglutide Effect and Action in Diabetes: Evaluation of Cardiovascular Outcome Results",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397104634,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01232946",
+      "source_url": "https://clinicaltrials.gov/study/NCT01232946",
+      "trial_id": "NCT01232946",
+      "title": "Cooperation of Insulin and GLP-1 on Myocardial Glucose Uptake",
+      "phase": "NA",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396938249,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01270789",
+      "source_url": "https://clinicaltrials.gov/study/NCT01270789",
+      "trial_id": "NCT01270789",
+      "title": "LIraglutide and Beta-cell RepAir (LIBRA) Study",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397709157,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01272219",
+      "source_url": "https://clinicaltrials.gov/study/NCT01272219",
+      "trial_id": "NCT01272219",
+      "title": "Effect of Liraglutide on Body Weight in Non-diabetic Obese Subjects or Overweight Subjects With Co-morbidities: SCALE™ - Obesity and Pre-diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397351791,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397351793,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01272232",
+      "source_url": "https://clinicaltrials.gov/study/NCT01272232",
+      "trial_id": "NCT01272232",
+      "title": "Effect of Liraglutide on Body Weight in Overweight or Obese Subjects With Type 2 Diabetes: SCALE™ - Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397463622,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397463623,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01272973",
+      "source_url": "https://clinicaltrials.gov/study/NCT01272973",
+      "trial_id": "NCT01272973",
+      "title": "Investigation on Safety, Tolerability, Pharmacokinetics and Pharmacodynamics of NN9924 in Healthy Male Subjects",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2",
+        "Healthy"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397563886,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397563888,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01296412",
+      "source_url": "https://clinicaltrials.gov/study/NCT01296412",
+      "trial_id": "NCT01296412",
+      "title": "Comparison of Two Treatment Regimens (Sitagliptin Versus Liraglutide) on Participants Who Failed to Achieve Good Glucose Control on Metformin Alone (MK-0431-403)",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397302753,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01324505",
+      "source_url": "https://clinicaltrials.gov/study/NCT01324505",
+      "trial_id": "NCT01324505",
+      "title": "Effect of Oral Contraceptives After Administration of Semaglutide in Subjects With Type 2 Diabetes",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397201954,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01336023",
+      "source_url": "https://clinicaltrials.gov/study/NCT01336023",
+      "trial_id": "NCT01336023",
+      "title": "Dual Action of Liraglutide and Insulin Degludec in Type 2 Diabetes: A Trial Comparing the Efficacy and Safety of Insulin Degludec/Liraglutide, Insulin Degludec and Liraglutide in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397445923,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01388361",
+      "source_url": "https://clinicaltrials.gov/study/NCT01388361",
+      "trial_id": "NCT01388361",
+      "title": "Comparison of the Efficacy and Safety of Two Intensification Strategies in Subjects With Type 2 Diabetes Inadequately Controlled on Basal Insulin and Metformin",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397742237,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01392898",
+      "source_url": "https://clinicaltrials.gov/study/NCT01392898",
+      "trial_id": "NCT01392898",
+      "title": "Liraglutide and Insulin Therapy in Patients With Type 2 Diabetes",
+      "phase": "NA",
+      "status": "UNKNOWN",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes Mellitus"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397090718,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01394341",
+      "source_url": "https://clinicaltrials.gov/study/NCT01394341",
+      "trial_id": "NCT01394341",
+      "title": "Liraglutide Treatment to Patients With Severe Renal Insufficiency",
+      "phase": "PHASE4",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "End-stage Renal Disease",
+        "Type 2 Diabetes Mellitus"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397288457,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01557166",
+      "source_url": "https://clinicaltrials.gov/study/NCT01557166",
+      "trial_id": "NCT01557166",
+      "title": "Effect of Liraglutide in Obese Subjects With Moderate or Severe Obstructive Sleep Apnoea: SCALE™ - Sleep Apnoea",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity",
+        "Obstructive Sleep Apnoea"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396928409,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01572753",
+      "source_url": "https://clinicaltrials.gov/study/NCT01572753",
+      "trial_id": "NCT01572753",
+      "title": "Investigation of Optimal Dosing Conditions for a Long Acting GLP-1 Analogue in Healthy Male Subjects",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2",
+        "Healthy"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396873013,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396873014,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396873015,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396873016,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396873017,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396873018,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396873019,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396873020,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01686945",
+      "source_url": "https://clinicaltrials.gov/study/NCT01686945",
+      "trial_id": "NCT01686945",
+      "title": "Investigation on Safety, Tolerability, Pharmacokinetics and Pharmacodynamics of Multiple Doses of a Long-acting GLP-1 Analogue in Healthy Male Subjects and Male Subjects With Type 2 Diabetes",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2",
+        "Healthy"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397283619,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397283620,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397283621,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01720446",
+      "source_url": "https://clinicaltrials.gov/study/NCT01720446",
+      "trial_id": "NCT01720446",
+      "title": "Trial to Evaluate Cardiovascular and Other Long-term Outcomes With Semaglutide in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397705495,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397705496,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01725126",
+      "source_url": "https://clinicaltrials.gov/study/NCT01725126",
+      "trial_id": "NCT01725126",
+      "title": "To Investigate the Safety, Tolerability and Pharmacodynamics of GSK2890457 in Healthy Volunteers and Subjects With Type 2 Diabetes",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396842620,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01789086",
+      "source_url": "https://clinicaltrials.gov/study/NCT01789086",
+      "trial_id": "NCT01789086",
+      "title": "A Randomised, Double-blind, Placebo-controlled Trial to Assess Safety, Tolerability and Pharmacokinetics of Liraglutide in Obese Adolescent Subjects Aged 12 to 17 Years",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397376844,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01866748",
+      "source_url": "https://clinicaltrials.gov/study/NCT01866748",
+      "trial_id": "NCT01866748",
+      "title": "Investigation on Safety, Tolerability and Pharmacokinetics of Single and Multiple Doses of a Long-acting GLP-1 Analogue (Semaglutide) in an Oral Formulation in Healthy Male Subjects",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2",
+        "Healthy"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397392364,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397392365,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01885208",
+      "source_url": "https://clinicaltrials.gov/study/NCT01885208",
+      "trial_id": "NCT01885208",
+      "title": "Efficacy and Safety of Semaglutide Once-weekly Versus Exenatide ER 2.0 mg Once-weekly as add-on to 1-2 Oral Antidiabetic Drugs (OADs) in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397394225,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01899430",
+      "source_url": "https://clinicaltrials.gov/study/NCT01899430",
+      "trial_id": "NCT01899430",
+      "title": "Polycystic Ovary Syndrome and Liraglutide",
+      "phase": "PHASE4",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "PCOS"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397367421,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01911468",
+      "source_url": "https://clinicaltrials.gov/study/NCT01911468",
+      "trial_id": "NCT01911468",
+      "title": "Polycystic Ovary Syndrome and Liraglutide as Add-on Therapy on Metformin",
+      "phase": "PHASE4",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "PCOS"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397384499,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01923181",
+      "source_url": "https://clinicaltrials.gov/study/NCT01923181",
+      "trial_id": "NCT01923181",
+      "title": "Multiple Dose Trial Examining Dose Range, Escalation and Efficacy of Oral Semaglutide in Subjects With Type 2 Diabetes",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397619088,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397619089,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT01930188",
+      "source_url": "https://clinicaltrials.gov/study/NCT01930188",
+      "trial_id": "NCT01930188",
+      "title": "Efficacy and Safety of Semaglutide Once-weekly Versus Sitagliptin Once-daily as add-on to Metformin and/or TZD in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396784137,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02014259",
+      "source_url": "https://clinicaltrials.gov/study/NCT02014259",
+      "trial_id": "NCT02014259",
+      "title": "Pharmacokinetics, Safety and Tolerability of Oral Semaglutide in Subjects With Various Degrees of Impaired Renal Function",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2",
+        "Healthy"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397369279,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02016911",
+      "source_url": "https://clinicaltrials.gov/study/NCT02016911",
+      "trial_id": "NCT02016911",
+      "title": "Pharmacokinetics, Safety and Tolerability of Oral Semaglutide in Subjects With Hepatic Impairment",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2",
+        "Healthy"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397265885,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02022254",
+      "source_url": "https://clinicaltrials.gov/study/NCT02022254",
+      "trial_id": "NCT02022254",
+      "title": "Influence of Semaglutide on Pharmacokinetics and Pharmacodynamics of Warfarin and Pharmacokinetics of Metformin in Healthy Subjects",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2",
+        "Healthy"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397115959,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02054897",
+      "source_url": "https://clinicaltrials.gov/study/NCT02054897",
+      "trial_id": "NCT02054897",
+      "title": "Efficacy and Safety of Semaglutide Once-weekly Versus Placebo in Drug-naïve Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396916797,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02079870",
+      "source_url": "https://clinicaltrials.gov/study/NCT02079870",
+      "trial_id": "NCT02079870",
+      "title": "Trial Investigating the Effect of Semaglutide on Energy Intake, Appetite Sensations, Postprandial Glucose and Triglyceride Metabolism and Gastric Emptying in Obese Subjects Compared With Placebo",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397320131,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02082496",
+      "source_url": "https://clinicaltrials.gov/study/NCT02082496",
+      "trial_id": "NCT02082496",
+      "title": "GLP-1 Response and Effect in Individuals With Obesity Causing Genetic Mutations",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397468145,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02128932",
+      "source_url": "https://clinicaltrials.gov/study/NCT02128932",
+      "trial_id": "NCT02128932",
+      "title": "Efficacy and Safety of Semaglutide Once Weekly Versus Insulin Glargine Once Daily as add-on to Metformin With or Without Sulphonylurea in Insulin-naïve Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397554144,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02146079",
+      "source_url": "https://clinicaltrials.gov/study/NCT02146079",
+      "trial_id": "NCT02146079",
+      "title": "A Trial to Assess the Pharmacokinetics, Pharmacodynamics, and the Safety and Tolerability of Semaglutide in Healthy Male Japanese and Caucasian Subjects",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2",
+        "Healthy"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396967770,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02147431",
+      "source_url": "https://clinicaltrials.gov/study/NCT02147431",
+      "trial_id": "NCT02147431",
+      "title": "A Trial Investigating the Effect of Semaglutide on Hypoglycaemic Counterregulation Compared to Placebo in Subjects With Type 2 Diabetes",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397026788,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02161588",
+      "source_url": "https://clinicaltrials.gov/study/NCT02161588",
+      "trial_id": "NCT02161588",
+      "title": "A Trial to Assess the Pharmacokinetics, Pharmacodynamics, Safety and Tolerability of Oral Semaglutide in Healthy Male Japanese and Caucasian Subjects",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2",
+        "Healthy"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396793844,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02187250",
+      "source_url": "https://clinicaltrials.gov/study/NCT02187250",
+      "trial_id": "NCT02187250",
+      "title": "PDE-4 Inhibitor Roflumilast and GLP-1 Agonist Liraglutide in Polycystic Ovary Syndrome",
+      "phase": "PHASE4",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "PCOS"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397580624,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02207348",
+      "source_url": "https://clinicaltrials.gov/study/NCT02207348",
+      "trial_id": "NCT02207348",
+      "title": "Investigating Bioequivalence Between Single-dose Liraglutide Administered Subcutaneously With Two Different Pen-injectors",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396856858,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02207374",
+      "source_url": "https://clinicaltrials.gov/study/NCT02207374",
+      "trial_id": "NCT02207374",
+      "title": "A Trial Comparing the Safety and Efficacy of Semaglutide Once Weekly in Monotherapy or in Combination With One OAD in Japanese Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397696519,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02210871",
+      "source_url": "https://clinicaltrials.gov/study/NCT02210871",
+      "trial_id": "NCT02210871",
+      "title": "Investigating the Pharmacokinetics, Safety and Tolerability After a Single Subcutaneous Injection of Semaglutide in Subjects With Mild, Moderate or Severe Hepatic Impairment Compared to Subjects With Normal Hepatic Function",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2",
+        "Hepatic Impaired"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396989754,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02212067",
+      "source_url": "https://clinicaltrials.gov/study/NCT02212067",
+      "trial_id": "NCT02212067",
+      "title": "A Trial Investigating the Effects of Semaglutide on ß-cell Function in Subjects With Type 2 Diabetes",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397286978,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02235961",
+      "source_url": "https://clinicaltrials.gov/study/NCT02235961",
+      "trial_id": "NCT02235961",
+      "title": "Investigate Safety, Tolerability and Pharmacokinetics for Single Doses of NNC9204-0530 Alone and in Combination With Liraglutide in Overweight to Obese But Otherwise Healthy Male Subjects",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397069143,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02254291",
+      "source_url": "https://clinicaltrials.gov/study/NCT02254291",
+      "trial_id": "NCT02254291",
+      "title": "A Trial Comparing the Safety and Efficacy of Semaglutide Once Weekly Versus Sitagliptin Once Daily in Japanese Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397347987,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397347988,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02305381",
+      "source_url": "https://clinicaltrials.gov/study/NCT02305381",
+      "trial_id": "NCT02305381",
+      "title": "Efficacy and Safety of Semaglutide Once-weekly Versus Placebo as add-on to Basal Insulin Alone or Basal Insulin in Combination With Metformin in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397654238,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02453711",
+      "source_url": "https://clinicaltrials.gov/study/NCT02453711",
+      "trial_id": "NCT02453711",
+      "title": "Investigation of Safety and Efficacy of Once-daily Semaglutide in Obese Subjects Without Diabetes Mellitus",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide",
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397497539,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397497540,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02527200",
+      "source_url": "https://clinicaltrials.gov/study/NCT02527200",
+      "trial_id": "NCT02527200",
+      "title": "Effect of Liraglutide for Weight Management in Paediatric Subjects With Prader-Willi Syndrome",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397505494,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02607865",
+      "source_url": "https://clinicaltrials.gov/study/NCT02607865",
+      "trial_id": "NCT02607865",
+      "title": "Efficacy and Long-term Safety of Oral Semaglutide Versus Sitagliptin in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397024429,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02647944",
+      "source_url": "https://clinicaltrials.gov/study/NCT02647944",
+      "trial_id": "NCT02647944",
+      "title": "Pilot Study of the Effect of Liraglutide on Weight Loss and Gastric Functions in Obesity",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397115707,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02648204",
+      "source_url": "https://clinicaltrials.gov/study/NCT02648204",
+      "trial_id": "NCT02648204",
+      "title": "Efficacy and Safety of Semaglutide Versus Dulaglutide as add-on to Metformin in Subjects With Type 2 Diabetes.",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397465168,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02692716",
+      "source_url": "https://clinicaltrials.gov/study/NCT02692716",
+      "trial_id": "NCT02692716",
+      "title": "A Trial Investigating the Cardiovascular Safety of Oral Semaglutide in Subjects With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397576850,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02696148",
+      "source_url": "https://clinicaltrials.gov/study/NCT02696148",
+      "trial_id": "NCT02696148",
+      "title": "A Trial to Assess Safety, Tolerability, Pharmacokinetics and Pharmacodynamics of Liraglutide in Obese Children Aged 7 to 11 Years",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397654883,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02717858",
+      "source_url": "https://clinicaltrials.gov/study/NCT02717858",
+      "trial_id": "NCT02717858",
+      "title": "A Trial to Assess the Effects of Liraglutide on Gallbladder Emptying in Overweight and Obese Subjects.",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397179875,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02743598",
+      "source_url": "https://clinicaltrials.gov/study/NCT02743598",
+      "trial_id": "NCT02743598",
+      "title": "Liraglutide for HIV-associated Neurocognitive Disorder",
+      "phase": "PHASE4",
+      "status": "TERMINATED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Diabetes Mellitus Type 2",
+        "HIV Infection",
+        "Metabolic Syndrome",
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397065095,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02773381",
+      "source_url": "https://clinicaltrials.gov/study/NCT02773381",
+      "trial_id": "NCT02773381",
+      "title": "A Trial Investigating the Effect of Oral Semaglutide Compared With Placebo on Postprandial Glucose and Triglyceride Metabolism, Energy Intake, Appetite Sensations and Gastric Emptying in Subjects With Type 2 Diabetes",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397463426,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02827708",
+      "source_url": "https://clinicaltrials.gov/study/NCT02827708",
+      "trial_id": "NCT02827708",
+      "title": "Efficacy and Safety of Oral Semaglutide Versus Placebo in Subjects With Type 2 Diabetes and Moderate Renal Impairment",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397321811,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02870231",
+      "source_url": "https://clinicaltrials.gov/study/NCT02870231",
+      "trial_id": "NCT02870231",
+      "title": "Investigating Safety, Tolerability, PK and PD for Multiple Doses of NNC9204-0530 in Combination With Liraglutide in Male and Female Subjects Being Overweight or With Obesity",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396912224,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02909933",
+      "source_url": "https://clinicaltrials.gov/study/NCT02909933",
+      "trial_id": "NCT02909933",
+      "title": "Low Dose Liraglutide and Metformin vs. High Dose Liraglutide Alone in Treatment of Obesity",
+      "phase": "PHASE4",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Polycystic Ovary Syndrome"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396839463,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02918279",
+      "source_url": "https://clinicaltrials.gov/study/NCT02918279",
+      "trial_id": "NCT02918279",
+      "title": "Effect of Liraglutide for Weight Management in Pubertal Adolescent Subjects With Obesity",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397733457,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02920190",
+      "source_url": "https://clinicaltrials.gov/study/NCT02920190",
+      "trial_id": "NCT02920190",
+      "title": "Antigen-Lipid-Driven Monoclonal Gammopathies Targeting Epicardial Fat",
+      "phase": "PHASE4",
+      "status": "WITHDRAWN",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Monoclonal Gammopathies",
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397284367,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02944500",
+      "source_url": "https://clinicaltrials.gov/study/NCT02944500",
+      "trial_id": "NCT02944500",
+      "title": "Saxenda: Underlying Mechanisms and Clinical Outcomes",
+      "phase": "PHASE4",
+      "status": "ACTIVE_NOT_RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397520920,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT02963935",
+      "source_url": "https://clinicaltrials.gov/study/NCT02963935",
+      "trial_id": "NCT02963935",
+      "title": "Effect and Safety of Liraglutide 3.0 mg as an Adjunct to Intensive Behaviour Therapy for Obesity in a Non-specialist Setting",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397550750,
+          "candidate_id": "liraglutide",
+          "name": "liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03041792",
+      "source_url": "https://clinicaltrials.gov/study/NCT03041792",
+      "trial_id": "NCT03041792",
+      "title": "Methodology Study To Examine 6-Week Food Intake With Liraglutide In Obese Subjects",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396841309,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03101930",
+      "source_url": "https://clinicaltrials.gov/study/NCT03101930",
+      "trial_id": "NCT03101930",
+      "title": "Cardiovascular Effects of GLP-1 Receptor Activation",
+      "phase": "PHASE4",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "PreDiabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397750320,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03131687",
+      "source_url": "https://clinicaltrials.gov/study/NCT03131687",
+      "trial_id": "NCT03131687",
+      "title": "A Study of Tirzepatide (LY3298176) in Participants With Type 2 Diabetes Mellitus",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes Mellitus"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397296833,
+          "candidate_id": "tirzepatide",
+          "name": "tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03158805",
+      "source_url": "https://clinicaltrials.gov/study/NCT03158805",
+      "trial_id": "NCT03158805",
+      "title": "Saxenda® in Obese or Overweight Patients With Stable Bipolar Disorder (Investigator Initiated)",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Bipolar Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397750064,
+          "candidate_id": "liraglutide",
+          "name": "LIRAGLUTIDE",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03311724",
+      "source_url": "https://clinicaltrials.gov/study/NCT03311724",
+      "trial_id": "NCT03311724",
+      "title": "A Study of Tirzepatide (LY3298176) in Participants With Type 2 Diabetes",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397558460,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03322631",
+      "source_url": "https://clinicaltrials.gov/study/NCT03322631",
+      "trial_id": "NCT03322631",
+      "title": "A Study of Tirzepatide (LY3298176) in Japanese Participants With Type 2 Diabetes",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes Mellitus"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397565610,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03374956",
+      "source_url": "https://clinicaltrials.gov/study/NCT03374956",
+      "trial_id": "NCT03374956",
+      "title": "Individualized Obesity Pharmacotherapy",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397333984,
+          "candidate_id": "liraglutide",
+          "name": "Liraglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03548987",
+      "source_url": "https://clinicaltrials.gov/study/NCT03548987",
+      "trial_id": "NCT03548987",
+      "title": "Research Study Investigating How Well Semaglutide Works in People Suffering From Overweight or Obesity",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396860112,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03574597",
+      "source_url": "https://clinicaltrials.gov/study/NCT03574597",
+      "trial_id": "NCT03574597",
+      "title": "Semaglutide Effects on Heart Disease and Stroke in Patients With Overweight or Obesity",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397666751,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03600480",
+      "source_url": "https://clinicaltrials.gov/study/NCT03600480",
+      "trial_id": "NCT03600480",
+      "title": "A Research Study of How NNC0174-0833 Taken With Semaglutide Works in People Who Are Overweight or Obese",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397110932,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03611582",
+      "source_url": "https://clinicaltrials.gov/study/NCT03611582",
+      "trial_id": "NCT03611582",
+      "title": "Research Study to Look at How Well Semaglutide is at Lowering Weight When Taken Together With an Intensive Lifestyle Program",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397277554,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03693430",
+      "source_url": "https://clinicaltrials.gov/study/NCT03693430",
+      "trial_id": "NCT03693430",
+      "title": "Two-year Research Study Investigating How Well Semaglutide Works in People Suffering From Overweight or Obesity",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397111819,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03730662",
+      "source_url": "https://clinicaltrials.gov/study/NCT03730662",
+      "trial_id": "NCT03730662",
+      "title": "A Study of Tirzepatide (LY3298176) Once a Week Versus Insulin Glargine Once a Day in Participants With Type 2 Diabetes and Increased Cardiovascular Risk",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes Mellitus"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396810727,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03811574",
+      "source_url": "https://clinicaltrials.gov/study/NCT03811574",
+      "trial_id": "NCT03811574",
+      "title": "STEP 6: Research Study Investigating How Well Semaglutide Works in People Living With Overweight or Obesity",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397746421,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03842202",
+      "source_url": "https://clinicaltrials.gov/study/NCT03842202",
+      "trial_id": "NCT03842202",
+      "title": "A Research Study to Look at How Semaglutide Affects Gastric Emptying in People With Obesity",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397029431,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03861039",
+      "source_url": "https://clinicaltrials.gov/study/NCT03861039",
+      "trial_id": "NCT03861039",
+      "title": "A Long-term Safety Study of Tirzepatide (LY3298176) in Participants With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes Mellitus"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397295437,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03861052",
+      "source_url": "https://clinicaltrials.gov/study/NCT03861052",
+      "trial_id": "NCT03861052",
+      "title": "A Study of Tirzepatide (LY3298176) Compared to Dulaglutide in Participants With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397789601,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03882970",
+      "source_url": "https://clinicaltrials.gov/study/NCT03882970",
+      "trial_id": "NCT03882970",
+      "title": "A Study of Tirzepatide (LY3298176) Versus Insulin Degludec in Participants With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes Mellitus"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396915667,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT03954834",
+      "source_url": "https://clinicaltrials.gov/study/NCT03954834",
+      "trial_id": "NCT03954834",
+      "title": "A Study of Tirzepatide (LY3298176) in Participants With Type 2 Diabetes Not Controlled With Diet and Exercise Alone",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes Mellitus"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397169442,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04039503",
+      "source_url": "https://clinicaltrials.gov/study/NCT04039503",
+      "trial_id": "NCT04039503",
+      "title": "A Study of Tirzepatide (LY3298176) Versus Placebo in Participants With Type 2 Diabetes Inadequately Controlled on Insulin Glargine With or Without Metformin",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397697448,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04050553",
+      "source_url": "https://clinicaltrials.gov/study/NCT04050553",
+      "trial_id": "NCT04050553",
+      "title": "A Study of Tirzepatide in Participants With Type 2 Diabetes Mellitus",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Diabetes Mellitus, Type 2",
+        "Hypoglycemia"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397490012,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04081337",
+      "source_url": "https://clinicaltrials.gov/study/NCT04081337",
+      "trial_id": "NCT04081337",
+      "title": "A Study to Measure Energy Expenditure and Food Intake in Participants With Obesity Using Tirzepatide",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397086087,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04093752",
+      "source_url": "https://clinicaltrials.gov/study/NCT04093752",
+      "trial_id": "NCT04093752",
+      "title": "A Study of Tirzepatide (LY3298176) in Participants With Type 2 Diabetes on Metformin With or Without Sulfonylurea (SURPASS-AP-Combo)",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397759906,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04102189",
+      "source_url": "https://clinicaltrials.gov/study/NCT04102189",
+      "trial_id": "NCT04102189",
+      "title": "A Research Study on How Well Semaglutide Works in Adolescents With Overweight or Obesity",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397556735,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04184622",
+      "source_url": "https://clinicaltrials.gov/study/NCT04184622",
+      "trial_id": "NCT04184622",
+      "title": "A Study of Tirzepatide (LY3298176) in Participants With Obesity or Overweight",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396971649,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04187300",
+      "source_url": "https://clinicaltrials.gov/study/NCT04187300",
+      "trial_id": "NCT04187300",
+      "title": "A Research Study Looking at the Comparability (Bioequivalence) of Two Forms of Semaglutide in Two Different Pen-injectors in People With Overweight or Obesity",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396892086,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04228354",
+      "source_url": "https://clinicaltrials.gov/study/NCT04228354",
+      "trial_id": "NCT04228354",
+      "title": "A Research Study Looking at the Comparability (Bioequivalence) of Two Versions of Semaglutide",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Healthy Volunteers",
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396827179,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04235959",
+      "source_url": "https://clinicaltrials.gov/study/NCT04235959",
+      "trial_id": "NCT04235959",
+      "title": "A Study of Tirzepatide in Chinese Participants With Type 2 Diabetes Mellitus",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Diabetes Mellitus, Type 2"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397031149,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04255433",
+      "source_url": "https://clinicaltrials.gov/study/NCT04255433",
+      "trial_id": "NCT04255433",
+      "title": "A Study of Tirzepatide (LY3298176) Compared With Dulaglutide on Major Cardiovascular Events in Participants With Type 2 Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes Mellitus"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397366330,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04407234",
+      "source_url": "https://clinicaltrials.gov/study/NCT04407234",
+      "trial_id": "NCT04407234",
+      "title": "A Study to Measure Stomach Emptying in Overweight Non-diabetic and Diabetic Participants Using Tirzepatide",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity",
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Diabetes Mellitus, Type 2",
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397440195,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04537923",
+      "source_url": "https://clinicaltrials.gov/study/NCT04537923",
+      "trial_id": "NCT04537923",
+      "title": "A Study of Tirzepatide (LY3298176) Versus Insulin Lispro (U100) in Participants With Type 2 Diabetes Inadequately Controlled on Insulin Glargine (U100) With or Without Metformin",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397629763,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04657003",
+      "source_url": "https://clinicaltrials.gov/study/NCT04657003",
+      "trial_id": "NCT04657003",
+      "title": "A Study of Tirzepatide (LY3298176) in Participants With Type 2 Diabetes Who Have Obesity or Are Overweight",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity",
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight",
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397024116,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04657016",
+      "source_url": "https://clinicaltrials.gov/study/NCT04657016",
+      "trial_id": "NCT04657016",
+      "title": "A Study of Tirzepatide (LY3298176) In Participants After A Lifestyle Weight Loss Program",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396961751,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04660643",
+      "source_url": "https://clinicaltrials.gov/study/NCT04660643",
+      "trial_id": "NCT04660643",
+      "title": "A Study of Tirzepatide (LY3298176) in Participants With Obesity or Overweight for the Maintenance of Weight Loss",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396916956,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04788511",
+      "source_url": "https://clinicaltrials.gov/study/NCT04788511",
+      "trial_id": "NCT04788511",
+      "title": "Research Study to Investigate How Well Semaglutide Works in People Living With Heart Failure and Obesity",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396826270,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04844918",
+      "source_url": "https://clinicaltrials.gov/study/NCT04844918",
+      "trial_id": "NCT04844918",
+      "title": "A Study of Tirzepatide (LY3298176) in Participants With Obesity Disease",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397693771,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04847557",
+      "source_url": "https://clinicaltrials.gov/study/NCT04847557",
+      "trial_id": "NCT04847557",
+      "title": "A Study of Tirzepatide (LY3298176) in Participants With Heart Failure With Preserved Ejection Fraction (HFpEF) and Obesity: The SUMMIT Trial",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Heart Failure With Preserved Ejection Fraction (HFpEF)",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397587730,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT04889183",
+      "source_url": "https://clinicaltrials.gov/study/NCT04889183",
+      "trial_id": "NCT04889183",
+      "title": "SeMaglutide and Albuminuria Reduction Trial in Obese Individuals Without Diabetes",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Albuminuria",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397451598,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05024032",
+      "source_url": "https://clinicaltrials.gov/study/NCT05024032",
+      "trial_id": "NCT05024032",
+      "title": "A Study of Tirzepatide (LY3298176) in Chinese Participants Without Type 2 Diabetes Who Have Obesity or Overweight (SURMOUNT-CN)",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Metabolism and Nutrition Disorder",
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397469530,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05173714",
+      "source_url": "https://clinicaltrials.gov/study/NCT05173714",
+      "trial_id": "NCT05173714",
+      "title": "Sit Less, Interact and Move More (SLIMM) 2 Study",
+      "phase": "PHASE2",
+      "status": "RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Chronic Kidney Diseases",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397502026,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05202353",
+      "source_url": "https://clinicaltrials.gov/study/NCT05202353",
+      "trial_id": "NCT05202353",
+      "title": "A Study in People With Obesity to Test the Effects of BI 456906 Compared With Semaglutide on Glucagon Receptor Activity in the Liver",
+      "phase": "PHASE1",
+      "status": "ACTIVE_NOT_RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397804771,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05209165",
+      "source_url": "https://clinicaltrials.gov/study/NCT05209165",
+      "trial_id": "NCT05209165",
+      "title": "Semaglutide to Reduce Atrial Fibrillation Burden",
+      "phase": "PHASE4",
+      "status": "SUSPENDED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Atrial Fibrillation",
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397178625,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05371496",
+      "source_url": "https://clinicaltrials.gov/study/NCT05371496",
+      "trial_id": "NCT05371496",
+      "title": "Cardiac and Metabolic Effects of Semaglutide in Heart Failure With Preserved Ejection Fraction",
+      "phase": "PHASE4",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Cardiomyopathy",
+        "Heart Failure With Preserved Ejection Fraction (HFpEF)",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397250852,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05412004",
+      "source_url": "https://clinicaltrials.gov/study/NCT05412004",
+      "trial_id": "NCT05412004",
+      "title": "Obstructive Sleep Apnea Master Protocol GPIF: A Study of Tirzepatide (LY3298176) in Participants With Obstructive Sleep Apnea",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Obstructive Sleep Apnea"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397769409,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05433584",
+      "source_url": "https://clinicaltrials.gov/study/NCT05433584",
+      "trial_id": "NCT05433584",
+      "title": "A Study of Tirzepatide Compared With Intensified Conventional Care in Adult Participants With Type 2 Diabetes",
+      "phase": "PHASE4",
+      "status": "ACTIVE_NOT_RECRUITING",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397153876,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05536804",
+      "source_url": "https://clinicaltrials.gov/study/NCT05536804",
+      "trial_id": "NCT05536804",
+      "title": "A Study of Tirzepatide (LY3298176) in Participants With Overweight or Obesity and Chronic Kidney Disease With or Without Type 2 Diabetes",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity",
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Chronic Kidney Disease",
+        "Obesity",
+        "Overweight",
+        "T2D",
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397804316,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05537233",
+      "source_url": "https://clinicaltrials.gov/study/NCT05537233",
+      "trial_id": "NCT05537233",
+      "title": "ADJUnct Semaglutide Treatment in Type 1 Diabetes",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Type 1 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397201396,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05553093",
+      "source_url": "https://clinicaltrials.gov/study/NCT05553093",
+      "trial_id": "NCT05553093",
+      "title": "Effects of Tirzepatide and Insulin Glargine on Glucolipid Metabolism and Brain Function in Patients With Type 2 Diabetes",
+      "phase": "PHASE4",
+      "status": "RECRUITING",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes Mellitus"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396834292,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05556512",
+      "source_url": "https://clinicaltrials.gov/study/NCT05556512",
+      "trial_id": "NCT05556512",
+      "title": "A Study of Tirzepatide (LY3298176) on the Reduction on Morbidity and Mortality in Adults With Obesity",
+      "phase": "PHASE3",
+      "status": "ACTIVE_NOT_RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397344612,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05564039",
+      "source_url": "https://clinicaltrials.gov/study/NCT05564039",
+      "trial_id": "NCT05564039",
+      "title": "A Study of Tirzepatide (LY3298176) in Adult Participants With Type 2 Diabetes Switching From Dulaglutide (SURPASS-SWITCH)",
+      "phase": "PHASE4",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397028352,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05564117",
+      "source_url": "https://clinicaltrials.gov/study/NCT05564117",
+      "trial_id": "NCT05564117",
+      "title": "Research Study Looking at How Well Semaglutide Tablets Taken Once Daily Work in People Who Have a Body Weight Above the Healthy Range",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397407110,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05567796",
+      "source_url": "https://clinicaltrials.gov/study/NCT05567796",
+      "trial_id": "NCT05567796",
+      "title": "A Research Study to See How Well CagriSema Helps People With Excess Body Weight Lose Weight",
+      "phase": "PHASE3",
+      "status": "ACTIVE_NOT_RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397055723,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05582096",
+      "source_url": "https://clinicaltrials.gov/study/NCT05582096",
+      "trial_id": "NCT05582096",
+      "title": "A Study of LY3457263 in Obese Participants",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397699049,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05616013",
+      "source_url": "https://clinicaltrials.gov/study/NCT05616013",
+      "trial_id": "NCT05616013",
+      "title": "Safety and Efficacy of Bimagrumab and Semaglutide in Adults Who Are Overweight or Obese",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obese",
+        "Obesity",
+        "Overweight or Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397368916,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05646706",
+      "source_url": "https://clinicaltrials.gov/study/NCT05646706",
+      "trial_id": "NCT05646706",
+      "title": "A Research Study to See How Semaglutide Helps People With Excess Weight, Lose Weight (STEP UP)",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397135394,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 397135395,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05671653",
+      "source_url": "https://clinicaltrials.gov/study/NCT05671653",
+      "trial_id": "NCT05671653",
+      "title": "A Study to Evaluate the Effect of the Experimental GLP-1 Drug PF-07081532 on Blood Levels of Common Birth Control Pills, and Drugs Omeprazole and Midazolam, and Effect of GLP-1 Drug Semaglutide on Midazolam Blood Levels in Healthy Adults With Weight in the Obesity Range",
+      "phase": "PHASE1",
+      "status": "TERMINATED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397769574,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05696847",
+      "source_url": "https://clinicaltrials.gov/study/NCT05696847",
+      "trial_id": "NCT05696847",
+      "title": "A Study of Tirzepatide (LY3298176) in Pediatric Participants With Obesity",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397312902,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05706506",
+      "source_url": "https://clinicaltrials.gov/study/NCT05706506",
+      "trial_id": "NCT05706506",
+      "title": "A Study of Tirzepatide (LY3298176) in Adults With Type 2 Diabetes Switching From a GLP-1 RA (SURPASS-SWITCH-2)",
+      "phase": "PHASE4",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Diabetes Mellitus, Type 2",
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397630648,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05726227",
+      "source_url": "https://clinicaltrials.gov/study/NCT05726227",
+      "trial_id": "NCT05726227",
+      "title": "A Research Study on How Well Semaglutide Helps Children and Teenagers With Excess Body Weight Lose Weight",
+      "phase": "PHASE3",
+      "status": "ACTIVE_NOT_RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397802330,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05751226",
+      "source_url": "https://clinicaltrials.gov/study/NCT05751226",
+      "trial_id": "NCT05751226",
+      "title": "A Study in People With Overweight or Obesity to Test How Well Different Doses of BI 1820237 Are Tolerated When Given Alone or in Combination With Either Semaglutide or BI 456906",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Healthy",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397780996,
+          "candidate_id": "semaglutide",
+          "name": "semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05822544",
+      "source_url": "https://clinicaltrials.gov/study/NCT05822544",
+      "trial_id": "NCT05822544",
+      "title": "Phase 1/1b Study of TLC-6740 in Healthy Subjects and Subjects With Obesity, With or Without Diabetes",
+      "phase": "PHASE1",
+      "status": "ACTIVE_NOT_RECRUITING",
+      "conditions": [
+        "obesity",
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Healthy Subjects",
+        "Obesity",
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396808392,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05822830",
+      "source_url": "https://clinicaltrials.gov/study/NCT05822830",
+      "trial_id": "NCT05822830",
+      "title": "A Study of Tirzepatide (LY3298176) in Participants With Obesity or Overweight With Weight Related Comorbidities",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide",
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 396986512,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        },
+        {
+          "intervention_id": 396986513,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05890976",
+      "source_url": "https://clinicaltrials.gov/study/NCT05890976",
+      "trial_id": "NCT05890976",
+      "title": "Research Study Looking at How Well Semaglutide Tablets Taken Once Daily Work in Chinese Adults Who Are Above a Healthy Weight Range (OASIS 3)",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397739695,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05912621",
+      "source_url": "https://clinicaltrials.gov/study/NCT05912621",
+      "trial_id": "NCT05912621",
+      "title": "Tirzepatide: Reversal of Lipotoxicity and Adipose Tissue Dysfunction in Humans With Overweight/Obesity",
+      "phase": "PHASE2",
+      "status": "RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight",
+        "Overweight and Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397360436,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05933499",
+      "source_url": "https://clinicaltrials.gov/study/NCT05933499",
+      "trial_id": "NCT05933499",
+      "title": "Effect of Tirzepatide and Bimagrumab on Body Composition, Insulin Sensitivity, and Bone in Adults With Obesity",
+      "phase": "PHASE2",
+      "status": "RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397668685,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT05963022",
+      "source_url": "https://clinicaltrials.gov/study/NCT05963022",
+      "trial_id": "NCT05963022",
+      "title": "A Study of Tirzepatide (LY3298176) in Chinese Participants With Type 2 Diabetes (SURPASS-CN-MONO)",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397453482,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06009653",
+      "source_url": "https://clinicaltrials.gov/study/NCT06009653",
+      "trial_id": "NCT06009653",
+      "title": "Effects of Tirzepatide Plus Intensive Lifestyle Therapy on Body Weight and Metabolic Health in Latinos With Obesity",
+      "phase": "PHASE4",
+      "status": "WITHDRAWN",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Metabolic Disease",
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397730017,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06027567",
+      "source_url": "https://clinicaltrials.gov/study/NCT06027567",
+      "trial_id": "NCT06027567",
+      "title": "The Effect of an Anti-obesity Drug, Semaglutide, as Treatment in New-onset Idiopathic Intracranial Hypertension (IIH) Compared to Standard Weight Management (Dietician) With Regards to Change in Weight and Intracranial Pressure",
+      "phase": "PHASE4",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Idiopathic Intracranial Hypertension",
+        "Intracranial Pressure",
+        "Obesity",
+        "Papilledema",
+        "Pseudotumor Cerebri Syndrome",
+        "Weight Loss"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397454937,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06037252",
+      "source_url": "https://clinicaltrials.gov/study/NCT06037252",
+      "trial_id": "NCT06037252",
+      "title": "A Study of Investigational Tirzepatide (LY3298176) Doses in Participants With Type 2 Diabetes and Obesity",
+      "phase": "PHASE2",
+      "status": "ACTIVE_NOT_RECRUITING",
+      "conditions": [
+        "obesity",
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397526917,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06041217",
+      "source_url": "https://clinicaltrials.gov/study/NCT06041217",
+      "trial_id": "NCT06041217",
+      "title": "A Research Study to See How Well Semaglutide Helps People Who Have a Body Weight Above the Healthy Weight Range",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397315537,
+          "candidate_id": "semaglutide",
+          "name": "Semaglutide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06047548",
+      "source_url": "https://clinicaltrials.gov/study/NCT06047548",
+      "trial_id": "NCT06047548",
+      "title": "A Study of LY3298176 (Tirzepatide) For the Maintenance of Body Weight Reduction in Participants Who Have Obesity or Overweight With Weight-Related Comorbidities",
+      "phase": "PHASE3",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397648592,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06075667",
+      "source_url": "https://clinicaltrials.gov/study/NCT06075667",
+      "trial_id": "NCT06075667",
+      "title": "A Study of Tirzepatide (LY3298176) Once Weekly in Adolescent Participants Who Have Obesity or Overweight With Weight-Related Comorbidities",
+      "phase": "PHASE3",
+      "status": "ACTIVE_NOT_RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397585960,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06143956",
+      "source_url": "https://clinicaltrials.gov/study/NCT06143956",
+      "trial_id": "NCT06143956",
+      "title": "A Master Protocol Study (LY900038) of Multiple Intervention-Specific-Appendices (ISAs) in Adult Participants With Obesity or Overweight",
+      "phase": "PHASE2",
+      "status": "RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397219036,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06162715",
+      "source_url": "https://clinicaltrials.gov/study/NCT06162715",
+      "trial_id": "NCT06162715",
+      "title": "GLP-1 Receptor Agonists Post-Bariatric Surgery (GRABS) Pilot Trial",
+      "phase": "PHASE2/PHASE3",
+      "status": "ACTIVE_NOT_RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "BMI Greater Than 30",
+        "Obesity",
+        "Severe Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397185848,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06191848",
+      "source_url": "https://clinicaltrials.gov/study/NCT06191848",
+      "trial_id": "NCT06191848",
+      "title": "Subcutaneous Tirzepatide Once-weekly in Patients With Obesity and Knee Osteoarthritis (STOP KNEE-OA)",
+      "phase": "PHASE4",
+      "status": "RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Knee Osteoarthritis",
+        "Obesity",
+        "Osteoarthritis, Knee"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397779235,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06297616",
+      "source_url": "https://clinicaltrials.gov/study/NCT06297616",
+      "trial_id": "NCT06297616",
+      "title": "A Study of LY3841136 in Japanese Participants With Obesity or Overweight",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397534167,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06326060",
+      "source_url": "https://clinicaltrials.gov/study/NCT06326060",
+      "trial_id": "NCT06326060",
+      "title": "A Research Study Comparing How Well Different Doses of the Medicine NN0519-0130 Help People With Excess Body Weight Lose Weight",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397613548,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06345066",
+      "source_url": "https://clinicaltrials.gov/study/NCT06345066",
+      "trial_id": "NCT06345066",
+      "title": "A Study of LY3841136 in Overweight and Obese Participants",
+      "phase": "PHASE1",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Overweight"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397106783,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06373146",
+      "source_url": "https://clinicaltrials.gov/study/NCT06373146",
+      "trial_id": "NCT06373146",
+      "title": "A Study of Tirzepatide (LY3298176) Plus Mibavademab Compared With Tirzepatide Alone in Adult Participants With Obesity",
+      "phase": "PHASE2",
+      "status": "COMPLETED",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397408491,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06439277",
+      "source_url": "https://clinicaltrials.gov/study/NCT06439277",
+      "trial_id": "NCT06439277",
+      "title": "A Study of Tirzepatide in Adolescents With Obesity and Weight-Related Comorbidities (SURMOUNT-ADOLESCENTS-2)",
+      "phase": "PHASE3",
+      "status": "RECRUITING",
+      "conditions": [
+        "obesity"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Obesity",
+        "Weight Gain"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397149973,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06635057",
+      "source_url": "https://clinicaltrials.gov/study/NCT06635057",
+      "trial_id": "NCT06635057",
+      "title": "A Study of Tirzepatide (LY3298176) in Participants With Type 2 Diabetes During Ramadan",
+      "phase": "PHASE4",
+      "status": "COMPLETED",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397243086,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    },
+    {
+      "source_id": "aact-mirror",
+      "source_record_id": "NCT06657209",
+      "source_url": "https://clinicaltrials.gov/study/NCT06657209",
+      "trial_id": "NCT06657209",
+      "title": "Normal-weight Diabetes: Adipocyte-directed Therapy With Pioglitazone or Tirzepatide",
+      "phase": "PHASE4",
+      "status": "RECRUITING",
+      "conditions": [
+        "type-2-diabetes"
+      ],
+      "candidate_ids": [
+        "tirzepatide"
+      ],
+      "source_conditions": [
+        "Diabetes",
+        "Diabetes Mellitus, Type 2",
+        "Pre Diabetes",
+        "Type 2 Diabetes"
+      ],
+      "source_interventions": [
+        {
+          "intervention_id": 397404955,
+          "candidate_id": "tirzepatide",
+          "name": "Tirzepatide",
+          "intervention_type": "DRUG"
+        }
+      ]
+    }
+  ],
+  "safety_reports": [
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26581774",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26581774&version=1",
+      "report_id": "26581774",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "DEVICE ISSUE",
+        "INCORRECT DOSE ADMINISTERED BY DEVICE",
+        "NO ADVERSE EVENT"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "LIRAGLUTIDE",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "LIRAGLUTIDE",
+            "SAXENDA",
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        },
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "LIRAGLUTIDE",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "LIRAGLUTIDE",
+            "SAXENDA",
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        },
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "LIRAGLUTIDE",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "LIRAGLUTIDE",
+            "SAXENDA",
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Incorrect dose administered by device",
+        "Device issue",
+        "No adverse event"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26581849",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26581849&version=1",
+      "report_id": "26581849",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "ACUTE KIDNEY INJURY",
+        "DIARRHOEA",
+        "VOMITING"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "SAXENDA",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "SAXENDA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        },
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "SAXENDA",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "SAXENDA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Acute kidney injury",
+        "Vomiting",
+        "Diarrhoea"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26591493",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26591493&version=1",
+      "report_id": "26591493",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "PRODUCT DOSE OMISSION ISSUE"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "LIRAGLUTIDE",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "LIRAGLUTIDE",
+            "SAXENDA",
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Product dose omission issue"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26591550",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26591550&version=1",
+      "report_id": "26591550",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "PRODUCT DOSE OMISSION ISSUE"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "LIRAGLUTIDE",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "LIRAGLUTIDE",
+            "SAXENDA",
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Product dose omission issue"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26591555",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26591555&version=1",
+      "report_id": "26591555",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "PRODUCT DOSE OMISSION ISSUE"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "LIRAGLUTIDE",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "LIRAGLUTIDE",
+            "SAXENDA",
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Product dose omission issue"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26595250",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26595250&version=1",
+      "report_id": "26595250",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "OFF LABEL USE"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "LIRAGLUTIDE",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "LIRAGLUTIDE",
+            "SAXENDA",
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Off label use"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26601332",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26601332&version=1",
+      "report_id": "26601332",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "HIP ARTHROPLASTY"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Hip arthroplasty",
+        "Hip arthroplasty"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26619912",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26619912&version=2",
+      "report_id": "26619912",
+      "version": 2,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "ABDOMINAL PAIN",
+        "CONSTIPATION",
+        "IMPAIRED GASTRIC EMPTYING",
+        "INTESTINAL OBSTRUCTION",
+        "NAUSEA",
+        "VOMITING",
+        "WEIGHT DECREASED"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "VICTOZA",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Weight decreased",
+        "Intestinal obstruction",
+        "Impaired gastric emptying",
+        "Nausea",
+        "Vomiting",
+        "Constipation",
+        "Abdominal pain"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26658765",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26658765&version=1",
+      "report_id": "26658765",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "ILL-DEFINED DISORDER"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "SAXENDA",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "SAXENDA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Ill-defined disorder"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26658805",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26658805&version=1",
+      "report_id": "26658805",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "ACCIDENTAL OVERDOSE",
+        "DECREASED APPETITE",
+        "SUSPECTED COUNTERFEIT PRODUCT"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Decreased appetite",
+        "Suspected counterfeit product",
+        "Accidental overdose"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26665201",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26665201&version=1",
+      "report_id": "26665201",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "DEVICE FAILURE",
+        "DEVICE LEAKAGE",
+        "INCREASED APPETITE",
+        "PRODUCT DOSE OMISSION ISSUE",
+        "PRODUCT PHYSICAL ISSUE"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "VICTOZA",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        },
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "VICTOZA",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Increased appetite",
+        "Product dose omission issue",
+        "Product physical issue",
+        "Device failure",
+        "Device leakage"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26670903",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26670903&version=1",
+      "report_id": "26670903",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "ABDOMINAL DISTENSION",
+        "HEPATIC STEATOSIS",
+        "HUNGER",
+        "HYSTERECTOMY",
+        "RIB DEFORMITY",
+        "STARVATION",
+        "WEIGHT INCREASED"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Hysterectomy",
+        "Hepatic steatosis",
+        "Rib deformity",
+        "Weight increased",
+        "Starvation",
+        "Hunger",
+        "Abdominal distension"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26673609",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26673609&version=1",
+      "report_id": "26673609",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "DRUG INEFFECTIVE",
+        "WEIGHT INCREASED"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Weight increased",
+        "Drug ineffective"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26673841",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26673841&version=1",
+      "report_id": "26673841",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "DRUG INEFFECTIVE",
+        "WEIGHT INCREASED"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Weight increased",
+        "Drug ineffective"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26674061",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26674061&version=1",
+      "report_id": "26674061",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "ILLNESS",
+        "INJECTION SITE IRRITATION",
+        "INJECTION SITE PAIN",
+        "NAUSEA"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Nausea",
+        "Injection site pain",
+        "Injection site irritation",
+        "Illness"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26674394",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26674394&version=1",
+      "report_id": "26674394",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "COUNTERFEIT PRODUCT ADMINISTERED",
+        "WEIGHT INCREASED"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Weight increased",
+        "Counterfeit product administered"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26674443",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26674443&version=1",
+      "report_id": "26674443",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "ABDOMINAL DISCOMFORT",
+        "DEPRESSION"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Abdominal discomfort",
+        "Depression"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26674607",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26674607&version=1",
+      "report_id": "26674607",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "APPETITE DISORDER",
+        "DRUG INEFFECTIVE"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Appetite disorder",
+        "Drug ineffective"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26674749",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26674749&version=1",
+      "report_id": "26674749",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "WEIGHT LOSS POOR"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Weight loss poor"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26675087",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26675087&version=1",
+      "report_id": "26675087",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "PANCREATITIS ACUTE"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Pancreatitis acute"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26675316",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26675316&version=1",
+      "report_id": "26675316",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "DRUG INEFFECTIVE",
+        "WEIGHT LOSS POOR"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Weight loss poor",
+        "Drug ineffective"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26675359",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26675359&version=1",
+      "report_id": "26675359",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "FOOD CRAVING",
+        "WEIGHT DECREASED"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Food craving",
+        "Weight decreased"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26675424",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26675424&version=1",
+      "report_id": "26675424",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "VISUAL IMPAIRMENT"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "VICTOZA",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Visual impairment"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26675802",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26675802&version=1",
+      "report_id": "26675802",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "HYPOACUSIS"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "LIRAGLUTIDE",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "LIRAGLUTIDE",
+            "SAXENDA",
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Hypoacusis"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26676116",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26676116&version=1",
+      "report_id": "26676116",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "IMPAIRED GASTRIC EMPTYING"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "VICTOZA",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Impaired gastric emptying"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26683973",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26683973&version=1",
+      "report_id": "26683973",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "COUNTERFEIT PRODUCT ADMINISTERED",
+        "DRUG INEFFECTIVE",
+        "WEIGHT INCREASED"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Weight increased",
+        "Counterfeit product administered",
+        "Drug ineffective"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26685144",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26685144&version=1",
+      "report_id": "26685144",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "DRUG INEFFECTIVE",
+        "FOOD CRAVING",
+        "NAUSEA",
+        "WEIGHT LOSS POOR"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        },
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Food craving",
+        "Weight loss poor",
+        "Nausea",
+        "Drug ineffective"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26685283",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26685283&version=1",
+      "report_id": "26685283",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "CONSTIPATION",
+        "DIARRHOEA",
+        "FATIGUE",
+        "FEELING ABNORMAL",
+        "GASTROINTESTINAL DISORDER",
+        "NAUSEA"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Feeling abnormal",
+        "Gastrointestinal disorder",
+        "Diarrhoea",
+        "Nausea",
+        "Constipation",
+        "Fatigue"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26685970",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26685970&version=1",
+      "report_id": "26685970",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "GASTROINTESTINAL INJURY"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Gastrointestinal injury"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26700192",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26700192&version=1",
+      "report_id": "26700192",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "ASTHENIA",
+        "COLD SWEAT",
+        "GASTROINTESTINAL DISORDER",
+        "LETHARGY",
+        "MUSCULAR WEAKNESS",
+        "PALPITATIONS",
+        "PRESCRIPTION DRUG USED WITHOUT A PRESCRIPTION",
+        "TREMOR",
+        "VOMITING"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Gastrointestinal disorder",
+        "Lethargy",
+        "Palpitations",
+        "Tremor",
+        "Cold sweat",
+        "Muscular weakness",
+        "Vomiting",
+        "Asthenia",
+        "Prescription drug used without a prescription"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26785328",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26785328&version=1",
+      "report_id": "26785328",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "BLOOD GLUCOSE INCREASED",
+        "DRUG EFFECT LESS THAN EXPECTED",
+        "PRODUCT SUBSTITUTION ISSUE",
+        "WEIGHT INCREASED"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "LIRAGLUTIDE",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "LIRAGLUTIDE",
+            "SAXENDA",
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Blood glucose increased",
+        "Weight increased",
+        "Drug effect less than expected",
+        "Product substitution issue"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26810780",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26810780&version=1",
+      "report_id": "26810780",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "EYE HAEMORRHAGE",
+        "OPHTHALMIC VASCULAR THROMBOSIS"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "SAXENDA",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "SAXENDA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Ophthalmic vascular thrombosis",
+        "Eye haemorrhage"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26829860",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26829860&version=1",
+      "report_id": "26829860",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "CHOKING SENSATION",
+        "CONFUSIONAL STATE",
+        "DYSPHAGIA",
+        "IMPAIRED GASTRIC EMPTYING",
+        "TREMOR"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Impaired gastric emptying",
+        "Tremor",
+        "Confusional state",
+        "Dysphagia",
+        "Choking sensation"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26850608",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26850608&version=1",
+      "report_id": "26850608",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "DISCOMFORT",
+        "DYSPEPSIA",
+        "HEART RATE INCREASED",
+        "VOMITING"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Dyspepsia",
+        "Vomiting",
+        "Heart rate increased",
+        "Discomfort"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26852593",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26852593&version=1",
+      "report_id": "26852593",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "BILIARY COLIC",
+        "CHOLECYSTECTOMY"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "SAXENDA",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "SAXENDA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Cholecystectomy",
+        "Biliary colic"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26861411",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26861411&version=1",
+      "report_id": "26861411",
+      "version": 1,
+      "candidate_ids": [
+        "semaglutide"
+      ],
+      "reaction_terms": [
+        "MOOD ALTERED",
+        "NONSPECIFIC REACTION"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "semaglutide"
+          ],
+          "medicinalproduct": "SEMAGLUTIDE",
+          "generic_names": [],
+          "brand_names": [],
+          "substance_names": []
+        }
+      ],
+      "original_reaction_terms": [
+        "Mood altered",
+        "Nonspecific reaction"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26870682",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26870682&version=1",
+      "report_id": "26870682",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "DISCOMFORT",
+        "DRUG INEFFECTIVE",
+        "GASTROINTESTINAL DISORDER",
+        "PERIPHERAL COLDNESS",
+        "WEIGHT INCREASED"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "LIRAGLUTIDE",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "LIRAGLUTIDE",
+            "SAXENDA",
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Drug ineffective",
+        "Discomfort",
+        "Gastrointestinal disorder",
+        "Weight increased",
+        "Peripheral coldness",
+        "Peripheral coldness"
+      ]
+    },
+    {
+      "source_id": "openfda-single-shard",
+      "source_record_id": "26895500",
+      "source_url": "https://download.open.fda.gov/drug/event/2026q2/drug-event-0020-of-0036.json.zip#report=26895500&version=1",
+      "report_id": "26895500",
+      "version": 1,
+      "candidate_ids": [
+        "liraglutide"
+      ],
+      "reaction_terms": [
+        "NO ADVERSE EVENT",
+        "RECALLED PRODUCT ADMINISTERED"
+      ],
+      "source_drugs": [
+        {
+          "candidate_ids": [
+            "liraglutide"
+          ],
+          "medicinalproduct": "LIRAGLUTIDE",
+          "generic_names": [
+            "LIRAGLUTIDE"
+          ],
+          "brand_names": [
+            "LIRAGLUTIDE",
+            "SAXENDA",
+            "VICTOZA"
+          ],
+          "substance_names": [
+            "LIRAGLUTIDE"
+          ]
+        }
+      ],
+      "original_reaction_terms": [
+        "Recalled product administered",
+        "No adverse event"
+      ]
+    }
+  ],
+  "trial_bucket_counts": {
+    "liraglutide/obesity": 30,
+    "liraglutide/type-2-diabetes": 30,
+    "semaglutide/obesity": 30,
+    "semaglutide/type-2-diabetes": 30,
+    "tirzepatide/obesity": 30,
+    "tirzepatide/type-2-diabetes": 26
+  },
+  "report_candidate_counts": {
+    "liraglutide": 17,
+    "semaglutide": 21
+  },
+  "source_quality_counts": {
+    "distinct_reports_within_input": 12000,
+    "eligible_reports_before_bound": 38,
+    "eligible_trials_before_bound": 426,
+    "raw_reports": 12000,
+    "reports_skipped_candidate_bound": 0,
+    "trials_skipped_bucket_bound": 258
+  },
+  "limitations": "Adverse-event reports do not establish causation, incidence rates, or comparative safety. This lab does not provide treatment recommendations or medical advice.",
+  "coverage_notes": [
+    "Unapproved review draft, not an attendee artifact or accepted build_dataset input.",
+    "Exact trimmed case-insensitive generic names only; no brand/code/substring expansion.",
+    "Trials require DRUG interventions, INTERVENTIONAL study type and the listed exact condition aliases.",
+    "Original source conditions and matched intervention names are separate from canonical topic categories.",
+    "Drug objects listing additional harmonized substances are excluded.",
+    "Harmonized brand arrays are source metadata, not proof of products taken.",
+    "A single disclosed openFDA shard is not complete or representative clinical evidence.",
+    "Latest report versions are selected within the input before candidate matching.",
+    "Conflicting full raw ID/version copies fail; identical copies and reaction terms are normalized.",
+    "Stable ascending IDs with strict bucket budgets; whole shared records are kept or skipped, never narrowed.",
+    "Trial registry links are live references; frozen record values come from the pinned mirror.",
+    "No demographic/contact, seriousness, outcome, dose, route or indication fields are retained.",
+    "No trial/report linkage or globally latest-version assertion is made."
+  ]
+}

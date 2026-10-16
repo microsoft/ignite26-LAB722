@@ -3,6 +3,7 @@ import os
 import sys
 import unittest
 import zipfile
+from types import SimpleNamespace
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError
@@ -72,6 +73,25 @@ class PublicDatasetTests(unittest.TestCase):
         validate_artifact(staged / "data-manifest.json")
         with self.assertRaises(FileExistsError):
             self.freeze()
+
+    def test_committed_snapshot_requires_every_allowlisted_file_to_match_git_bytes(self):
+        snapshot = self.fixture.root / "committed.zip"
+        commit = "b" * 40
+
+        def committed_source(arguments, **kwargs):
+            name = arguments[-1].split(":", 1)[1]
+            return SimpleNamespace(stdout=(ROOT / name).read_bytes())
+
+        with patch.object(freezer.subprocess, "run", side_effect=committed_source):
+            freezer.snapshot_sources(snapshot, {}, commit)
+        inventory = json.loads(read_pipeline_snapshot(snapshot)["pipeline-source.json"])
+        self.assertEqual(inventory["source_kind"], "git-commit")
+        self.assertEqual(inventory["source_revision"], commit)
+        invalid = self.fixture.root / "invalid-commit.zip"
+        with patch.object(freezer.subprocess, "run", return_value=SimpleNamespace(stdout=b"wrong bytes")):
+            with self.assertRaisesRegex(ValueError, "differs from the specified Git commit"):
+                freezer.snapshot_sources(invalid, {}, commit)
+        self.assertFalse(invalid.exists())
 
     def test_mismatched_decision_provenance_and_unsafe_output_publish_nothing(self):
         for fault in ("draft", "provenance", "approval-state", "chronology", "output"):

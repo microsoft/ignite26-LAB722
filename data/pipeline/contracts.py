@@ -3,6 +3,7 @@ from pathlib import PurePosixPath
 from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
+from data.pipeline.public_policy import public_mapping_limits
 
 Identifier = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")]
 Text = Annotated[str, Field(min_length=1, max_length=2000)]
@@ -50,11 +51,19 @@ class SourceUseApproval(Review):
 
 class PublicExtract(Contract):
     source_use: SourceUseApproval
-    mapping_version: Literal["conservative-exact-generics-v1"]
+    mapping_version: Literal["conservative-exact-generics-v1", "conservative-exact-generics-v2"]
     coverage_notes: list[Text] = Field(min_length=1)
-    trial_bucket_counts: dict[str, Annotated[int, Field(ge=0, le=10, strict=True)]]
-    report_candidate_counts: dict[str, Annotated[int, Field(ge=0, le=10, strict=True)]]
+    trial_bucket_counts: dict[str, Annotated[int, Field(ge=0, strict=True)]]
+    report_candidate_counts: dict[str, Annotated[int, Field(ge=0, strict=True)]]
     source_quality_counts: dict[str, Annotated[int, Field(ge=0, strict=True)]]
+
+    @model_validator(mode="after")
+    def check_selection_bounds(self) -> Self:
+        trial_limit, report_limit = public_mapping_limits(self.mapping_version)
+        if (any(count > trial_limit for count in self.trial_bucket_counts.values()) or
+                any(count > report_limit for count in self.report_candidate_counts.values())):
+            raise ValueError("Public counts exceed their versioned extraction bounds.")
+        return self
 
 
 class Source(Contract):

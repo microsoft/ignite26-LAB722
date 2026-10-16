@@ -19,6 +19,7 @@ from data.pipeline.contracts import (
 )
 from data.pipeline.download_aact import ROOT, load_source, verify_file
 from data.pipeline.validate_dataset import file_sha256
+from src.workers.frozen_contract import PUBLIC_MAPPING_LIMITS, public_mapping_limits
 
 OPENFDA_PIN_PATH = ROOT / "data" / "sources" / "openfda-intake.json"
 CANDIDATES = ("semaglutide", "liraglutide", "tirzepatide")
@@ -78,7 +79,9 @@ class PublicDraft(Contract):
     dataset_kind: Literal["unreviewed-public"] = "unreviewed-public"
     dataset_version: Identifier = "caldova-public-review-draft-v1"
     built_at: datetime
-    mapping_version: Literal["conservative-exact-generics-v1"] = "conservative-exact-generics-v1"
+    mapping_version: Literal[
+        "conservative-exact-generics-v1", "conservative-exact-generics-v2"
+    ] = "conservative-exact-generics-v1"
     source_review_approved: Literal[False] = False
     attendee_release_approved: Literal[False] = False
     candidates: list[Candidate]
@@ -112,7 +115,9 @@ class PublicDraft(Contract):
         report_counts = Counter(candidate for report in self.safety_reports for candidate in report.candidate_ids)
         if dict(trial_counts) != self.trial_bucket_counts or dict(report_counts) != self.report_candidate_counts:
             raise ValueError("Draft selection counts disagree with the complete evidence collections.")
-        if any(count > LIMIT for count in [*trial_counts.values(), *report_counts.values()]):
+        trial_limit, report_limit = public_mapping_limits(self.mapping_version)
+        if (any(count > trial_limit for count in trial_counts.values()) or
+                any(count > report_limit for count in report_counts.values())):
             raise ValueError("Draft records exceed the selected per-candidate/topic bounds.")
         return self
 
@@ -338,7 +343,7 @@ def read_reports(archive_path: Path, pin: dict, quality: Counter) -> list[DraftR
 Record = TypeVar("Record", DraftTrial, DraftReport)
 
 
-def bounded(records: list[Record]) -> tuple[list[Record], dict[str, int]]:
+def bounded(records: list[Record], limit: int = LIMIT) -> tuple[list[Record], dict[str, int]]:
     selected: list[Record] = []
     counts = Counter()
     for record in sorted(
@@ -349,14 +354,18 @@ def bounded(records: list[Record]) -> tuple[list[Record], dict[str, int]]:
             for candidate in record.candidate_ids
             for condition in (record.conditions if isinstance(record, DraftTrial) else (None,))
         }
-        if any(counts[key] >= LIMIT for key in keys):
+        if any(counts[key] >= limit for key in keys):
             continue
         selected.append(record)
         counts.update(keys)
     return selected, dict(sorted(counts.items()))
 
 
-def extract_public(database: Path, archive: Path, output: Path) -> dict:
+def extract_public(
+    database: Path, archive: Path, output: Path,
+    mapping_version: str = "conservative-exact-generics-v1",
+) -> dict:
+    trial_limit, report_limit = public_mapping_limits(mapping_version)
     output = output.expanduser().resolve()
     if output.is_relative_to(ROOT):
         raise ValueError("Keep the unreviewed public extract outside the repository checkout.")
@@ -384,12 +393,15 @@ def extract_public(database: Path, archive: Path, output: Path) -> dict:
     quality = Counter()
     eligible_trials = read_trials(database, quality)
     eligible_reports = read_reports(archive, fda_pin, quality)
-    trials, trial_counts = bounded(eligible_trials)
-    reports, report_counts = bounded(eligible_reports)
+    trials, trial_counts = bounded(eligible_trials, trial_limit)
+    reports, report_counts = bounded(eligible_reports, report_limit)
     quality["trials_skipped_bucket_bound"] = len(eligible_trials) - len(trials)
     quality["reports_skipped_candidate_bound"] = len(eligible_reports) - len(reports)
     draft = PublicDraft(
         built_at=datetime.now(timezone.utc),
+        mapping_version=mapping_version,
+        dataset_version=("caldova-public-review-draft-v2" if mapping_version.endswith("-v2")
+                         else "caldova-public-review-draft-v1"),
         candidates=[
             Candidate(candidate_id=name, name=name, research_area="Bounded diabetes/obesity software demonstration")
             for name in CANDIDATES
@@ -435,7 +447,7 @@ def extract_public(database: Path, archive: Path, output: Path) -> dict:
         "extractor_sha256": file_sha256(Path(__file__)),
         "aact_input": aact_pin, "openfda_input": fda_pin,
         "condition_aliases": CONDITION_ALIASES, "candidate_names": CANDIDATES,
-        "maximum_trials_per_candidate_topic": LIMIT, "maximum_reports_per_candidate": LIMIT,
+        "maximum_trials_per_candidate_topic": trial_limit, "maximum_reports_per_candidate": report_limit,
         "draft_bytes": len(payload), "draft_sha256": hashlib.sha256(payload).hexdigest(),
         "trial_count": len(trials), "report_count": len(reports),
         "trial_bucket_counts": trial_counts, "report_candidate_counts": report_counts,
@@ -459,9 +471,12 @@ def main() -> None:
     parser.add_argument("--aact-database", type=Path, required=True)
     parser.add_argument("--openfda-archive", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--mapping-version", choices=tuple(PUBLIC_MAPPING_LIMITS),
+                        default="conservative-exact-generics-v1")
     arguments = parser.parse_args()
     try:
-        result = extract_public(arguments.aact_database, arguments.openfda_archive, arguments.output)
+        result = extract_public(arguments.aact_database, arguments.openfda_archive, arguments.output,
+                                arguments.mapping_version)
     except (OSError, ValueError, duckdb.Error, zipfile.BadZipFile) as error:
         parser.exit(1, f"PUBLIC_EXTRACT_ERROR {error}\n")
     print(json.dumps(result, indent=2))

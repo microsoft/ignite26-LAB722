@@ -1,6 +1,8 @@
 import argparse
 import hashlib
 import json
+import re
+import subprocess
 import tempfile
 import zipfile
 from pathlib import Path
@@ -21,7 +23,7 @@ def bounded_file(path: Path, limit: int = MAX_BYTES) -> bytes:
     return path.read_bytes()
 
 
-def snapshot_sources(target: Path, extras: dict[str, bytes]) -> None:
+def snapshot_sources(target: Path, extras: dict[str, bytes], pipeline_commit: str | None = None) -> None:
     frontend = ROOT / "src" / "research-portal" / "frontend"
     paths = {
         ROOT / "data" / "pipeline" / "requirements.txt",
@@ -31,12 +33,13 @@ def snapshot_sources(target: Path, extras: dict[str, bytes]) -> None:
         ROOT / "src" / "research-portal" / "Containerfile",
         ROOT / "data" / "fixtures" / "research-data.json",
         ROOT / "tests" / "test_research.py",
+        ROOT / "src" / "workers" / "frozen_contract.py",
     }
     paths.update(frontend / name for name in ("package.json", "package-lock.json", "tsconfig.json", "index.html"))
     for directory, pattern in (
         (ROOT / "data" / "pipeline", "*.py"),
         (ROOT / "src" / "research-portal" / "backend", "*.py"),
-        (frontend / "src", "*.tsx"), (frontend / "src", "*.css"),
+        (frontend / "src", "*.tsx"), (frontend / "src", "*.ts"), (frontend / "src", "*.css"),
         (ROOT / "tests", "test_public*.py"),
     ):
         paths.update(directory.glob(pattern))
@@ -45,12 +48,28 @@ def snapshot_sources(target: Path, extras: dict[str, bytes]) -> None:
         if not path.resolve().is_relative_to(ROOT):
             raise ValueError("The pipeline snapshot source escaped the checkout.")
         content[path.relative_to(ROOT).as_posix()] = bounded_file(path)
+    if pipeline_commit is not None:
+        if not re.fullmatch("[a-f0-9]{40}", pipeline_commit):
+            raise ValueError("A pipeline commit must be a full lowercase Git SHA.")
+        for name, payload in content.items():
+            try:
+                committed = subprocess.run(
+                    ["git", "-C", str(ROOT), "show", f"{pipeline_commit}:{name}"],
+                    capture_output=True, check=True,
+                ).stdout
+            except subprocess.CalledProcessError as error:
+                raise ValueError(f"Specified Git commit does not contain an allowlisted source file: {name}") from error
+            if committed != payload:
+                raise ValueError(f"Pipeline snapshot differs from the specified Git commit: {name}")
     content.update(extras)
     if sum(map(len, content.values())) > MAX_BYTES:
         raise ValueError("The frozen pipeline sources exceed the bounded size.")
     content["pipeline-source.json"] = (json.dumps({
-        "schema_version": "1.0", "source_kind": "uncommitted-working-tree",
-        "note": "Actual allowlisted source bytes, not a clean commit or an attendee release.",
+        "schema_version": "1.0",
+        "source_kind": "git-commit" if pipeline_commit else "uncommitted-working-tree",
+        **({"source_revision": pipeline_commit} if pipeline_commit else {}),
+        "note": ("Allowlisted source bytes verified against the recorded Git commit."
+                 if pipeline_commit else "Actual allowlisted working-tree bytes, not an attendee release."),
         "files": {name: hashlib.sha256(payload).hexdigest() for name, payload in sorted(content.items())},
     }, indent=2, sort_keys=True) + "\n").encode("utf-8")
     with zipfile.ZipFile(target, "x", compression=zipfile.ZIP_DEFLATED) as archive:
@@ -61,7 +80,10 @@ def snapshot_sources(target: Path, extras: dict[str, bytes]) -> None:
             archive.writestr(member, payload)
 
 
-def freeze_public(draft_directory: Path, approval_path: Path, output: Path, dataset_version: str):
+def freeze_public(
+    draft_directory: Path, approval_path: Path, output: Path, dataset_version: str,
+    pipeline_commit: str | None = None,
+):
     output = output.expanduser().resolve()
     draft_directory = draft_directory.expanduser().resolve()
     if output.is_relative_to(ROOT) or draft_directory.is_relative_to(ROOT):
@@ -128,9 +150,9 @@ def freeze_public(draft_directory: Path, approval_path: Path, output: Path, data
         snapshot_sources(snapshot, {
             "dataset-input.json": input_bytes, "source-use-approval.json": approval_bytes,
             "draft-provenance.json": provenance_bytes,
-        })
+        }, pipeline_commit)
         return build_dataset(
-            input_path, output, "uncommitted-development",
+            input_path, output, pipeline_commit or "uncommitted-development",
             source_records=records_path, pipeline_source=snapshot,
         )
 
@@ -141,9 +163,11 @@ def main() -> None:
     parser.add_argument("--source-use-approval", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--dataset-version", required=True)
+    parser.add_argument("--pipeline-commit")
     args = parser.parse_args()
     try:
-        manifest = freeze_public(args.draft_directory, args.source_use_approval, args.output, args.dataset_version)
+        manifest = freeze_public(args.draft_directory, args.source_use_approval, args.output,
+                                 args.dataset_version, args.pipeline_commit)
     except (OSError, ValueError, duckdb.Error, zipfile.BadZipFile) as error:
         parser.exit(1, f"PUBLIC_FREEZE_ERROR {error}\n")
     print(f"PUBLIC_DATA_FROZEN {manifest.dataset_version} {manifest.database.sha256}")

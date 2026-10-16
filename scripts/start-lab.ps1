@@ -350,11 +350,14 @@ function Get-LabPreparationConfiguration {
 }
 
 function Get-LabApplicationConfiguration {
-    $settings = @('LAB_APPLICATION_NAME', 'LAB_APPLICATION_IMAGE_DIGEST', 'LAB_APPLICATION_PREVIEW_STATE')
+    $settings = @('LAB_APPLICATION_NAME', 'LAB_APPLICATION_IMAGE_DIGEST', 'LAB_APPLICATION_PREVIEW_STATE',
+        'LAB_APPLICATION_IMAGE_SOURCE')
     if (-not @($settings | Where-Object { $null -ne [Environment]::GetEnvironmentVariable($_) }).Count) {
         return $null
     }
-    if ($env:LAB_APPLICATION_NAME -cnotmatch '^[a-z][a-z0-9-]{0,30}[a-z0-9]$' -or
+    $source = if ($null -eq $env:LAB_APPLICATION_IMAGE_SOURCE) { 'LabRegistry' } else { $env:LAB_APPLICATION_IMAGE_SOURCE }
+    if ($source -cnotin @('LabRegistry', 'SimonRegistry') -or
+        $env:LAB_APPLICATION_NAME -cnotmatch '^[a-z][a-z0-9-]{0,30}[a-z0-9]$' -or
         $env:LAB_APPLICATION_IMAGE_DIGEST -cnotmatch '^sha256:[0-9a-f]{64}$' -or
         $env:LAB_APPLICATION_PREVIEW_STATE -cnotin @('starter', 'reference')) {
         throw 'Application readiness requires the complete harness LAB_APPLICATION_NAME, lowercase LAB_APPLICATION_IMAGE_DIGEST and LAB_APPLICATION_PREVIEW_STATE=starter or reference.'
@@ -365,7 +368,7 @@ function Get-LabApplicationConfiguration {
     }
     return $data + @{
         Name = $env:LAB_APPLICATION_NAME; Digest = $env:LAB_APPLICATION_IMAGE_DIGEST
-        PreviewState = $env:LAB_APPLICATION_PREVIEW_STATE
+        PreviewState = $env:LAB_APPLICATION_PREVIEW_STATE; ImageSource = $source
     }
 }
 
@@ -376,7 +379,20 @@ function Get-LabApplicationReadiness {
     $app = Invoke-LabAz $Context @('resource', 'show', '--ids', $id, '--api-version', '2025-10-02-preview',
         '--query', $query)
     $environmentId = "$($Context.GroupId)/providers/Microsoft.App/managedEnvironments/$($Outputs['EXPRESS_ENVIRONMENT_NAME'])"
-    $image = "$($Outputs['AZURE_CONTAINER_REGISTRY_NAME']).azurecr.io/caldova/research-portal@$($Configuration.Digest)"
+    if ($Configuration['ImageSource'] -ceq 'SimonRegistry') {
+        $image = "simon.azurecr.io/lab722-$($Configuration.Name)@$($Configuration.Digest)"
+    }
+    else {
+        $registryName = $Outputs['AZURE_CONTAINER_REGISTRY_NAME']
+        $registryId = "$($Context.GroupId)/providers/Microsoft.ContainerRegistry/registries/$registryName"
+        $registry = Invoke-LabAz $Context @('resource', 'show', '--ids', $registryId, '--api-version', '2023-07-01',
+            '--query', '{id:id,loginServer:properties.loginServer}')
+        if ($registry -isnot [Collections.IDictionary] -or $registry['id'] -ine $registryId -or
+            $registry['loginServer'] -cnotmatch "^$([regex]::Escape($registryName))(?:-[a-z0-9]+)?\.azurecr\.io$") {
+            throw 'Application readiness could not verify the allocated registry login server.'
+        }
+        $image = "$($registry.loginServer)/caldova/research-portal@$($Configuration.Digest)"
+    }
     if ($app -isnot [Collections.IDictionary] -or $app['id'] -ine $id -or
         $app['type'] -ine 'Microsoft.App/containerApps' -or $app['name'] -cne $Configuration.Name -or
         (Get-LabNormalizedLocation $app['location']) -cne $Context.Region -or

@@ -20,8 +20,9 @@ param(
     [Parameter(Mandatory)] [string] $Destination,
     [ValidateSet('synthetic-development', 'public-lab-development')]
     [string] $Purpose = 'synthetic-development',
-    [Parameter(Mandatory)] [ValidateSet('lab7222tf3zuqwfs4huacr')] [string] $RegistryName,
+    [Parameter(Mandatory)] [ValidatePattern('^[a-z0-9]{5,50}$')] [string] $RegistryName,
     [Parameter(Mandatory)] [guid] $SubscriptionId,
+    [string] $ResourceGroupName,
     [ValidateSet('caldova/research-portal')] [string] $Repository = 'caldova/research-portal',
     [Parameter(Mandatory)] [ValidatePattern('^[a-z0-9][a-z0-9._-]{0,110}$')] [string] $Tag,
     [switch] $StageOnly
@@ -29,8 +30,16 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-if ($SubscriptionId -ne [guid] '30501c6c-81f6-41ac-a388-d29cf43a020d') {
-    throw 'Candidate packaging is restricted to the already authorized LAB722 subscription.'
+$portable = $PSBoundParameters.ContainsKey('ResourceGroupName')
+if ($portable) {
+    if ($SubscriptionId -eq [guid]::Empty -or
+        $ResourceGroupName -notmatch '^[A-Za-z0-9][A-Za-z0-9._()-]{0,89}$' -or $ResourceGroupName.EndsWith('.')) {
+        throw 'Portable publication requires an explicit nonempty subscription and valid allocated resource group.'
+    }
+}
+elseif ($SubscriptionId -ne [guid] '30501c6c-81f6-41ac-a388-d29cf43a020d' -or
+    $RegistryName -cne 'lab7222tf3zuqwfs4huacr') {
+    throw 'Legacy candidate packaging is maintainer-only; supply ResourceGroupName for scope-verified lab publication.'
 }
 $root = Split-Path -Parent $PSScriptRoot
 $helper = Join-Path $root 'src\developer-image\stage_candidate.py'
@@ -56,6 +65,13 @@ try {
         }
         return
     }
+    $loginServer = "$RegistryName.azurecr.io"
+    if ($portable) {
+        . (Join-Path $PSScriptRoot 'lab-image-target.ps1')
+        $target = Get-LabImageTarget -SubscriptionId $SubscriptionId `
+            -ResourceGroupName $ResourceGroupName -RegistryName $RegistryName
+        $loginServer = $target.LoginServer
+    }
     $archive = Join-Path (Split-Path -Parent $stage.directory) ('.acr-transfer-' + [guid]::NewGuid().ToString('N'))
     $previousTemp = $env:TEMP
     $previousTmp = $env:TMP
@@ -64,9 +80,21 @@ try {
         $env:TEMP = $archive
         $env:TMP = $archive
         # An explicit read must succeed; an authentication or lookup failure is never "tag is new".
-        $tagText = & az acr repository show-tags --name $RegistryName --subscription $SubscriptionId `
-            --repository $Repository --only-show-errors --output json
-        if ($LASTEXITCODE -ne 0) { throw 'Unable to verify that the candidate tag is new; no build was queued.' }
+        $repositoryExists = $true
+        if ($portable) {
+            $repositories = Invoke-LabImageAz @('acr', 'repository', 'list', '--name', $RegistryName,
+                '--subscription', $SubscriptionId.ToString())
+            if ($repositories -isnot [array] -or @($repositories | Where-Object { $_ -isnot [string] }).Count) {
+                throw 'ACR returned a malformed repository inventory; no build was queued.'
+            }
+            $repositoryExists = $Repository -cin $repositories
+        }
+        $tagText = '[]'
+        if ($repositoryExists) {
+            $tagText = & az acr repository show-tags --name $RegistryName --subscription $SubscriptionId `
+                --repository $Repository --only-show-errors --output json
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to verify that the candidate tag is new; no build was queued.' }
+        }
         $tags = ConvertFrom-Json -InputObject ($tagText -join "`n") -NoEnumerate
         if ($tags -isnot [array] -or @($tags | Where-Object { $_ -isnot [string] }).Count -gt 0) {
             throw 'ACR returned a malformed tag inventory; no build was queued.'
@@ -92,7 +120,7 @@ try {
         }
         $image = $run.outputImages[0]
         if ($image.repository -cne $Repository -or $image.tag -cne $Tag -or
-            $image.registry -cne "$RegistryName.azurecr.io" -or $image.digest -cnotmatch '^sha256:[0-9a-f]{64}$') {
+            $image.registry -cne $loginServer -or $image.digest -cnotmatch '^sha256:[0-9a-f]{64}$') {
             throw 'ACR output image does not match the requested repository, tag, registry and immutable digest.'
         }
         $verified = & python $helper --verify-context $stage.directory --provenance-sha256 $stage.provenance_sha256
@@ -113,8 +141,9 @@ try {
             source_revision = $stage.source_revision
             image = [ordered] @{
                 registry = $RegistryName; subscription = $SubscriptionId.ToString(); repository = $Repository
+                resource_group = $ResourceGroupName
                 tag = $Tag; digest = $image.digest; acr_run_id = $run.runId
-                reference = "$RegistryName.azurecr.io/${Repository}@$($image.digest)"
+                reference = "$loginServer/${Repository}@$($image.digest)"
                 platform = 'linux/amd64'; target = 'candidate'
             }
             validation = $stage.validation_contract
