@@ -35,7 +35,7 @@ Fill in the sections below yourself, then:
 ## 🔥LAB722: Operate secure, multi-tenant agentic apps on Azure Container Apps
 ### Session description
 
-Build a governed research workflow for Caldova, a fictional pharmaceutical company. Configure a Microsoft Foundry orchestrator, run specialist agents in isolated Azure Container Apps Sandboxes, prove outbound network controls, and publish a validated research application to Azure Container Apps Express. The materials support guided and self-paced study; narrated segment videos are still planned.
+Build the skills to run multi-tenant isolated AI workloads in production. You will place a workload in the right isolation boundary for user separation, contain untrusted code, scale from zero, right size CPU and memory for per second billing, and snapshot and resume sessions so stateful work can continue. Everything runs on Azure Container Apps with microVM-backed compute. Leave with a decision tree and patterns you can apply to your own workloads.
 
 ### 🚀 Getting started
 
