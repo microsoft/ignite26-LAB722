@@ -18,10 +18,10 @@
       "value": "${FOUNDRY_USER_ROLE_ASSIGNMENT_NAME=}"
     },
     "modelName": {
-      "value": "${FOUNDRY_MODEL_NAME=gpt-4.1-mini}"
+      "value": "${FOUNDRY_MODEL_NAME=gpt-5.2}"
     },
     "modelVersion": {
-      "value": "${FOUNDRY_MODEL_VERSION=2025-04-14}"
+      "value": "${FOUNDRY_MODEL_VERSION=2025-12-11}"
     },
     "modelFormat": {
       "value": "${FOUNDRY_MODEL_FORMAT=OpenAI}"
@@ -30,7 +30,7 @@
       "value": "${FOUNDRY_MODEL_SKU=GlobalStandard}"
     },
     "modelCapacity": {
-      "value": "${FOUNDRY_MODEL_CAPACITY=1}"
+      "value": "${FOUNDRY_MODEL_CAPACITY=40}"
     },
     "sandboxMaxCount": {
       "value": "${SANDBOX_MAX_COUNT=8}"

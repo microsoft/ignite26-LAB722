@@ -50,6 +50,8 @@ $load = New-TestOptions 'load'
     -Mode Reuse -SubscriptionId $load.SubscriptionId -ResourceGroup $load.ResourceGroup `
     -Region $load.Region -GroupName $load.GroupName -OutputDirectory $load.OutputDirectory
 $nativeRunner = ${function:Invoke-BaselineNative}
+. (Join-Path $root 'scripts\connect-lab-workers.ps1') `
+    -PrimaryDescriptorPath (Join-Path $workspace 'not-loaded.json') -PrimaryDescriptorSha256 ('a' * 64)
 
 function Reset-TestNative([string] $Mode = 'Reuse', [string] $Fault = '') {
     $script:calls = [Collections.Generic.List[object]]::new()
@@ -73,9 +75,46 @@ function Get-TestArgument([string[]] $Arguments, [string] $Flag) {
     return $Arguments[$index + 1]
 }
 
+function New-TestManualPrimaryOptions([string] $Name, [switch] $Public) {
+    $options = New-TestOptions $Name 'VerifyPrimary'
+    foreach ($key in @('SnapshotId', 'ClinicalId', 'SafetyId', 'GovernanceId')) { $options[$key] = [guid]::Empty }
+    $options.FrozenManifest = Join-Path $workspace "$Name-manifest.json"
+    [IO.File]::WriteAllText($options.FrozenManifest, $script:manifestText, [Text.UTF8Encoding]::new($false))
+    $options.FrozenManifestSha256 = Get-TestHash $script:manifestText
+    [void] [IO.Directory]::CreateDirectory($options.SourceContextDirectory)
+    [IO.File]::WriteAllText((Join-Path $options.SourceContextDirectory 'Dockerfile'), 'FROM scratch')
+    $frozen = @{
+        dataset_kind = 'synthetic-development'; database_sha256 = 'b' * 64
+        data_manifest_sha256 = $options.FrozenManifestSha256; logical_sha256 = 'a' * 64
+    }
+    if ($Public) {
+        $options.Purpose = 'public-lab-development'
+        $frozen.dataset_kind = 'reviewed-public'
+        $frozen.acceptance_purpose = $options.Purpose
+        $frozen.source_records_sha256 = 'd' * 64
+        $frozen.pipeline_source_sha256 = 'e' * 64
+        $frozen.source_use_sha256 = 'f' * 64
+    }
+    $record = @{
+        schema_version = '1.0'; source_revision = 'stub-source'; frozen_data = $frozen
+        files = @{ Dockerfile = Get-TestHash 'FROM scratch' }
+    } | ConvertTo-Json -Depth 6
+    [IO.File]::WriteAllText((Join-Path $options.SourceContextDirectory 'source-context.json'),
+        $record, [Text.UTF8Encoding]::new($false))
+    $options.SourceContextManifestSha256 = Get-TestHash $record
+    return $options
+}
+
 function Get-TestMetadata([guid] $Id) {
+    $name = switch ($Id) {
+        $script:clinical { 'clinical-trials' }
+        $script:safety { 'drug-safety' }
+        $script:governance { 'quality-governance' }
+        default { 'unrelated' }
+    }
     $metadata = @{
         id = $Id.ToString(); snapshotId = $script:snapshot.ToString()
+        labels = @{ name = $name }
         sourcesRef = @{ snapshot = @{ id = $script:snapshot.ToString() } }
         egressPolicy = @{ defaultAction = 'Deny'; trafficInspection = 'Full'; rules = @(
             @{ name = 'reviewed'; match = @{ host = 'open.fda.gov' }; action = @{ type = 'Allow' } }) }
@@ -89,6 +128,8 @@ function Get-TestMetadata([guid] $Id) {
         'WrongId' { $metadata.id = $script:other.ToString() }
         'WrongLineage' { $metadata.sourcesRef.snapshot.id = $script:other.ToString() }
         'MissingLineage' { $metadata.Remove('sourcesRef') }
+        'DuplicateWorkerName' { if ($Id -eq $script:governance) { $metadata.labels.name = 'clinical-trials' } }
+        'MissingWorkerName' { if ($Id -eq $script:governance) { $metadata.labels.name = 'wrong-role' } }
         'BroadEgress' { $metadata.egressPolicy.rules[0].match.host = '*.fda.gov' }
         'AutoDelete' { $metadata.lifecycle.autoDeletePolicy.enabled = $true }
         'DiskSuspend' { $metadata.lifecycle.autoSuspendPolicy.mode = 'Disk' }
@@ -102,6 +143,9 @@ function Get-TestMetadata([guid] $Id) {
 
 function Invoke-BaselineNative {
     param([string] $Executable, [string[]] $Arguments, [int] $TimeoutSeconds)
+    $Executable = switch ($Executable) {
+        'aca' { 'aca-stub' }; 'az' { 'az-stub' }; 'python' { 'python-stub' }; default { $Executable }
+    }
     $script:calls.Add(@{ executable = $Executable; arguments = $Arguments; timeout = $TimeoutSeconds })
     if ($Executable -eq 'python-stub') {
         Assert-Test ($script:calls[$script:calls.Count - 2].executable -eq 'az-stub') 'Source export preceded the ARM capacity check.'
@@ -253,6 +297,11 @@ function Invoke-BaselineNative {
         $json = "Snapshot operation: $script:other`n" +
             (@{ id = $script:snapshot.ToString(); sandboxId = $script:primary.ToString() } | ConvertTo-Json)
     }
+    elseif ($verb -eq 'sandboxgroup snapshot list') {
+        $snapshots = @(@{ id = $script:snapshot.ToString() })
+        if ($script:fault -eq 'DuplicateSnapshots') { $snapshots += $snapshots[0] }
+        $json = ConvertTo-Json -InputObject $snapshots
+    }
     elseif ($verb -eq 'sandboxgroup snapshot get') {
         $parent = $script:primary.ToString()
         if ($script:fault -eq 'WrongSnapshotParent') { $parent = $script:other.ToString() }
@@ -306,6 +355,7 @@ function Invoke-BaselineNative {
             }
         }
         if ($script:fault -in @('WrongFrozenData', 'FrozenPrimaryMismatch')) { $receipt.database_sha256 = ('c' * 64) }
+        if ($script:fault -eq 'WrongSourceRevision') { $receipt.source_revision = 'another-source' }
         if ($script:fault -eq 'RootUser') { $receipt.uid = 0 }
         $status = if ($script:fault -eq 'RemoteFailure') { '7' } else { '0' }
         $json = "Native progress...`n" + $payloadMarker +
@@ -333,6 +383,145 @@ function Assert-PreparationFails([hashtable] $Options) {
 }
 
 try {
+    Invoke-Test 'manual preflight only reads scope inventory and four-slot capacity' {
+        Reset-TestNative 'Provision'
+        $options = New-TestOptions 'manual-preflight' 'CheckCapacity'
+        $result = Invoke-PrepareWorkerBaseline -Options $options
+        Assert-Test ($result.capacity -eq 9 -and $result.allocated -eq 5 -and $script:calls.Count -eq 3 -and
+            $script:created -eq 0 -and -not (Test-Path -LiteralPath $options.OutputDirectory) -and
+            -not (Test-Path -LiteralPath $options.SourceContextDirectory)) 'Preflight allocated, exported or published artifacts.'
+    }
+    foreach ($public in @($false, $true)) {
+        Invoke-Test "manual primary verifies and exports a compatible handoff without cloud mutation: public=$public" {
+            Reset-TestNative
+            $options = New-TestManualPrimaryOptions "manual-primary-$public" -Public:$public
+            $result = Invoke-PrepareWorkerBaseline -Options $options
+            $descriptor = Get-Content -LiteralPath $result.descriptor -Raw | ConvertFrom-Json
+            Assert-Test ($descriptor.phase -ceq 'primary-prepared' -and $descriptor.mode -ceq 'Provision' -and
+                $descriptor.source_context.source_context_manifest_sha256 -ceq $options.SourceContextManifestSha256 -and
+                $result.descriptor_sha256 -ceq (Get-TestHash ([IO.File]::ReadAllText($result.descriptor)))) 'Manual handoff lost its original-byte pins.'
+            Assert-Test ($script:created -eq 0 -and -not @($script:calls | Where-Object {
+                $_.arguments -contains 'create' -or $_.arguments -contains 'set' -or
+                $_.executable -in @('python-stub', 'az-stub') -or
+                ($_.arguments[0] -eq 'sandbox' -and $_.arguments[1] -eq 'snapshot')
+            }).Count) 'VerifyPrimary mutated resources, imported source or queried allocation capacity.'
+            $checks = @($script:calls | Where-Object { $_.arguments[1] -eq 'exec' })
+            Assert-Test ($checks.Count -eq 1 -and
+                (Get-TestArgument $checks[0].arguments '--command').Contains('REQUIRE_STARTERS = True')) 'Manual verification did not require genuinely missing starter functions.'
+            $registered = Invoke-ConnectLabWorkers -Options @{
+                PrimaryDescriptorPath = $result.descriptor; PrimaryDescriptorSha256 = $result.descriptor_sha256
+            }
+            Assert-Test ((Test-Path -LiteralPath $registered.bindings) -and $script:created -eq 0) 'Manual handoff could not register existing portal clones.'
+        }
+    }
+    foreach ($sourceFault in @('ManifestHash', 'SourceFile', 'ExtraFile', 'FrozenManifest')) {
+        Invoke-Test "changed manual source is rejected before Azure: $sourceFault" {
+            Reset-TestNative
+            $options = New-TestManualPrimaryOptions "manual-source-$sourceFault"
+            switch ($sourceFault) {
+                'ManifestHash' { $options.SourceContextManifestSha256 = '0' * 64 }
+                'SourceFile' { [IO.File]::WriteAllText((Join-Path $options.SourceContextDirectory 'Dockerfile'), 'changed') }
+                'ExtraFile' { [IO.File]::WriteAllText((Join-Path $options.SourceContextDirectory 'extra.txt'), 'unexpected') }
+                'FrozenManifest' { [IO.File]::WriteAllText($options.FrozenManifest, '{}') }
+            }
+            Assert-PreparationFails $options
+            Assert-Test ($script:calls.Count -eq 0) 'Changed manual source reached Azure.'
+        }
+    }
+    foreach ($fault in @('WrongFrozenData', 'WrongSourceRevision', 'BroadEgress', 'RootUser', 'DiskNotReady')) {
+        Invoke-Test "manual primary rejects an invalid existing workspace: $fault" {
+            Reset-TestNative 'Reuse' $fault
+            $options = New-TestManualPrimaryOptions "manual-invalid-$fault" -Public
+            Assert-PreparationFails $options
+            Assert-Test ($script:created -eq 0 -and -not @($script:calls | Where-Object {
+                $_.arguments -contains 'create' -or $_.arguments -contains 'set'
+            }).Count) 'Manual verification tried to repair or replace invalid resources.'
+        }
+    }
+    Invoke-Test 'primary-only preparation leaves snapshot and clones to the learner' {
+        Reset-TestNative 'Provision'
+        $options = New-TestOptions 'portal-primary' 'Provision'
+        $options.AuthorizeProvisioning = $true
+        $options.PrimaryOnly = $true
+        foreach ($key in @('DiskId', 'PrimaryId', 'SnapshotId', 'ClinicalId', 'SafetyId', 'GovernanceId')) {
+            $options[$key] = [guid]::Empty
+        }
+        $script:preparedPrimary = Invoke-PrepareWorkerBaseline -Options $options
+        $descriptor = Get-Content -LiteralPath $script:preparedPrimary.descriptor -Raw | ConvertFrom-Json
+        Assert-Test ($script:created -eq 1 -and $descriptor.phase -ceq 'primary-prepared' -and
+            $script:preparedPrimary.descriptor_sha256 -ceq (Get-TestHash (
+                [IO.File]::ReadAllText($script:preparedPrimary.descriptor)))) 'Primary-only preparation lost its phase or byte pin.'
+        Assert-Test (-not (Test-Path (Join-Path $options.OutputDirectory 'bindings.json')) -and
+            -not @($script:calls | Where-Object {
+                $_.arguments[0] -eq 'sandbox' -and $_.arguments[1] -eq 'snapshot'
+            }).Count) 'Primary-only preparation created a snapshot or published worker bindings.'
+    }
+    Invoke-Test 'portal registration verifies the existing workers without creating or changing resources' {
+        Reset-TestNative
+        $result = Invoke-ConnectLabWorkers -Options @{
+            PrimaryDescriptorPath = $script:preparedPrimary.descriptor
+            PrimaryDescriptorSha256 = $script:preparedPrimary.descriptor_sha256
+        }
+        $descriptor = Get-Content -LiteralPath $result.descriptor -Raw | ConvertFrom-Json
+        Assert-Test ($descriptor.mode -ceq 'Reuse' -and $descriptor.bindings.Count -eq 3 -and
+            $result.descriptor_sha256 -ceq (Get-TestHash ([IO.File]::ReadAllText($result.descriptor)))) 'Portal registration did not return a pinned reusable baseline.'
+        Assert-Test ($script:created -eq 0 -and -not @($script:calls | Where-Object {
+            $_.arguments -contains 'create' -or $_.arguments -contains 'set' -or
+            ($_.arguments[0] -eq 'sandbox' -and $_.arguments[1] -eq 'snapshot')
+        }).Count) 'Default portal registration mutated resources.'
+        $checks = @($script:calls | Where-Object {
+            $_.arguments[0] -eq 'sandbox' -and $_.arguments[1] -eq 'exec'
+        })
+        Assert-Test ($checks.Count -eq 4 -and @($checks | Where-Object {
+            -not (Get-TestArgument $_.arguments '--command').Contains('REQUIRE_STARTERS = True')
+        }).Count -eq 0) 'All four portal workspaces must retain genuinely missing functions.'
+    }
+    foreach ($fault in @('WrongSnapshotParent', 'DuplicateSnapshots', 'WrongLineage', 'DuplicateWorkerName',
+        'MissingWorkerName', 'BroadEgress', 'AutoDelete', 'RootUser', 'WrongFrozenData')) {
+        Invoke-Test "portal registration refuses invalid learner resources: $fault" {
+            Reset-TestNative 'Reuse' $fault
+            $caught = $false
+            $parent = Split-Path -Parent $script:preparedPrimary.descriptor
+            $before = @(Get-ChildItem -LiteralPath $parent -Directory).Count
+            try {
+                Invoke-ConnectLabWorkers -Options @{
+                    PrimaryDescriptorPath = $script:preparedPrimary.descriptor
+                    PrimaryDescriptorSha256 = $script:preparedPrimary.descriptor_sha256
+                } | Out-Null
+            } catch { $caught = $true }
+            Assert-Test ($caught -and $script:created -eq 0 -and
+                @(Get-ChildItem -LiteralPath $parent -Directory).Count -eq $before) 'Invalid portal resources published bindings or triggered fallback creation.'
+        }
+    }
+    Invoke-Test 'an explicit snapshot resolves ambiguous capture history without creating resources' {
+        Reset-TestNative 'Reuse' 'DuplicateSnapshots'
+        $result = Invoke-ConnectLabWorkers -Options @{
+            PrimaryDescriptorPath = $script:preparedPrimary.descriptor
+            PrimaryDescriptorSha256 = $script:preparedPrimary.descriptor_sha256
+            SnapshotId = $script:snapshot
+        }
+        Assert-Test ($result.snapshot_id -ceq $script:snapshot.ToString() -and $script:created -eq 0 -and
+            -not @($script:calls | Where-Object {
+                ($_.arguments[0..2] -join ' ') -eq 'sandboxgroup snapshot list'
+            }).Count) 'Explicit snapshot selection did not bind the intended capture.'
+    }
+    Invoke-Test 'edited primary metadata fails before native discovery' {
+        Reset-TestNative
+        $caught = $false
+        try {
+            Invoke-ConnectLabWorkers -Options @{
+                PrimaryDescriptorPath = $script:preparedPrimary.descriptor
+                PrimaryDescriptorSha256 = ('0' * 64)
+            } | Out-Null
+        } catch { $caught = $_.Exception.Message.Contains('descriptor changed') }
+        Assert-Test ($caught -and $script:calls.Count -eq 0) 'Changed primary metadata reached Azure.'
+    }
+    Invoke-Test 'public portal WhatIf does not invoke Azure or publish a registration' {
+        $path = Join-Path $root 'scripts\connect-lab-workers.ps1'
+        $output = & $path -PrimaryDescriptorPath $script:preparedPrimary.descriptor `
+            -PrimaryDescriptorSha256 $script:preparedPrimary.descriptor_sha256 -SnapshotId $script:snapshot -WhatIf -AsJson
+        Assert-Test ($null -eq $output) 'WhatIf must not publish a success-shaped registration.'
+    }
     Invoke-Test 'bounded native process runner' {
         $result = & $nativeRunner 'pwsh' @('-NoProfile', '-Command', "'local-native-ok'") 10
         Assert-Test ($result.exit_code -eq 0 -and $result.stdout.Trim() -eq 'local-native-ok') 'Local runner output mismatch.'

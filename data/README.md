@@ -10,7 +10,7 @@ The new live-path checkout includes **`caldova-public-lab-use-v2`**, with **168 
 
 Run `.\scripts\stage-lab-data.ps1 -ConfigureSession` from the repository root to verify and atomically stage/reuse the bundle offline. The helper uses only Python's standard library and sets the existing data pins in the current process; no raw download, Azure call, worker allocation or package installation occurs. Stage this checkout on the clean VM before capture, then configure each launched session explicitly. See [the full handoff](../scripts/README.md#portable-image-and-data-delivery).
 
-The project owner approved selected-source use and fork/VM distribution, not independent clinical validation or a completed attendee walkthrough. The same disclosed shard still has no matching tirzepatide safety reports. Trial phase/status summaries and filters affect trials only. New starter/reference images must match v2 pins; old v1 image/run receipts cannot approve them.
+The project owner approved selected-source use and fork/VM distribution, not independent clinical validation or a completed attendee walkthrough. The same disclosed shard still has no matching tirzepatide safety reports. Trial phase/status summaries and filters affect trials only. [lab-images.json](lab-images.json) now records the separately published v2 starter/reference digests, their exact source/data identities and independent container/anonymous-pull checks. It does not claim an allocated Express deployment or fresh Skillable acceptance. Old v1 image/run receipts cannot approve these assets.
 
 ## Implemented development slice
 
@@ -44,6 +44,7 @@ This section preserves the initial v1 freeze history. Later separately approved 
 
 ```text
 data/
+|-- lab-images.json
 |-- lab-release.json
 |-- lab-datasets/
 |   `-- caldova-public-lab-use-v2/
@@ -63,7 +64,7 @@ The approved relational artifact will use the implemented DuckDB pipeline. Its p
 - Cached openFDA-derived safety fixtures.
 - An optional commercial-context dataset only if it fits the lab timing and approval requirements.
 
-The bounded v2 bundle is distributed with the checkout after the project owner's explicit confirmation; a separate GitHub release-asset download is not required. Raw maintainer inputs remain outside the checkout. Clean VM capture, actual attendee access, image publication and the fresh live walkthrough remain separate operations.
+The bounded v2 bundle is distributed with the checkout after the project owner's explicit confirmation; a separate GitHub release-asset download is not required. Raw maintainer inputs remain outside the checkout. The ready-made v2 images have been published and anonymously pulled; clean VM capture, actual attendee access/deployment and the fresh live walkthrough remain separate operations.
 
 ## Source use
 

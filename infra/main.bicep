@@ -23,10 +23,10 @@ param labUserPrincipalType string = 'User'
 param foundryUserRoleAssignmentName string = ''
 
 @description('Foundry model name.')
-param modelName string = 'gpt-4.1-mini'
+param modelName string = 'gpt-5.2'
 
 @description('Foundry model version.')
-param modelVersion string = '2025-04-14'
+param modelVersion string = '2025-12-11'
 
 @description('Foundry model provider format.')
 param modelFormat string = 'OpenAI'
@@ -36,7 +36,7 @@ param modelSkuName string = 'GlobalStandard'
 
 @description('Foundry model deployment capacity.')
 @minValue(1)
-param modelCapacity int = 1
+param modelCapacity int = 40
 
 @description('Sandbox group capacity; increase only for retained development evidence plus new worker clones.')
 @minValue(4)

@@ -15,6 +15,9 @@ param(
     [ValidatePattern('^[a-z0-9][a-z0-9._-]{0,110}$')]
     [string] $Tag,
 
+    [ValidateSet('starter', 'reference')]
+    [string] $PreviewState = 'starter',
+
     [string] $SourceRevision,
     [string] $FrozenManifest,
     [ValidatePattern('^[0-9a-f]{64}$')] [string] $FrozenManifestSha256,
@@ -55,12 +58,12 @@ try {
     if ($exported.directory -ine $context) { throw 'The exporter returned an unexpected source directory.' }
     $env:TEMP = $archive
     $env:TMP = $archive
-    # The release target depends on both reference acceptance and prepared-baseline validation.
+    $target = if ($PreviewState -eq 'starter') { 'release' } else { 'reference-release' }
     $run = az acr build `
         --registry $RegistryName --subscription $SubscriptionId `
         --image "${Repository}:$Tag" --file (Join-Path $context 'Dockerfile') `
         --build-arg "SOURCE_REVISION=$SourceRevision" `
-        --target release --platform linux/amd64 `
+        --target $target --platform linux/amd64 `
         --timeout 1200 --no-logs --output json $context | ConvertFrom-Json
     if ($LASTEXITCODE -ne 0 -or $run.status -ne 'Succeeded') {
         if ($run) {
@@ -83,7 +86,8 @@ finally {
     Digest = $run.outputImages[0].digest
     RunId = $run.runId
     SourceRevision = $SourceRevision
+    SourceContextManifestSha256 = $exported.source_context_manifest_sha256
     BaselineRoot = '/opt/caldova-lab'
-    PreviewState = 'starter'
+    PreviewState = $PreviewState
     AcceptancePurpose = $Purpose
 }

@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import json
 import sys
+import time
 from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import urlopen
@@ -13,7 +14,7 @@ from azure.identity.aio import AzureCliCredential
 from data.pipeline.contracts import Manifest
 from .contracts import ROLES, SandboxBinding
 from .credentials import InMemoryFoundryCredential
-from .foundry import CaldovaWorkflow, validate_endpoint
+from .foundry import CaldovaWorkflow, service_error_details, validate_endpoint
 from .sandbox import SandboxExecutor, SandboxScope
 
 
@@ -59,57 +60,72 @@ async def run(arguments) -> None:
         InMemoryFoundryCredential(sys.stdin.read(16384))
         if arguments.token_stdin else AzureCliCredential(subscription=str(arguments.subscription))
     )
-    async with (
-        authentication as credential,
-        AIProjectClient(
-            endpoint=endpoint, credential=credential, headers={"Accept-Encoding": "identity"},
-        ) as project_client,
-    ):
-        workflow = CaldovaWorkflow(
-            project_client, arguments.model, uuid4(), manifest, executors, validation_executor,
-        )
-        agent = await workflow.provision()
-        if arguments.mode == "tool-smoke":
-            result = await workflow.tool_smoke(agent, arguments.role)
-        else:
-            plan = await workflow.create_plan(agent)
-            result = {"plan": plan.model_dump(mode="json"), "release_status": "not-approved"}
-            if arguments.mode == "workers":
-                try:
-                    results = await workflow.run_workers(agent)
-                except (RuntimeError, ValueError, TimeoutError) as error:
-                    print(json.dumps({
-                        **result,
-                        "status": "failed",
-                        "error": str(error),
-                        "workers": [
-                            worker.model_dump(mode="json") for worker in workflow.worker_results.values()
-                        ],
-                        "integration_evidence": [
-                            check.model_dump(mode="json") for check in workflow.integration_evidence
-                        ],
-                        "egress_evidence": [
-                            check.model_dump(mode="json") for check in workflow.egress_evidence
-                        ],
-                        "worker_evidence": [
-                            check.model_dump(mode="json") for check in workflow.worker_evidence
-                        ],
-                    }, indent=2), file=sys.stderr)
-                    raise
-                else:
+    run_id = uuid4()
+    started = time.monotonic()
+    directory = arguments.output_directory / str(run_id)
+    directory.mkdir(parents=True, exist_ok=False)
+    print(f"Run {run_id}; evidence directory: {directory}", file=sys.stderr, flush=True)
+    workflow = None
+    result = {"release_status": "not-approved"}
+    try:
+        async with (
+            authentication as credential,
+            AIProjectClient(
+                endpoint=endpoint, credential=credential, headers={"Accept-Encoding": "identity"},
+            ) as project_client,
+        ):
+            workflow = CaldovaWorkflow(
+                project_client, arguments.model, run_id, manifest, executors, validation_executor,
+            )
+            async with workflow.progress("Connect persistent Foundry agent"):
+                agent = await workflow.provision(planning=arguments.mode != "tool-smoke")
+            if arguments.mode == "tool-smoke":
+                async with workflow.progress(f"Verify assigned Sandbox tool ({arguments.role})"):
+                    result = await workflow.tool_smoke(agent, arguments.role)
+            else:
+                async with workflow.progress("Generate and validate plan"):
+                    plan = await workflow.create_plan(agent)
+                result["plan"] = plan.model_dump(mode="json")
+                if arguments.mode == "workers":
+                    async with workflow.progress("Connect tool-enabled Foundry agent"):
+                        agent = await workflow.provision()
+                    async with workflow.progress("Run implementation, integration and governance"):
+                        results = await workflow.run_workers(agent)
                     result["workers"] = [worker.model_dump(mode="json") for worker in results]
-                    result["integration_evidence"] = [
-                        check.model_dump(mode="json") for check in workflow.integration_evidence
-                    ]
-                    result["egress_evidence"] = [
-                        check.model_dump(mode="json") for check in workflow.egress_evidence
-                    ]
-                    result["worker_evidence"] = [
-                        check.model_dump(mode="json") for check in workflow.worker_evidence
-                    ]
+                    for field in ("integration_evidence", "egress_evidence", "worker_evidence"):
+                        result[field] = [
+                            check.model_dump(mode="json") for check in getattr(workflow, field)
+                        ]
                     result["candidate_sources"] = workflow.candidate_sources
                     result["release_status"] = "requires-complete-release-evidence-and-human-approval"
-        print(json.dumps(result, indent=2))
+    finally:
+        error = sys.exception()
+        if error is not None:
+            failure = {
+                **result, "run_id": str(run_id), "mode": arguments.mode,
+                "status": "failed", "release_status": "not-approved",
+                "error_type": type(error).__name__, "error": str(error) or type(error).__name__,
+                **service_error_details(error),
+                "elapsed_seconds": round(time.monotonic() - started, 1),
+                "worker_failures": workflow.worker_failures if workflow else [],
+                "workers": [
+                    worker.model_dump(mode="json") for worker in workflow.worker_results.values()
+                ] if workflow else [],
+                **{
+                    field: [check.model_dump(mode="json") for check in getattr(workflow, field)]
+                    if workflow else []
+                    for field in ("integration_evidence", "egress_evidence", "worker_evidence")
+                },
+            }
+            path = directory / "failure.json"
+            path.write_text(json.dumps(failure, indent=2), encoding="utf-8", newline="\n")
+            print(f"Run failed ({type(error).__name__}). Diagnostics saved to {path}; do not build.",
+                  file=sys.stderr, flush=True)
+    text = json.dumps(result, indent=2)
+    path = directory / ("worker-result.json" if arguments.mode == "workers" else "result.json")
+    path.write_text(text, encoding="utf-8", newline="\n")
+    print(f"Result saved to {path}", file=sys.stderr, flush=True)
+    print(text)
 
 
 def main() -> None:
@@ -122,6 +138,10 @@ def main() -> None:
     parser.add_argument("--region", required=True)
     parser.add_argument("--group", required=True)
     parser.add_argument("--aca", required=True)
+    parser.add_argument(
+        "--output-directory", type=Path, default=Path(".validation-workspaces") / "agent-runs",
+        help="Save each run's result or failure evidence in a new run-ID subdirectory.",
+    )
     parser.add_argument("--bindings", type=Path)
     parser.add_argument("--role", choices=ROLES, default=ROLES[0])
     parser.add_argument("--approve-plan", action="store_true")

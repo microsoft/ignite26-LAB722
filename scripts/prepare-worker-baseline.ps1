@@ -1,7 +1,7 @@
 [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('Provision', 'Reuse')]
+    [ValidateSet('Provision', 'Reuse', 'CheckCapacity', 'VerifyPrimary')]
     [string] $Mode,
 
     [Parameter(Mandatory)]
@@ -23,7 +23,10 @@ param(
     [string] $OutputDirectory,
 
     [switch] $AuthorizeProvisioning,
+    [switch] $PrimaryOnly,
+    [switch] $RequireStarters,
     [string] $SourceContextDirectory,
+    [string] $SourceContextManifestSha256,
     [string] $FrozenManifest,
     [string] $FrozenManifestSha256,
     [ValidateSet('synthetic-development', 'public-lab-development')]
@@ -176,6 +179,81 @@ function Get-BaselineNewDirectory {
         }
     }
     return $full
+}
+
+function Get-BaselineSourceContext {
+    param([hashtable] $Options)
+    if ($Options['SourceContextManifestSha256'] -cnotmatch '^[0-9a-f]{64}$' -or
+        [string]::IsNullOrWhiteSpace($Options['SourceContextDirectory'])) {
+        throw 'VerifyPrimary requires the original source context and its manifest SHA-256.'
+    }
+    $root = [IO.Path]::GetFullPath($script:BaselineRepositoryRoot).TrimEnd('\')
+    $path = [IO.Path]::GetFullPath($Options.SourceContextDirectory, $root)
+    if (-not $path.StartsWith($root + '\', [StringComparison]::OrdinalIgnoreCase) -or
+        -not (Test-Path -LiteralPath $path -PathType Container)) {
+        throw 'The verified source context must be an existing project-local directory.'
+    }
+    for ($parent = $path; $parent -ne $root; $parent = Split-Path -Parent $parent) {
+        if ((Get-Item -LiteralPath $parent -Force).LinkType -in @('SymbolicLink', 'Junction')) {
+            throw 'The source context must not pass through links.'
+        }
+    }
+    $entries = @(Get-ChildItem -LiteralPath $path -Recurse -Force)
+    if (@($entries | Where-Object { $_.LinkType -in @('SymbolicLink', 'Junction') }).Count) {
+        throw 'The source context must not contain links.'
+    }
+    $manifestPath = Join-Path $path 'source-context.json'
+    if ((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne
+        $Options.SourceContextManifestSha256) {
+        throw 'The original source-context manifest changed.'
+    }
+    $record = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json -AsHashtable
+    if ($record['schema_version'] -cne '1.0' -or
+        $record['source_revision'] -isnot [string] -or [string]::IsNullOrWhiteSpace($record.source_revision) -or
+        $record['files'] -isnot [Collections.IDictionary] -or -not $record.files.Contains('Dockerfile') -or
+        @($entries | Where-Object { -not $_.PSIsContainer }).Count -ne $record.files.Count + 1) {
+        throw 'The original source context has an invalid or changed file inventory.'
+    }
+    foreach ($name in $record.files.Keys) {
+        $file = [IO.Path]::GetFullPath((Join-Path $path $name))
+        if (-not $file.StartsWith($path + '\', [StringComparison]::OrdinalIgnoreCase) -or
+            $record.files[$name] -cnotmatch '^[0-9a-f]{64}$' -or
+            (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $record.files[$name]) {
+            throw 'An original source-context file changed.'
+        }
+    }
+    if ((Get-FileHash -LiteralPath $Options.FrozenManifest -Algorithm SHA256).Hash.ToLowerInvariant() -cne
+        $Options.FrozenManifestSha256) {
+        throw 'The local frozen manifest no longer matches its trust anchor.'
+    }
+    return @{
+        directory = $path; source_revision = $record.source_revision; files = $record.files.Count
+        source_context_manifest_sha256 = $Options.SourceContextManifestSha256; frozen_data = $record['frozen_data']
+    }
+}
+
+function Set-BaselineFrozenInputs {
+    param([hashtable] $Options, [hashtable] $SourceContext)
+    $inputIdentity = $SourceContext['frozen_data']
+    if ($inputIdentity -isnot [Collections.IDictionary] -or
+        $inputIdentity['dataset_kind'] -cne $(if ($Options.Purpose -eq 'public-lab-development') { 'reviewed-public' } else { 'synthetic-development' }) -or
+        ($Options.Purpose -eq 'public-lab-development' -and $inputIdentity['acceptance_purpose'] -cne $Options.Purpose) -or
+        $inputIdentity['data_manifest_sha256'] -cne $Options.FrozenManifestSha256) {
+        throw 'Source export did not verify the explicitly pinned development artifact and purpose.'
+    }
+    $pairs = @(@('ExpectedDatabaseSha256', 'database_sha256'),
+        @('ExpectedManifestSha256', 'data_manifest_sha256'), @('ExpectedLogicalSha256', 'logical_sha256'))
+    if ($Options.Purpose -eq 'public-lab-development') {
+        $pairs += @(@('ExpectedSourceRecordsSha256', 'source_records_sha256'),
+            @('ExpectedPipelineSourceSha256', 'pipeline_source_sha256'), @('ExpectedSourceUseSha256', 'source_use_sha256'))
+    }
+    foreach ($pair in $pairs) {
+        $hash = $inputIdentity[$pair[1]]
+        if ($hash -cnotmatch '^[0-9a-f]{64}$' -or ($Options[$pair[0]] -and $Options[$pair[0]] -cne $hash)) {
+            throw 'The pinned artifact disagrees with a required frozen checksum.'
+        }
+        $Options[$pair[0]] = $hash
+    }
 }
 
 function Assert-BaselinePolicies {
@@ -465,7 +543,12 @@ function Invoke-PrepareWorkerBaseline {
     param([hashtable] $Options)
     $output = Get-BaselineNewDirectory $Options.OutputDirectory
     if ($Options.SubscriptionId -eq [guid]::Empty) { throw 'An explicit nonempty subscription UUID is required.' }
-    if ($Options.Mode -notin @('Provision', 'Reuse')) { throw 'Choose explicit Provision or Reuse mode.' }
+    if ($Options.Mode -notin @('Provision', 'Reuse', 'CheckCapacity', 'VerifyPrimary')) {
+        throw 'Choose explicit Provision, Reuse, CheckCapacity or VerifyPrimary mode.'
+    }
+    if ($Options['PrimaryOnly'] -and $Options.Mode -ne 'Provision') {
+        throw 'PrimaryOnly requires explicitly authorized Provision mode.'
+    }
     if (-not $Options['Purpose']) { $Options['Purpose'] = 'synthetic-development' }
     if ($Options.Purpose -notin @('synthetic-development', 'public-lab-development')) {
         throw 'Preparation requires an explicit supported development purpose; not attendee release.'
@@ -475,10 +558,11 @@ function Invoke-PrepareWorkerBaseline {
         ($frozen -and $Options['FrozenManifestSha256'] -cnotmatch '^[0-9a-f]{64}$')) {
         throw 'Frozen preparation requires both a manifest and its lowercase SHA-256 trust anchor.'
     }
-    if ($frozen -and $Options.Mode -ne 'Provision') {
+    if ($frozen -and $Options.Mode -notin @('Provision', 'VerifyPrimary')) {
         throw 'Frozen source inputs belong in Provision; Reuse requires its existing resource and checksum bindings.'
     }
-    if ($Options.Purpose -eq 'public-lab-development' -and $Options.Mode -eq 'Provision' -and -not $frozen) {
+    $verifyPrimary = $Options.Mode -eq 'VerifyPrimary'
+    if (($verifyPrimary -or ($Options.Purpose -eq 'public-lab-development' -and $Options.Mode -eq 'Provision')) -and -not $frozen) {
         throw 'Public development preparation requires the exact frozen manifest and trust anchor.'
     }
     if ($WhatIfPreference) {
@@ -488,7 +572,29 @@ function Invoke-PrepareWorkerBaseline {
     }
     $ids = @{}
     $sourceContext = $null
-    if ($Options.Mode -eq 'Provision') {
+    if ($Options.Mode -eq 'CheckCapacity') {
+        return Get-BaselineInventory $Options 4
+    }
+    if ($verifyPrimary) {
+        foreach ($pair in @(@('disk', 'DiskId'), @('primary', 'PrimaryId'))) {
+            if ($null -eq $Options[$pair[1]] -or $Options[$pair[1]] -eq [guid]::Empty) {
+                throw "VerifyPrimary requires an explicit $($pair[1])."
+            }
+            $ids[$pair[0]] = $Options[$pair[1]]
+        }
+        foreach ($name in @('SnapshotId', 'ClinicalId', 'SafetyId', 'GovernanceId')) {
+            if ($Options[$name] -and $Options[$name] -ne [guid]::Empty) {
+                throw 'VerifyPrimary accepts only the existing disk and primary, not snapshots or workers.'
+            }
+        }
+        $sourceContext = Get-BaselineSourceContext $Options
+        Set-BaselineFrozenInputs $Options $sourceContext
+        $inventory = Get-BaselineInventory $Options
+        if ($ids.primary.ToString() -notin $inventory.ids) {
+            throw 'The explicitly bound primary is missing from scoped inventory.'
+        }
+    }
+    elseif ($Options.Mode -eq 'Provision') {
         if (-not $Options.AuthorizeProvisioning) { throw 'Provision mode requires explicit -AuthorizeProvisioning.' }
         foreach ($name in @('DiskId', 'PrimaryId', 'SnapshotId', 'ClinicalId', 'SafetyId', 'GovernanceId')) {
             if ($null -ne $Options[$name] -and $Options[$name] -ne [guid]::Empty) {
@@ -499,8 +605,11 @@ function Invoke-PrepareWorkerBaseline {
         if ($contextDirectory -eq $output -or $contextDirectory.StartsWith($output + '\') -or $output.StartsWith($contextDirectory + '\')) {
             throw 'Source context and final artifacts must use separate, non-nested directories.'
         }
+        $action = if ($Options['PrimaryOnly']) {
+            'Import a source disk and prepare only the primary; leave snapshot and clone creation to the learner'
+        } else { 'Import a source disk, create one primary and three clones, and snapshot; retain all resources' }
         if (-not $PSCmdlet.ShouldProcess("$($Options.SubscriptionId)/$($Options.ResourceGroup)/$($Options.GroupName)",
-            'Import a source disk, create one primary and three clones, and snapshot; retain all resources')) { return }
+            $action)) { return }
         [void] (Get-BaselineInventory $Options 4)
         $exportArguments = @(
             (Join-Path $script:BaselineRepositoryRoot 'src\developer-image\export_source.py'),
@@ -519,32 +628,7 @@ function Invoke-PrepareWorkerBaseline {
             throw 'The exported source context identity or root Dockerfile is invalid.'
         }
         if ($frozen) {
-            $inputIdentity = $sourceContext['frozen_data']
-            if ($inputIdentity -isnot [Collections.IDictionary] -or
-                $inputIdentity['dataset_kind'] -cne $(if ($Options.Purpose -eq 'public-lab-development') { 'reviewed-public' } else { 'synthetic-development' }) -or
-                ($Options.Purpose -eq 'public-lab-development' -and $inputIdentity['acceptance_purpose'] -cne $Options.Purpose) -or
-                $inputIdentity['data_manifest_sha256'] -cne $Options.FrozenManifestSha256) {
-                throw 'Source export did not verify the explicitly pinned development artifact and purpose.'
-            }
-            if ($Options.Purpose -eq 'public-lab-development') {
-                foreach ($pair in @(@('ExpectedSourceRecordsSha256', 'source_records_sha256'),
-                    @('ExpectedPipelineSourceSha256', 'pipeline_source_sha256'), @('ExpectedSourceUseSha256', 'source_use_sha256'))) {
-                    $hash = $inputIdentity[$pair[1]]
-                    if ($hash -cnotmatch '^[0-9a-f]{64}$' -or ($Options[$pair[0]] -and $Options[$pair[0]] -cne $hash)) {
-                        throw 'The public artifact disagrees with a required original-source or decision checksum.'
-                    }
-                    $Options[$pair[0]] = $hash
-                }
-            }
-            foreach ($pair in @(@('ExpectedDatabaseSha256', 'database_sha256'),
-                @('ExpectedManifestSha256', 'data_manifest_sha256'), @('ExpectedLogicalSha256', 'logical_sha256'))) {
-                $hash = $inputIdentity[$pair[1]]
-                if ($hash -cnotmatch '^[0-9a-f]{64}$' -or
-                    ($Options[$pair[0]] -and $Options[$pair[0]] -cne $hash)) {
-                    throw 'The pinned artifact disagrees with a required frozen checksum.'
-                }
-                $Options[$pair[0]] = $hash
-            }
+            Set-BaselineFrozenInputs $Options $sourceContext
         }
         $diskName = 'lab722-developer-' + [guid]::NewGuid().ToString('N')
         [void] (Invoke-BaselineAca $Options @(
@@ -593,7 +677,8 @@ function Invoke-PrepareWorkerBaseline {
     $fresh = $Options.Mode -eq 'Provision'
     if ($fresh) { $ids.primary = New-BaselineSandbox $Options '--disk-id' $ids.disk 'primary' 4 }
     [void] (Get-BaselineSandbox $Options $ids.primary)
-    $primary = Get-BaselineFrozenData $Options $ids.primary -RequireStarters:$fresh
+    $checkStarters = $fresh -or $verifyPrimary -or [bool] $Options['RequireStarters']
+    $primary = Get-BaselineFrozenData $Options $ids.primary -RequireStarters:$checkStarters
     $expected = @{
         database_sha256 = $Options.ExpectedDatabaseSha256
         data_manifest_sha256 = $Options.ExpectedManifestSha256
@@ -605,7 +690,7 @@ function Invoke-PrepareWorkerBaseline {
         $expected.pipeline_source_sha256 = $Options.ExpectedPipelineSourceSha256
         $expected.source_use_sha256 = $Options.ExpectedSourceUseSha256
     }
-    if ($fresh) {
+    if ($fresh -or $verifyPrimary) {
         $fields = @($expected.Keys)
         $expected = @{}
         foreach ($field in $fields) {
@@ -630,6 +715,33 @@ function Invoke-PrepareWorkerBaseline {
         if ($primary['source_revision'] -cne $sourceContext['source_revision']) {
             throw 'The imported primary does not match the exported source revision.'
         }
+        if ($Options['PrimaryOnly'] -or $verifyPrimary) {
+            $descriptor = @{
+                schema_version = '1.0'; phase = 'primary-prepared'; mode = 'Provision'
+                verified_at = [DateTimeOffset]::UtcNow.ToString('o')
+                scope = @{ subscription = $Options.SubscriptionId.ToString(); resource_group = $Options.ResourceGroup
+                    region = $Options.Region; group = $Options.GroupName }
+                disk_id = $ids.disk.ToString(); primary_id = $ids.primary.ToString()
+                workspace = '/opt/caldova-lab'; uid = 10001
+                dataset_version = $primary.dataset_version; dataset_kind = $primary.dataset_kind
+                acceptance_purpose = $Options.Purpose; source_revision = $primary.source_revision
+                frozen_identity = $expected; source_context = $sourceContext
+                artifacts = @{ manifest = 'data-manifest.json'; baseline = 'prepared-baseline.json' }
+            }
+            if (Test-Path -LiteralPath $output) { throw 'Primary output appeared during verification; refusing to replace it.' }
+            [void] [IO.Directory]::CreateDirectory($output)
+            Write-BaselineArtifact (Join-Path $output 'data-manifest.json') $primary.data_manifest_json
+            Write-BaselineArtifact (Join-Path $output 'prepared-baseline.json') $primary.prepared_baseline_json
+            $descriptorPath = Join-Path $output 'primary-descriptor.json'
+            Write-BaselineArtifact $descriptorPath (ConvertTo-Json -InputObject $descriptor -Depth 12)
+            return @{
+                descriptor = $descriptorPath
+                descriptor_sha256 = (Get-FileHash -LiteralPath $descriptorPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                manifest = (Join-Path $output 'data-manifest.json')
+                primary_id = $ids.primary.ToString(); disk_id = $ids.disk.ToString()
+                phase = 'primary-prepared'
+            }
+        }
         $snapshot = ConvertFrom-BaselineNativeJson (Invoke-BaselineAca $Options @(
             'sandbox', 'snapshot', '--group', $Options.GroupName, '--id', $ids.primary.ToString(),
             '--name', ('lab722-baseline-' + [guid]::NewGuid().ToString('N'))) -LongOperation)
@@ -648,7 +760,7 @@ function Invoke-PrepareWorkerBaseline {
     foreach ($role in @('clinical-trials', 'drug-safety', 'quality-governance')) {
         if ($fresh) { $ids[$role] = New-BaselineSandbox $Options '--snapshot-id' $ids.snapshot $role $remaining }
         [void] (Get-BaselineSandbox $Options $ids[$role] $ids.snapshot)
-        $receipt = Get-BaselineFrozenData $Options $ids[$role] -RequireStarters:$fresh
+        $receipt = Get-BaselineFrozenData $Options $ids[$role] -RequireStarters:$checkStarters
         Assert-BaselineFrozenMatch $receipt $expected
         $receipts[$role] = @{ sandbox_id = $ids[$role].ToString(); uid = $receipt.uid;
             starters_checked = $receipt.starters_checked; frontend_assets = $receipt.frontend_assets }
@@ -691,7 +803,9 @@ if ($MyInvocation.InvocationName -ne '.') {
     $options = @{
         Mode = $Mode; SubscriptionId = $SubscriptionId; ResourceGroup = $ResourceGroup; Region = $Region
         GroupName = $GroupName; OutputDirectory = $OutputDirectory; AuthorizeProvisioning = $AuthorizeProvisioning
-        SourceContextDirectory = $SourceContextDirectory; FrozenManifest = $FrozenManifest
+        PrimaryOnly = $PrimaryOnly; RequireStarters = $RequireStarters
+        SourceContextDirectory = $SourceContextDirectory; SourceContextManifestSha256 = $SourceContextManifestSha256
+        FrozenManifest = $FrozenManifest
         FrozenManifestSha256 = $FrozenManifestSha256; DiskId = $DiskId; PrimaryId = $PrimaryId
         Purpose = $Purpose
         SnapshotId = $SnapshotId; ClinicalId = $ClinicalId; SafetyId = $SafetyId; GovernanceId = $GovernanceId

@@ -30,7 +30,7 @@ The original materials milestone supplied the presentation and recorded-evidence
 
 ## Progress as of October 14, 2026
 
-The fork now contains portable scoped publication/deployment helpers, the offline dataset handoff and updated participant/facilitator instructions, including an explicit [ready-made reference recovery path](../instructions/05-build-and-publish.md#recovery---use-the-ready-made-reference-image). The normal exercise still publishes accepted participant-generated application source in the allocated ACR. Choosing a reference image does not prove that source was deployed.
+The fork now contains portable scoped publication/deployment helpers, the offline dataset handoff and updated participant/facilitator instructions, including an explicit [ready-made reference recovery path](../instructions/05-build-and-publish.md#16-try-the-completed-application). The normal exercise still publishes accepted participant-generated application source in the allocated ACR. Choosing a reference image does not prove that source was deployed.
 
 The checked-in `caldova-public-lab-use-v2` bundle contains 168 trials and 38 reports in four files totaling 4.26 MiB. Its [release pin](../data/lab-release.json) records exact-slice fork/VM distribution confirmation, while the frozen source ZIP is verified against full commit `8ac43eb5765e5edcffef7da6c057100b40fec6c9`. Historical source-use flags and v1 files/receipts remain unchanged. Dataset/API, source export, offline publication/deployment/handoff/startup, frontend build/filter and desktop/mobile browser checks passed; this is not a new live image deployment or an attendee rehearsal.
 

@@ -40,12 +40,16 @@ The implementation targets repeatable maintainer deployments. `AZURE_RESOURCE_GR
 | `labUserPrincipalId` | Empty; skips the development Sandbox and project-scoped Foundry role assignments |
 | `labUserPrincipalType` | `User` |
 | `foundryUserRoleAssignmentName` | Empty; deterministic name for new assignments, or existing assignment name for adoption |
-| `modelName` | `gpt-4.1-mini` |
-| `modelVersion` | `2025-04-14` |
+| `modelName` | `gpt-5.2` |
+| `modelVersion` | `2025-12-11` |
 | `modelFormat` | `OpenAI` |
 | `modelSkuName` | `GlobalStandard` |
-| `modelCapacity` | `1` |
+| `modelCapacity` | `40` |
 | `sandboxMaxCount` | `8`; bounded 4-16 for primary/workers and retained development evidence |
+
+The default requests `gpt-5.2` version `2025-12-11` on `GlobalStandard`, with capacity 40. Capacity is throughput allocation, not a different SKU. Confirm the model's actual TPM/RPM allocation and available model/SKU quota in the deployment region before delivery; capacity units are model-specific. Explicit `FOUNDRY_MODEL_NAME`, `FOUNDRY_MODEL_VERSION` and `FOUNDRY_MODEL_CAPACITY` values continue to override the `azd` defaults. Existing deployments do not change just because this template is regenerated.
+
+The participant creates `caldova-research` from the public, digest-pinned starter in the new Container Apps portal. Bicep prepares the infrastructure, not that application. Portal-app readiness explicitly verifies the app's same-subscription/resource-group Express environment before returning it as the later deployment target. Resource-group name `LAB722` can be reused across separate subscriptions; every helper remains explicitly subscription-scoped.
 
 Do not expose generated secrets, subscription IDs, tenant IDs, resource names, or derived endpoints as user inputs.
 
@@ -115,7 +119,7 @@ These are infrastructure and smoke checks, not a completed attendee exercise. Th
 
 Foundry User access is scoped to the project and uses built-in role ID `53ca6127-db72-4b80-b1b0-d745d6d5456d`. The existing manual test-2 assignment was adopted, not deleted or duplicated; `caldova-foundry-access-20261009` passed Azure deployment validation and deployment, and subsequent agent/inference checks still returned HTTP 200. A freshly granted role may require several minutes of propagation.
 
-The initial test-2 deployment's capacity 1 was sufficient for a small smoke request, not the larger implementation planner. After measured HTTP 429 failures, `caldova-agent-capacity-20261009` configured test-2 capacity 20 through Bicep and persisted the `FOUNDRY_MODEL_CAPACITY` environment override. Actual response headers initially lagged ARM, then verified effective 20 requests/minute and 20,000 tokens/minute; the scoped software planner subsequently passed. Effective readiness must be measured rather than inferred from ARM success. The template's default 1 and event-scale capacity review remain unchanged.
+The initial test-2 deployment's capacity 1 was sufficient for a small smoke request, not the larger implementation planner. After measured HTTP 429 failures, `caldova-agent-capacity-20261009` configured test-2 capacity 20 through Bicep and persisted the `FOUNDRY_MODEL_CAPACITY` environment override. Actual response headers initially lagged ARM, then verified effective 20 requests/minute and 20,000 tokens/minute; the scoped software planner subsequently passed. Effective readiness must be measured rather than inferred from ARM success. Those are historical GPT-4.1-mini measurements, not throughput or acceptance evidence for the new GPT-5.2/capacity-40 defaults; event-scale quota and capacity review is still required.
 
 The development-only `SANDBOX_MAX_COUNT=9` override was deployed to retain five earlier diagnostic Sandboxes plus the prepared primary and three workers; all nine slots are allocated. The attendee/template default remains 8. The native group GET does not return capacity: the explicit Bicep API `2026-02-01-preview` ARM GET verified `maxSandboxCount=9`. Preparation checks use that exact API before new allocation, not an assumed default or the native response's missing field. Reuse allocates nothing and verifies the existing scoped inventory and bindings.
 

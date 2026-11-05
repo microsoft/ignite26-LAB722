@@ -356,7 +356,9 @@ def stage_candidate(*, result_path, result_sha256, baseline_descriptor_path, fro
     require(frontend.is_dir(), "Missing trusted frontend source.")
     for path in frontend.rglob("*"):
         if path.is_file():
-            require(path.suffix in {".ts", ".tsx", ".css"}, "Unexpected frontend source input.")
+            require(path.suffix in {".ts", ".tsx", ".css"} or
+                    path.relative_to(frontend).as_posix() == "assets/caldova-logo.svg",
+                    "Unexpected frontend source input.")
             trusted_files.add(path.relative_to(root).as_posix())
     require(any(name.endswith(".tsx") for name in trusted_files) and
             any(name.endswith(".css") for name in trusted_files), "Missing trusted frontend source inputs.")

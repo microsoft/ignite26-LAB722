@@ -30,6 +30,7 @@ def build_inputs() -> list[Path]:
     }
     frontend = ROOT / "src" / "research-portal" / "frontend"
     files.update(frontend / name for name in ("package.json", "package-lock.json", "tsconfig.json", "index.html"))
+    files.add(frontend / "src" / "assets" / "caldova-logo.svg")
     for directory, pattern in (
         (ROOT / "data" / "pipeline", "*.py"),
         (ROOT / "src" / "research-portal" / "backend", "*.py"),

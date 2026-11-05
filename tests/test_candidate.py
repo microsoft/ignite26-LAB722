@@ -2,8 +2,10 @@ import copy
 import importlib.util
 import json
 import os
+import shlex
 import shutil
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -148,6 +150,34 @@ class CandidatePackagingTests(unittest.TestCase):
         self.assertFalse(options["destination"].exists())
         self.assertFalse(list(options["destination"].parent.glob(".s-*")))
 
+    def test_runtime_can_import_public_validator_before_its_first_run_instruction(self):
+        recipe = (ROOT / "src/developer-image/Candidate.Containerfile").read_text(encoding="utf-8")
+        runtime = recipe.split(" AS runtime\n", 1)[1].split("\nRUN ", 1)[0]
+        directory = self.workspace / "runtime-import"
+        directory.mkdir()
+        for line in runtime.splitlines():
+            if not line.startswith("COPY "):
+                continue
+            _, source, destination = shlex.split(line)
+            if not source.startswith(("data/pipeline/", "src/workers/")):
+                continue
+            target = directory / destination
+            if (ROOT / source).is_dir():
+                shutil.copytree(ROOT / source, target, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / source, target)
+        imported = subprocess.run(
+            [sys.executable, "-B", "-c",
+             "import pathlib,sys; import data.pipeline.validate_dataset; "
+             "import src.workers.frozen_contract as contract; "
+             "assert pathlib.Path(contract.__file__).resolve().is_relative_to(pathlib.Path(sys.argv[1]).resolve())",
+             str(directory)],
+            cwd=directory, env={**os.environ, "PYTHONPATH": str(directory)},
+            capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(imported.returncode, 0, imported.stderr)
+
     def test_stages_only_exact_feature_bytes_and_frozen_bytes_without_touching_reference(self):
         reference = {name: (self.root / name).read_bytes() for name in self.baseline["protected_files"]}
         reference.update({name: (self.root / name).read_bytes() for name in packager.MODULES.values()})
@@ -192,6 +222,26 @@ class CandidatePackagingTests(unittest.TestCase):
                         checks[0][name] = value
                     self.save_result()
                     self.assert_blocked()
+
+    def test_logo_is_staged_only_when_protected_and_other_svg_assets_are_rejected(self):
+        name = "src/research-portal/frontend/src/assets/caldova-logo.svg"
+        logo = self.root / name
+        logo.parent.mkdir(parents=True)
+        content = (ROOT / name).read_bytes()
+        logo.write_bytes(content)
+        self.assert_blocked("unprotected-logo")
+        self.baseline["protected_files"][name] = packager.file_sha256(logo)
+        baseline_path = self.workspace / "prepared-baseline.json"
+        packager.write_json(baseline_path, self.baseline)
+        self.descriptor["frozen_identity"]["baseline_manifest_sha256"] = packager.file_sha256(baseline_path)
+        packager.write_json(self.descriptor_path, self.descriptor)
+        staged = packager.stage_candidate(**self.options("with-logo"))
+        self.assertEqual((Path(staged["directory"]) / name).read_bytes(), content)
+        logo.write_bytes(content + b"\n<!-- changed -->")
+        self.assert_blocked("modified-logo")
+        logo.write_bytes(content)
+        logo.with_name("unexpected.svg").write_bytes(content)
+        self.assert_blocked("unexpected-logo")
 
     def test_source_hash_path_allowlist_and_result_trust_anchor_are_enforced(self):
         name = packager.MODULES["clinical-trials"]
@@ -336,11 +386,14 @@ class CandidatePackagingTests(unittest.TestCase):
         arguments.update(extra or {})
         program = r"""
 $ErrorActionPreference = 'Stop'
+$global:CandidateTestQueued = $false
+$global:CandidateTestDiscoveryReads = 0
+function global:Start-Sleep { param($Seconds) }
 function global:az {
     $native = @($args)
     [IO.File]::AppendAllText($env:CANDIDATE_TEST_CALLS, (ConvertTo-Json -InputObject $native -Compress) + "`n")
     $global:LASTEXITCODE = 0
-    $options = $env:CANDIDATE_TEST_OPTIONS | ConvertFrom-Json
+    $options = $env:CANDIDATE_TEST_OPTIONS | ConvertFrom-Json -AsHashtable
     if ($native[0] -eq 'account') {
         $id = $options.SubscriptionId
         if ($env:CANDIDATE_TEST_FAULT -eq 'wrong-account') { $id = '10000000-0000-0000-0000-000000000001' }
@@ -363,6 +416,53 @@ function global:az {
         if ($env:CANDIDATE_TEST_FAULT -eq 'malformed-tags') { return '{"tags":[]}' }
         return '[]'
     }
+    $image = @{
+        registry = "$($options.RegistryName).azurecr.io"
+        repository = 'caldova/research-portal'; tag = 'offline-candidate-test'; digest = ('sha256:' + ('d' * 64))
+    }
+    if ($env:CANDIDATE_TEST_FAULT -eq 'bad-digest') { $image.digest = 'not-a-digest' }
+    if ($env:CANDIDATE_TEST_FAULT -eq 'foreign-image') { $image.repository = 'foreign/image' }
+    if ($native[1] -eq 'task' -and $native[2] -eq 'list-runs') {
+        if ($env:CANDIDATE_TEST_FAULT -eq 'inventory-failure') { $global:LASTEXITCODE = 1; return }
+        if ($env:CANDIDATE_TEST_FAULT -eq 'malformed-inventory-before') { return '{}' }
+        $runs = @(@{status='Failed';runId='existing-acr-run'})
+        if ($global:CandidateTestQueued) {
+            $global:CandidateTestDiscoveryReads++
+            if ($env:CANDIDATE_TEST_FAULT -eq 'malformed-inventory-after') { return '{}' }
+            if ($env:CANDIDATE_TEST_FAULT -eq 'malformed-queued-run') {
+                $runs += @{name='offline-acr-run';properties=@{status='Queued'}}
+            }
+            elseif ($env:CANDIDATE_TEST_FAULT -ne 'missing-run' -and
+                -not ($env:CANDIDATE_TEST_FAULT -eq 'delayed-run' -and $global:CandidateTestDiscoveryReads -eq 1)) {
+                $run = $global:CandidateTestRun
+                if ($env:CANDIDATE_TEST_FAULT -in @('queued-build', 'nested-queued-run', 'nested-polled-run',
+                    'failed-run', 'foreign-run')) {
+                    $run = @{status='Queued';runId='offline-acr-run'}
+                }
+                if ($env:CANDIDATE_TEST_FAULT -eq 'nested-queued-run') {
+                    $run = @{name='offline-acr-run';properties=$run}
+                }
+                $runs += $run
+            }
+            if ($env:CANDIDATE_TEST_FAULT -eq 'ambiguous-runs') {
+                $runs += @{status='Queued';runId='concurrent-acr-run'}
+            }
+        }
+        return (ConvertTo-Json -InputObject $runs -Depth 7)
+    }
+    if ($native[1] -eq 'task' -and $native[2] -eq 'show-run') {
+        if ($options.Contains('ResumeAcrRunId')) {
+            $run = @{status='Succeeded';runId='offline-acr-run';outputImages=@($image)}
+            if ($env:CANDIDATE_TEST_FAULT -eq 'failed-run') { $run.status = 'Failed' }
+            if ($env:CANDIDATE_TEST_FAULT -eq 'foreign-run') { $run.runId = 'foreign-run' }
+            if ($env:CANDIDATE_TEST_FAULT -eq 'missing-images') { $run.Remove('outputImages') }
+        }
+        else { $run = $global:CandidateTestRun }
+        if ($env:CANDIDATE_TEST_FAULT -eq 'nested-polled-run') {
+            return (@{name='offline-acr-run';properties=$run} | ConvertTo-Json -Depth 7)
+        }
+        return ($run | ConvertTo-Json -Depth 6)
+    }
     if ($native[1] -ne 'build') { throw 'Unexpected fake ACR operation' }
     $selectedDockerfile = [string] $native[[array]::IndexOf($native, '--file') + 1]
     $expectedDockerfile = [IO.Path]::GetFullPath((Join-Path ([string] $native[-1]) 'Dockerfile'))
@@ -378,16 +478,13 @@ function global:az {
         throw 'The selected Dockerfile does not match the pinned staged bytes.'
     }
     if ($env:CANDIDATE_TEST_FAULT -eq 'build-failure') { $global:LASTEXITCODE = 1; return }
-    $image = @{
-        registry = "$($options.RegistryName).azurecr.io"
-        repository = 'caldova/research-portal'; tag = 'offline-candidate-test'; digest = ('sha256:' + ('d' * 64))
-    }
-    if ($env:CANDIDATE_TEST_FAULT -eq 'bad-digest') { $image.digest = 'not-a-digest' }
-    if ($env:CANDIDATE_TEST_FAULT -eq 'foreign-image') { $image.repository = 'foreign/image' }
     if ($env:CANDIDATE_TEST_FAULT -eq 'changed-context') {
         [IO.File]::WriteAllText((Join-Path $native[-1] 'foreign.txt'), 'changed')
     }
-    @{ status = 'Succeeded'; runId = 'offline-acr-run'; outputImages = @($image) } | ConvertTo-Json -Depth 6
+    $global:CandidateTestRun = @{ status = 'Succeeded'; runId = 'offline-acr-run'; outputImages = @($image) }
+    if ($env:CANDIDATE_TEST_FAULT -eq 'failed-run') { $global:CandidateTestRun.status = 'Failed' }
+    if ($env:CANDIDATE_TEST_FAULT -eq 'foreign-run') { $global:CandidateTestRun.runId = 'foreign-run' }
+    $global:CandidateTestQueued = $true
 }
 if ($env:CANDIDATE_TEST_FAULT -eq 'missing-dockerfile') {
     $global:candidateTrustedPython = (Get-Command python).Source
@@ -433,7 +530,8 @@ catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual([call[:2] for call in calls],
                          [["account", "show"], ["resource", "show"],
-                          ["acr", "repository"], ["acr", "repository"], ["acr", "build"]])
+                          ["acr", "repository"], ["acr", "repository"], ["acr", "task"],
+                          ["acr", "build"], ["acr", "task"]])
         image = json.loads((destination / "candidate-image.json").read_text())["image"]
         self.assertTrue(image["reference"].startswith("participantregistry.azurecr.io/"))
         self.assertEqual(image["resource_group"], "participant-rg")
@@ -462,7 +560,7 @@ catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }
         self.assertFalse((self.root / "Dockerfile").exists())
         result, calls, destination = self.invoke_native("dockerfile-path")
         self.assertEqual(result.returncode, 0, result.stderr)
-        build = calls[1]
+        build, = [call for call in calls if call[:2] == ["acr", "build"]]
         selected = Path(build[build.index("--file") + 1])
         self.assertTrue(selected.is_absolute())
         self.assertEqual(selected, destination / "Dockerfile")
@@ -481,8 +579,8 @@ catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }
     def test_native_build_contract_and_digest_bound_descriptor_with_fake_acr_only(self):
         result, calls, destination = self.invoke_native("native-success")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(len(calls), 2)
-        build = calls[1]
+        self.assertEqual(len(calls), 4)
+        build, = [call for call in calls if call[:2] == ["acr", "build"]]
         self.assertEqual(build[:2], ["acr", "build"])
         for name, value in (
             ("--registry", "lab7222tf3zuqwfs4huacr"), ("--repository", "caldova/research-portal"),
@@ -493,6 +591,7 @@ catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }
         self.assertEqual(build[build.index("--target") + 1], "candidate")
         self.assertEqual(str(build[build.index("--timeout") + 1]), "1200")
         self.assertIn("--no-logs", build)
+        self.assertIn("--no-wait", build)
         self.assertEqual(build[-1], str(destination))
         self.assertFalse(set(build) & {"--token", "--password", "--username", "--debug", "--verbose"})
         descriptor = json.loads((destination / "candidate-image.json").read_text())
@@ -507,6 +606,123 @@ catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }
         self.assertFalse(descriptor["release_approved"])
         self.assertFalse(descriptor["deployed"])
 
+    def test_native_queued_build_reports_run_and_polls_without_duplicate_submission(self):
+        result, calls, destination = self.invoke_native("queued-build", "queued-build")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(sum(call[:2] == ["acr", "build"] for call in calls), 1)
+        poll, = [call for call in calls if call[:3] == ["acr", "task", "show-run"]]
+        self.assertEqual(poll[poll.index("--run-id") + 1], "offline-acr-run")
+        self.assertIn("ACR run offline-acr-run: Queued", result.stderr)
+        self.assertIn("without a pipe", result.stderr)
+        self.assertTrue((destination / "candidate-image.json").exists())
+
+    def test_native_no_wait_without_output_discovers_only_the_new_run(self):
+        result, calls, destination = self.invoke_native("no-wait-output")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(sum(call[:2] == ["acr", "build"] for call in calls), 1)
+        inventories = [call for call in calls if call[:3] == ["acr", "task", "list-runs"]]
+        self.assertEqual(len(inventories), 2)
+        for inventory in inventories:
+            self.assertEqual(inventory[inventory.index("--registry") + 1], "lab7222tf3zuqwfs4huacr")
+            self.assertEqual(inventory[inventory.index("--subscription") + 1],
+                             "30501c6c-81f6-41ac-a388-d29cf43a020d")
+        image = json.loads((destination / "candidate-image.json").read_text())["image"]
+        self.assertEqual(image["acr_run_id"], "offline-acr-run")
+
+    def test_native_run_discovery_handles_delayed_visibility_without_resubmitting(self):
+        result, calls, destination = self.invoke_native("delayed-run", "delayed-run")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(sum(call[:2] == ["acr", "build"] for call in calls), 1)
+        self.assertEqual(sum(call[:3] == ["acr", "task", "list-runs"] for call in calls), 3)
+        self.assertTrue((destination / "candidate-image.json").exists())
+
+    def test_native_run_inventory_failure_blocks_before_submission(self):
+        for fault in ("inventory-failure", "malformed-inventory-before"):
+            with self.subTest(fault=fault):
+                result, calls, destination = self.invoke_native(fault, fault)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(any(call[:2] == ["acr", "build"] for call in calls))
+                self.assertFalse((destination / "candidate-image.json").exists())
+
+    def test_native_unidentified_or_ambiguous_new_run_never_retries_or_publishes(self):
+        for fault in ("missing-run", "ambiguous-runs", "malformed-inventory-after"):
+            with self.subTest(fault=fault):
+                result, calls, destination = self.invoke_native(fault, fault)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(sum(call[:2] == ["acr", "build"] for call in calls), 1)
+                self.assertFalse((destination / "candidate-image.json").exists())
+                self.assertIn("Inspect existing runs before retrying", result.stderr)
+
+    def test_native_accepts_nested_queue_and_poll_responses_without_duplicate_submission(self):
+        for fault in ("nested-queued-run", "nested-polled-run"):
+            with self.subTest(fault=fault):
+                result, calls, destination = self.invoke_native(fault, fault)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(sum(call[:2] == ["acr", "build"] for call in calls), 1)
+                self.assertEqual(sum(call[:3] == ["acr", "task", "show-run"] for call in calls), 1)
+                image = json.loads((destination / "candidate-image.json").read_text())["image"]
+                self.assertEqual(image["acr_run_id"], "offline-acr-run")
+
+    def test_native_malformed_queue_response_does_not_retry_or_publish_descriptor(self):
+        result, calls, destination = self.invoke_native("malformed-queue", "malformed-queued-run")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(sum(call[:2] == ["acr", "build"] for call in calls), 1)
+        self.assertFalse((destination / "candidate-image.json").exists())
+        self.assertIn("Inspect existing runs before retrying", result.stderr)
+
+    def test_native_resumes_matching_original_context_without_queuing_a_build(self):
+        original = packager.stage_candidate(**self.options("resume-original"))
+        scope = {"SubscriptionId": str(uuid4()), "RegistryName": "participantregistry",
+                 "ResourceGroupName": "participant-rg", "ResumeAcrRunId": "offline-acr-run",
+                 "OriginalBuildContext": original["directory"]}
+        result, calls, destination = self.invoke_native("resume", extra=scope)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([call[:2] for call in calls],
+                         [["account", "show"], ["resource", "show"], ["acr", "task"]])
+        report = json.loads((destination / "candidate-image.json").read_text())
+        self.assertEqual(report["provenance_sha256"], original["provenance_sha256"])
+        self.assertEqual(report["result_sha256"], packager.file_sha256(self.result_path))
+        self.assertEqual(report["image"]["acr_run_id"], "offline-acr-run")
+        self.assertFalse(report["human_approval"])
+        self.assertFalse(report["release_approved"])
+        self.assertFalse(report["deployed"])
+        self.assertFalse((Path(original["directory"]) / "candidate-image.json").exists())
+        self.assertIn("no build will be queued", result.stderr)
+
+    def test_native_resume_rejects_changed_original_context_before_cloud(self):
+        for name in ("candidate-provenance.json", packager.MODULES["clinical-trials"]):
+            with self.subTest(name=name):
+                original = packager.stage_candidate(**self.options(f"original-{Path(name).stem}"))
+                (Path(original["directory"]) / name).write_bytes(b"changed")
+                result, calls, destination = self.invoke_native(f"resume-{Path(name).stem}", extra={
+                    "ResumeAcrRunId": "offline-acr-run", "OriginalBuildContext": original["directory"],
+                })
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(calls, [])
+                self.assertFalse((destination / "candidate-image.json").exists())
+                self.assertIn("original build context differs", result.stderr)
+
+    def test_native_resume_rejects_failed_foreign_or_incomplete_runs_without_rebuilding(self):
+        original = packager.stage_candidate(**self.options("resume-failure-original"))
+        for fault in ("failed-run", "foreign-run", "foreign-image", "bad-digest", "missing-images"):
+            with self.subTest(fault=fault):
+                result, calls, destination = self.invoke_native(f"resume-{fault}", fault, {
+                    "ResumeAcrRunId": "offline-acr-run", "OriginalBuildContext": original["directory"],
+                })
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(len(calls), 1, result.stderr)
+                self.assertEqual(calls[0][:3], ["acr", "task", "show-run"])
+                self.assertFalse((destination / "candidate-image.json").exists())
+
+    def test_native_failed_or_foreign_polled_run_never_publishes_descriptor(self):
+        for fault in ("failed-run", "foreign-run"):
+            with self.subTest(fault=fault):
+                result, calls, destination = self.invoke_native(fault, fault)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(sum(call[:2] == ["acr", "build"] for call in calls), 1)
+                self.assertFalse((destination / "candidate-image.json").exists())
+                self.assertIn("offline-acr-run", result.stderr)
+
     def test_native_failures_never_publish_an_image_descriptor(self):
         for fault in ("tag-failure", "existing-tag", "malformed-tags", "build-failure",
                       "bad-digest", "foreign-image", "changed-context"):
@@ -514,7 +730,8 @@ catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }
                 result, calls, destination = self.invoke_native(fault, fault)
                 self.assertNotEqual(result.returncode, 0, result.stdout)
                 self.assertFalse((destination / "candidate-image.json").exists())
-                expected = 1 if fault in {"tag-failure", "existing-tag", "malformed-tags"} else 2
+                expected = (1 if fault in {"tag-failure", "existing-tag", "malformed-tags"}
+                            else 3 if fault == "build-failure" else 4)
                 self.assertEqual(len(calls), expected, result.stderr)
 
     def test_native_argument_validation_rejects_foreign_scope_and_invalid_tag_before_cloud(self):

@@ -1,3 +1,4 @@
+import base64
 import copy
 import unittest
 from html.parser import HTMLParser
@@ -193,16 +194,85 @@ class EvidenceInspectionTests(unittest.TestCase):
             inspect_evidence(**options)
 
     def test_html_escapes_untrusted_labels_and_has_no_script_or_external_assets(self):
+        class AssetParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.urls = []
+                self.images = []
+
+            def handle_starttag(self, tag, attributes):
+                attributes = dict(attributes)
+                self.urls.extend(attributes[name] for name in ("src", "href") if name in attributes)
+                if tag == "img":
+                    self.images.append(attributes)
+
         report = inspect_evidence(**self.options())
         report["human_approval"]["approved_by"] = '<script>alert("bad")</script>'
         document = render_html(report)
         self.assertIn("&lt;script&gt;", document)
         self.assertNotIn("<script", document)
-        self.assertNotIn("src=", document)
+        parser = AssetParser()
+        parser.feed(document)
+        prefix = "data:image/svg+xml;base64,"
+        self.assertTrue(all(url.startswith("#") or url.startswith(prefix) for url in parser.urls))
+        self.assertEqual(len(parser.images), 1)
+        self.assertEqual(parser.images[0]["alt"], "Caldova")
+        self.assertEqual(
+            base64.b64decode(parser.images[0]["src"].removeprefix(prefix), validate=True),
+            (fixtures.ROOT / "src/research-portal/frontend/src/assets/caldova-logo.svg").read_bytes(),
+        )
+        self.assertIn("img-src data:;", document)
         self.assertIn("Current live state checked: false", document)
         self.assertIn("None reported", document)
         self.assertIn('id="evidence"', document)
-        HTMLParser().feed(document)
+
+    def test_dashboard_navigation_and_counts_work_with_missing_optional_receipts(self):
+        class DashboardParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.ids = []
+                self.targets = []
+                self.summary_depth = 0
+                self.metric = None
+                self.metrics = []
+
+            def handle_starttag(self, tag, attributes):
+                attributes = dict(attributes)
+                if "id" in attributes:
+                    self.ids.append(attributes["id"])
+                if tag == "a" and attributes.get("href", "").startswith("#"):
+                    self.targets.append(attributes["href"][1:])
+                if attributes.get("aria-label") == "Recorded evidence summary":
+                    self.summary_depth = 1
+                elif self.summary_depth:
+                    self.summary_depth += 1
+                    if tag == "strong":
+                        self.metric = ""
+
+            def handle_data(self, data):
+                if self.metric is not None:
+                    self.metric += data
+
+            def handle_endtag(self, tag):
+                if self.summary_depth:
+                    if tag == "strong" and self.metric is not None:
+                        self.metrics.append(self.metric)
+                        self.metric = None
+                    self.summary_depth -= 1
+
+        for optional in (True, False):
+            with self.subTest(optional_receipts=optional):
+                report = inspect_evidence(**self.options(optional=optional))
+                parser = DashboardParser()
+                parser.feed(render_html(report))
+                self.assertEqual(len(parser.ids), len(set(parser.ids)))
+                self.assertTrue(parser.targets)
+                self.assertTrue(set(parser.targets).issubset(parser.ids))
+                self.assertEqual(parser.metrics, [
+                    str(len(report["workers"])), str(len(report["checks"])), "Not checked",
+                ])
+                self.assertFalse(report["attendee_ready"])
+                self.assertFalse(report["current_live_state_checked"])
 
 
 if __name__ == "__main__":

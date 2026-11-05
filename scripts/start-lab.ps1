@@ -3,7 +3,7 @@
 param(
     [Parameter(Mandatory)] [string] $ResourceGroupName,
     [string] $Region = 'westus3',
-    [ValidateSet('Validate', 'Provision', 'Readiness', 'Prepare')] [string] $Mode = 'Validate',
+    [ValidateSet('Validate', 'Provision', 'Readiness', 'Prepare', 'PreparePrimary')] [string] $Mode = 'Validate',
     [ValidateRange(1, 3600)] [int] $TimeoutSeconds = 900
 )
 
@@ -47,10 +47,20 @@ function Invoke-LabNative {
         [void] $process.Start()
         $stdout = $process.StandardOutput.ReadToEndAsync()
         $stderr = $process.StandardError.ReadToEndAsync()
-        if (-not $process.WaitForExit($TimeoutMilliseconds)) {
-            $process.Kill($true)
-            [void] $process.WaitForExit(5000)
-            throw 'Startup native command timed out. A submitted Azure deployment is not cancelled; inspect it before retrying.'
+        $timer = [Diagnostics.Stopwatch]::StartNew()
+        while (-not $process.WaitForExit([Math]::Min(30000, [Math]::Max(
+            1, $TimeoutMilliseconds - [int] $timer.ElapsedMilliseconds)))) {
+            if ($timer.ElapsedMilliseconds -ge $TimeoutMilliseconds) {
+                $process.Kill($true)
+                [void] $process.WaitForExit(5000)
+                throw 'Startup native command timed out. A submitted Azure deployment is not cancelled; inspect it before retrying.'
+            }
+            if ($Arguments -contains '-AuthorizeProvisioning') {
+                $preparationLabel = if ($Arguments -contains '-PrimaryOnly') {
+                    'Preparing only the primary Sandbox'
+                } else { 'Preparing the primary, snapshot and three worker clones' }
+                [Console]::Error.WriteLine("${preparationLabel}: still running ($([int] $timer.Elapsed.TotalSeconds)s).")
+            }
         }
         $out = $stdout.GetAwaiter().GetResult()
         $err = $stderr.GetAwaiter().GetResult()
@@ -351,12 +361,16 @@ function Get-LabPreparationConfiguration {
 
 function Get-LabApplicationConfiguration {
     $settings = @('LAB_APPLICATION_NAME', 'LAB_APPLICATION_IMAGE_DIGEST', 'LAB_APPLICATION_PREVIEW_STATE',
-        'LAB_APPLICATION_IMAGE_SOURCE')
+        'LAB_APPLICATION_IMAGE_SOURCE', 'LAB_APPLICATION_ENVIRONMENT_SOURCE')
     if (-not @($settings | Where-Object { $null -ne [Environment]::GetEnvironmentVariable($_) }).Count) {
         return $null
     }
     $source = if ($null -eq $env:LAB_APPLICATION_IMAGE_SOURCE) { 'LabRegistry' } else { $env:LAB_APPLICATION_IMAGE_SOURCE }
-    if ($source -cnotin @('LabRegistry', 'SimonRegistry') -or
+    $environmentSource = if ($null -eq $env:LAB_APPLICATION_ENVIRONMENT_SOURCE) {
+        'Allocated'
+    } else { $env:LAB_APPLICATION_ENVIRONMENT_SOURCE }
+    if ($source -cnotin @('LabRegistry', 'ReferenceRegistry', 'SimonRegistry') -or
+        $environmentSource -cnotin @('Allocated', 'Portal') -or
         $env:LAB_APPLICATION_NAME -cnotmatch '^[a-z][a-z0-9-]{0,30}[a-z0-9]$' -or
         $env:LAB_APPLICATION_IMAGE_DIGEST -cnotmatch '^sha256:[0-9a-f]{64}$' -or
         $env:LAB_APPLICATION_PREVIEW_STATE -cnotin @('starter', 'reference')) {
@@ -369,6 +383,7 @@ function Get-LabApplicationConfiguration {
     return $data + @{
         Name = $env:LAB_APPLICATION_NAME; Digest = $env:LAB_APPLICATION_IMAGE_DIGEST
         PreviewState = $env:LAB_APPLICATION_PREVIEW_STATE; ImageSource = $source
+        EnvironmentSource = $environmentSource
     }
 }
 
@@ -379,7 +394,30 @@ function Get-LabApplicationReadiness {
     $app = Invoke-LabAz $Context @('resource', 'show', '--ids', $id, '--api-version', '2025-10-02-preview',
         '--query', $query)
     $environmentId = "$($Context.GroupId)/providers/Microsoft.App/managedEnvironments/$($Outputs['EXPRESS_ENVIRONMENT_NAME'])"
-    if ($Configuration['ImageSource'] -ceq 'SimonRegistry') {
+    $applicationRegion = $Context.Region
+    if ($Configuration['EnvironmentSource'] -ceq 'Portal') {
+        $prefix = "$($Context.GroupId)/providers/Microsoft.App/managedEnvironments/"
+        if ($app -isnot [Collections.IDictionary] -or $app['environmentId'] -isnot [string] -or
+            -not $app.environmentId.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase) -or
+            $app.environmentId.Substring($prefix.Length) -cnotmatch '^[A-Za-z0-9][A-Za-z0-9-]{0,59}$') {
+            throw 'The portal application must use an Express environment in the allocated subscription and resource group.'
+        }
+        $environmentId = $app.environmentId
+        $environment = Invoke-LabAz $Context @('resource', 'show', '--ids', $environmentId,
+            '--api-version', '2026-03-02-preview',
+            '--query', '{id:id,type:type,name:name,location:location,state:properties.provisioningState,mode:properties.environmentMode}')
+        if ($environment -isnot [Collections.IDictionary] -or $environment['id'] -ine $environmentId -or
+            $environment['type'] -ine 'Microsoft.App/managedEnvironments' -or
+            $environment['state'] -cne 'Succeeded' -or $environment['mode'] -cne 'Express' -or
+            $null -eq (Get-LabNormalizedLocation $environment['location'])) {
+            throw 'The portal application environment is not a healthy same-scope Express environment with a valid region.'
+        }
+        $applicationRegion = Get-LabNormalizedLocation $environment['location']
+    }
+    if ($Configuration['ImageSource'] -ceq 'ReferenceRegistry') {
+        $image = "acateam.azurecr.io/lab722/caldova-research@$($Configuration.Digest)"
+    }
+    elseif ($Configuration['ImageSource'] -ceq 'SimonRegistry') {
         $image = "simon.azurecr.io/lab722-$($Configuration.Name)@$($Configuration.Digest)"
     }
     else {
@@ -395,7 +433,7 @@ function Get-LabApplicationReadiness {
     }
     if ($app -isnot [Collections.IDictionary] -or $app['id'] -ine $id -or
         $app['type'] -ine 'Microsoft.App/containerApps' -or $app['name'] -cne $Configuration.Name -or
-        (Get-LabNormalizedLocation $app['location']) -cne $Context.Region -or
+        (Get-LabNormalizedLocation $app['location']) -cne $applicationRegion -or
         $app['environmentId'] -ine $environmentId) {
         throw 'Application metadata does not match the requested scoped resource and Express environment.'
     }
@@ -454,7 +492,11 @@ function Get-LabApplicationReadiness {
         }
     }
     [void] (Get-LabRemainingMilliseconds $Context)
-    return $receipt + @{ resource_id = $id; image = $image }
+    return $receipt + @{
+        resource_id = $id; image = $image
+        express_environment_name = $environmentId.Split('/')[-1]
+        region = $applicationRegion
+    }
 }
 
 function Invoke-LabBaselinePreparation {
@@ -465,7 +507,7 @@ function Invoke-LabBaselinePreparation {
     $sourceDirectory = Join-Path $directory 'source'
     $helper = Join-Path (Join-Path $script:LabStartupRoot 'scripts') 'prepare-worker-baseline.ps1'
     $remaining = Get-LabRemainingMilliseconds $Context
-    $result = Invoke-LabNative 'pwsh' @(
+    $arguments = @(
         '-NoProfile', '-NonInteractive', '-File', $helper, '-Mode', 'Provision',
         '-SubscriptionId', $Context.Subscription, '-ResourceGroup', $Context.ResourceGroup,
         '-Region', $Context.Region, '-GroupName', $Outputs['SANDBOX_GROUP_NAME'],
@@ -473,7 +515,10 @@ function Invoke-LabBaselinePreparation {
         '-FrozenManifest', $Configuration.Manifest, '-FrozenManifestSha256', $Configuration.ManifestSha256,
         '-Purpose', $Configuration.Purpose,
         '-PythonExecutable', $Configuration.Python, '-AuthorizeProvisioning', '-AsJson'
-    ) $remaining
+    )
+    $primaryOnly = [bool] $Configuration['PrimaryOnly']
+    if ($primaryOnly) { $arguments += '-PrimaryOnly' }
+    $result = Invoke-LabNative 'pwsh' $arguments $remaining
     if ($result.exit_code -ne 0) {
         throw "Worker preparation failed (exit $($result.exit_code)). No attendee readiness or automatic retry is implied. Inspect the scoped operations and '$directory' before retrying."
     }
@@ -481,8 +526,12 @@ function Invoke-LabBaselinePreparation {
         $receipt = ConvertFrom-Json -InputObject $result.stdout -AsHashtable -ErrorAction Stop
     }
     catch { throw 'Worker preparation returned malformed JSON; no baseline readiness can be established.' }
-    foreach ($pair in @(@('descriptor', 'baseline-descriptor.json'), @('bindings', 'bindings.json'),
-        @('manifest', 'data-manifest.json'))) {
+    $artifacts = if ($primaryOnly) {
+        @(@('descriptor', 'primary-descriptor.json'), @('manifest', 'data-manifest.json'))
+    } else {
+        @(@('descriptor', 'baseline-descriptor.json'), @('bindings', 'bindings.json'), @('manifest', 'data-manifest.json'))
+    }
+    foreach ($pair in $artifacts) {
         $expected = Join-Path $outputDirectory $pair[1]
         if ($receipt -isnot [Collections.IDictionary] -or $receipt[$pair[0]] -ine $expected -or
             -not (Test-Path -LiteralPath $expected -PathType Leaf)) {
@@ -500,7 +549,14 @@ function Invoke-LabBaselinePreparation {
         ($Configuration.Purpose -eq 'public-lab-development' -and $descriptor['acceptance_purpose'] -cne $Configuration.Purpose) -or
         $descriptor.frozen_identity['data_manifest_sha256'] -cne $Configuration.ManifestSha256 -or
         (Get-FileHash -LiteralPath $receipt.manifest -Algorithm SHA256).Hash.ToLowerInvariant() -cne $Configuration.ManifestSha256 -or
-        $receipt['primary_id'] -cne $descriptor['primary_id'] -or $receipt['snapshot_id'] -cne $descriptor['snapshot_id']) {
+        $receipt['primary_id'] -cne $descriptor['primary_id'] -or
+        ($primaryOnly -and ($receipt['phase'] -cne 'primary-prepared' -or
+            $descriptor['phase'] -cne 'primary-prepared' -or
+            $receipt['disk_id'] -cne $descriptor['disk_id'] -or
+            $receipt['descriptor_sha256'] -cne (
+                Get-FileHash -LiteralPath $receipt.descriptor -Algorithm SHA256
+            ).Hash.ToLowerInvariant())) -or
+        (-not $primaryOnly -and $receipt['snapshot_id'] -cne $descriptor['snapshot_id'])) {
         throw 'Worker preparation artifacts do not match the requested scope and pinned frozen dataset.'
     }
     if ($Configuration.Purpose -eq 'public-lab-development') {
@@ -543,7 +599,7 @@ function Invoke-LabBaselinePreparation {
 function Invoke-LabStartup {
     param(
         [string] $ResourceGroupName, [string] $Region = 'westus3',
-        [ValidateSet('Validate', 'Provision', 'Readiness', 'Prepare')] [string] $Mode = 'Validate',
+        [ValidateSet('Validate', 'Provision', 'Readiness', 'Prepare', 'PreparePrimary')] [string] $Mode = 'Validate',
         [ValidateRange(1, 3600)] [int] $TimeoutSeconds = 900
     )
     $subscription = [guid]::Empty
@@ -565,7 +621,9 @@ function Invoke-LabStartup {
         }
         $parameters += @("labUserPrincipalId=$principal", "labUserPrincipalType=$principalType")
     }
-    $preparation = if ($Mode -eq 'Prepare') { Get-LabPreparationConfiguration } else { $null }
+    $preparation = if ($Mode -in @('Prepare', 'PreparePrimary')) {
+        (Get-LabPreparationConfiguration -Operation $Mode) + @{ PrimaryOnly = ($Mode -eq 'PreparePrimary') }
+    } else { $null }
     $applicationConfiguration = if ($Mode -eq 'Readiness') { Get-LabApplicationConfiguration } else { $null }
     $context = @{
         Subscription = $subscription.ToString(); ResourceGroup = $ResourceGroupName; Region = $Region
@@ -584,7 +642,7 @@ function Invoke-LabStartup {
         ($scope.ResourceCount -ne 0 -or $scope.AllocationMarker -or $scope.Deployments.Count -ne 0)) {
         throw 'Provision refuses a nonempty or previously allocated scope. Retained LAB722 resources and capacity will not be updated; use Validate or Readiness.'
     }
-    if ($Mode -notin @('Readiness', 'Prepare')) {
+    if ($Mode -notin @('Readiness', 'Prepare', 'PreparePrimary')) {
         if ($null -ne $scope.EnvironmentName) {
             $parameters += "environmentName=$($scope.EnvironmentName)"
         }
@@ -655,7 +713,9 @@ function Invoke-LabStartup {
         Assert-LabCurrentResources $context $outputs
         if ($null -ne $applicationConfiguration) {
             $application = Get-LabApplicationReadiness $context $outputs $applicationConfiguration
+            $outputs['EXPRESS_ENVIRONMENT_NAME'] = $application.express_environment_name
             $outputs['CALDOVA_APPLICATION_NAME'] = $applicationConfiguration.Name
+            $outputs['CALDOVA_APPLICATION_REGION'] = $application.region
             $outputs['CALDOVA_APPLICATION_URL'] = $application.url
             $outputs['CALDOVA_APPLICATION_IMAGE'] = $application.image
             $pending = @(
@@ -663,18 +723,33 @@ function Invoke-LabStartup {
                 $pending[2], $pending[3]
             )
         }
-        if ($Mode -eq 'Prepare') {
+        if ($Mode -in @('Prepare', 'PreparePrimary')) {
+            $primaryOnly = $Mode -eq 'PreparePrimary'
+            [Console]::Error.WriteLine($(if ($primaryOnly) {
+                'Preparing and verifying only the primary Sandbox. You will create its snapshot and worker clones in the portal.'
+            } else {
+                'Preparing and verifying the primary Sandbox, snapshot and three assigned clones. This can take several minutes.'
+            }))
             $baseline = Invoke-LabBaselinePreparation $context $outputs $preparation
-            $outputs['CALDOVA_BASELINE_DESCRIPTOR_PATH'] = $baseline.descriptor
-            $outputs['CALDOVA_WORKER_BINDINGS_PATH'] = $baseline.bindings
             $outputs['CALDOVA_DATA_MANIFEST_PATH'] = $baseline.manifest
             $outputs['CALDOVA_VALIDATION_SANDBOX_ID'] = $baseline.primary_id
-            $outputs['CALDOVA_BASELINE_SNAPSHOT_ID'] = $baseline.snapshot_id
-            $pending[1] = if ($preparation.Purpose -eq 'public-lab-development') {
+            if ($primaryOnly) {
+                [Console]::Error.WriteLine('Primary verified. No snapshot, clones or worker bindings were created; complete the portal exercise next.')
+                $outputs['CALDOVA_PRIMARY_DESCRIPTOR_PATH'] = $baseline.descriptor
+                $outputs['CALDOVA_PRIMARY_DESCRIPTOR_SHA256'] = $baseline.descriptor_sha256
+                $pending[1] = 'Only the primary and frozen starter data are verified. Capture its snapshot and create the three worker clones in the portal, then register them.'
+            }
+            else {
+                [Console]::Error.WriteLine('Sandbox preparation complete: primary, snapshot, three distinct clones and frozen data verified.')
+                $outputs['CALDOVA_BASELINE_DESCRIPTOR_PATH'] = $baseline.descriptor
+                $outputs['CALDOVA_WORKER_BINDINGS_PATH'] = $baseline.bindings
+                $outputs['CALDOVA_BASELINE_SNAPSHOT_ID'] = $baseline.snapshot_id
+            }
+            if (-not $primaryOnly) { $pending[1] = if ($preparation.Purpose -eq 'public-lab-development') {
                 'Exact public lab-use artifact and missing worker starters are prepared; this is not expert audit, publication, image approval or attendee release.'
             } else {
                 'Frozen synthetic data and worker starters are prepared; reviewed public data and attendee release are not approved.'
-            }
+            } }
         }
     }
     [void] (Get-LabRemainingMilliseconds $context)
@@ -682,7 +757,8 @@ function Invoke-LabStartup {
         schema_version = '1.0'; mode = $Mode; deployment_name = $deploymentName
         resource_group_metadata_location = $scope.GroupMetadataLocation
         validation_succeeded = ($Mode -eq 'Validate'); infrastructure_ready = ($Mode -ne 'Validate')
-        baseline_ready = ($null -ne $baseline)
+        primary_ready = ($null -ne $baseline)
+        baseline_ready = ($null -ne $baseline -and $Mode -ne 'PreparePrimary')
         frozen_data_verified = ($null -ne $baseline -or $null -ne $application)
         synthetic_development_only = (($null -ne $preparation -and $preparation.Purpose -eq 'synthetic-development') -or
             ($null -ne $application -and $applicationConfiguration.Purpose -eq 'synthetic-development'))
@@ -691,7 +767,9 @@ function Invoke-LabStartup {
         application_ready = ($null -ne $application)
         application_manifest_verified = ($null -ne $application)
         data_ready = $false; attendee_ready = $false
-        readiness_basis = $(if ($Mode -eq 'Validate') { 'ARM validation only' } elseif ($Mode -eq 'Prepare') {
+        readiness_basis = $(if ($Mode -eq 'Validate') { 'ARM validation only' } elseif ($Mode -eq 'PreparePrimary') {
+            'Infrastructure plus primary starter, UID, permissions, policy and pinned frozen-data verification. Snapshot, clones, bindings, application and attendee gates remain incomplete.'
+        } elseif ($Mode -eq 'Prepare') {
             'Infrastructure plus primary/three-clone starter, UID, permissions, policy, lineage and pinned frozen-data verification. Explicit development purpose only; application and attendee gates remain blocked.'
         } elseif ($null -ne $application) {
             'Scoped infrastructure, pinned application image, HTTP health, manifest/original-source identity and one preview-state sample verified. No full acceptance rerun, attendee access, worker baseline, inference or release approval.'

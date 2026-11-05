@@ -1,8 +1,12 @@
 import asyncio
 import hashlib
 import json
+import re
 import shlex
 import sys
+import time
+from collections.abc import Mapping
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import UUID
@@ -10,17 +14,21 @@ from uuid import UUID
 from agent_framework import Agent, FunctionTool
 from agent_framework.foundry import FoundryAgent, FoundryChatClient
 from azure.ai.projects.aio import AIProjectClient
-from azure.ai.projects.models import FunctionTool as FoundryFunctionTool, PromptAgentDefinition
+from azure.ai.projects.models import (
+    FunctionTool as FoundryFunctionTool, PromptAgentDefinition,
+    PromptAgentDefinitionTextOptions, TextResponseFormatJsonSchema,
+)
 from azure.core.exceptions import ResourceNotFoundError
 
 from data.pipeline.contracts import Manifest
-from .contracts import APPROVED_TASKS, ROLE_CHECKS, ROLES, ImplementationPlan, Role, WorkerResult
+from .contracts import APPROVED_TASKS, REQUIRED_CHECKS, ROLE_CHECKS, ROLES, ImplementationPlan, Role, WorkerResult
 from .mcp_client import worker_mcp_tools
 from .integration import (
     FEATURE_FILES, feature_conformance_script, feature_validation_script, integrate_and_validate,
     public_verification_script, validate_egress, validate_worker_results,
 )
 from .sandbox import SandboxExecutor
+from src.workers.frozen_contract import canonical_hash
 
 AGENT_NAME = "caldova-orchestrator"
 INSTRUCTIONS = (
@@ -54,6 +62,27 @@ def validate_endpoint(endpoint: str) -> str:
     return endpoint.rstrip("/")
 
 
+def service_error_details(error: BaseException) -> dict[str, object]:
+    details: dict[str, object] = {"status_code": None, "request_id": None}
+    seen: set[int] = set()
+    current: BaseException | None = error
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if details["status_code"] is None:
+            details["status_code"] = getattr(current, "status_code", None)
+        if details["request_id"] is None:
+            details["request_id"] = getattr(current, "request_id", None)
+        if details["request_id"] is None:
+            headers = getattr(getattr(current, "response", None), "headers", None)
+            if isinstance(headers, Mapping):
+                details["request_id"] = next((
+                    headers[name] for name in ("x-request-id", "apim-request-id", "x-ms-request-id")
+                    if headers.get(name)
+                ), None)
+        current = current.__cause__ or current.__context__
+    return details
+
+
 class CaldovaWorkflow:
     def __init__(
         self,
@@ -75,10 +104,12 @@ class CaldovaWorkflow:
         self.candidate_integrated = False
         self.mode = "plan"
         self.worker_results: dict[Role, WorkerResult] = {}
+        self.worker_failures: list[dict[str, object]] = []
         self.worker_evidence = []
         self.candidate_sources = {}
         self.smoke_evidence = []
         self.plan: ImplementationPlan | None = None
+        self.reasoning_options = {"reasoning": {"effort": "none"}} if model == "gpt-5.2" else {}
         self.tools = [
             FunctionTool(
                 name="check_sandbox", description="Verify execution only in a role's assigned Sandbox.",
@@ -90,7 +121,44 @@ class CaldovaWorkflow:
             ),
         ]
 
-    async def provision(self) -> FoundryAgent:
+    @asynccontextmanager
+    async def progress(self, stage: str, role: Role | None = None):
+        started = time.monotonic()
+        label = f"{stage} [{role}]" if role else stage
+
+        def report(state: str):
+            print(f"[{self.run_id}] {label}: {state} ({time.monotonic() - started:.0f}s)",
+                  file=sys.stderr, flush=True)
+
+        async def heartbeat():
+            while True:
+                await asyncio.sleep(30)
+                report("still running")
+
+        report("started")
+        pulse = asyncio.create_task(heartbeat())
+        try:
+            yield
+        finally:
+            error = sys.exception()
+            pulse.cancel()
+            with suppress(asyncio.CancelledError):
+                await pulse
+            if error is not None:
+                message = str(error) or type(error).__name__
+                if role and isinstance(error, Exception):
+                    self.worker_failures.append({
+                        "role": role, "stage": stage,
+                        "sandbox_id": str(self.executors[role].binding.sandbox_id),
+                        "error_type": type(error).__name__, "message": message,
+                        **service_error_details(error),
+                        "elapsed_seconds": round(time.monotonic() - started, 1),
+                    })
+                report(f"failed: {type(error).__name__}: {message}")
+            else:
+                report("complete")
+
+    async def provision(self, *, planning: bool = False) -> FoundryAgent:
         declarations = []
         for tool in self.tools:
             parameters = tool.to_json_schema_spec()["function"]["parameters"]
@@ -98,9 +166,14 @@ class CaldovaWorkflow:
             declarations.append(FoundryFunctionTool(
                 name=tool.name, description=tool.description, parameters=parameters, strict=True,
             ))
+        # Saved-agent runs inherit reasoning here; Foundry rejects a per-run reasoning override.
         definition = PromptAgentDefinition(
-            model=self.model, instructions=INSTRUCTIONS, tools=declarations,
+            model=self.model, instructions=INSTRUCTIONS, tools=declarations, **self.reasoning_options,
         )
+        if planning:
+            definition.text = PromptAgentDefinitionTextOptions(format=TextResponseFormatJsonSchema(
+                name="ImplementationPlan", schema=ImplementationPlan.model_json_schema(), strict=True,
+            ))
         fingerprint = hashlib.sha256(json.dumps(
             definition.as_dict(), sort_keys=True, separators=(",", ":"),
         ).encode()).hexdigest()
@@ -187,6 +260,67 @@ class CaldovaWorkflow:
         }
 
     async def dispatch_worker(self, role: Role, task: str) -> str:
+        async with self.progress("Specialist session", role):
+            return await self._dispatch_worker(role, task)
+
+    async def governance_review_context(self) -> dict[str, object]:
+        primary = self.validation_executor
+        if primary is None or not self.candidate_integrated:
+            raise PermissionError("Governance requires the independently tested integrated candidate.")
+        checks = self.integration_evidence + self.egress_evidence
+        required = REQUIRED_CHECKS - {"worker-schema"}
+        if len(checks) != len(required) or {check.name for check in checks} != required or any(
+            check.run_id != self.run_id or check.sandbox_id != primary.binding.sandbox_id
+            or check.exit_code != 0 or not check.passed for check in checks
+        ):
+            raise ValueError("Governance requires complete, passing, run-bound primary evidence.")
+        script = public_verification_script(self.manifest)
+        if self.manifest.dataset_kind != "reviewed-public":
+            script = (
+                "import pathlib\n"
+                "from data.pipeline.validate_dataset import validate_artifact,file_sha256\n"
+                "from src.workers.frozen_contract import canonical_hash\n"
+                "p=pathlib.Path('data/artifacts/development/data-manifest.json')\n"
+                "m=validate_artifact(p)\n"
+                f"assert canonical_hash(m.model_dump(mode='json'))=={canonical_hash(self.manifest.model_dump(mode='json'))!r}\n"
+            )
+        marker = f"LAB722_MANIFEST_SHA256:{self.run_id}:{primary.binding.sandbox_id}:"
+        script += f"print({marker!r}+file_sha256(p))\n"
+        execution = await primary.execute(
+            "python3 -c " + shlex.quote(script), timeout=30, verify_remote_status=True,
+        )
+        anchors = [line.removeprefix(marker) for line in execution.stdout.splitlines()
+                   if line.startswith(marker)]
+        if execution.exit_code != 0 or len(anchors) != 1 or \
+                re.fullmatch(r"[0-9a-f]{64}", anchors[0]) is None:
+            raise RuntimeError(
+                "Governance manifest anchor verification failed: "
+                + (execution.stderr or execution.stdout or "Missing run-bound manifest hash.")
+            )
+        return {
+            "run_id": str(self.run_id),
+            "primary_sandbox_id": str(primary.binding.sandbox_id),
+            "manifest_path": "data/artifacts/development/data-manifest.json",
+            "manifest_file_sha256": anchors[0],
+            "logical_sha256": self.manifest.logical_sha256,
+            "evidence_origin": "Trusted controller checks executed in the independent primary Sandbox.",
+            "expected_primary_checks": sorted(required),
+            "implementation_results": [
+                self.worker_results[role].model_dump(mode="json")
+                for role in ("clinical-trials", "drug-safety")
+            ],
+            "pending_final_check": (
+                "worker-schema runs in the primary after your report is returned; "
+                "it validates all three reports and must pass before any worker result is accepted."
+            ),
+            "egress_contract": {
+                "egress-allowed": "HTTPS https://open.fda.gov/apis/ returns HTTP 200 on open.fda.gov.",
+                "egress-denied": "HTTPS https://example.com/ returns policy HTTP 403, not a timeout.",
+                "policy": "defaultAction Deny, trafficInspection Full, only open.fda.gov allowed.",
+            },
+        }
+
+    async def _dispatch_worker(self, role: Role, task: str) -> str:
         if self.mode != "workers" or self.plan is None:
             raise PermissionError("Worker execution requires an explicitly started validated plan.")
         assignment = next(item for item in self.plan.assignments if item.role == role)
@@ -199,6 +333,7 @@ class CaldovaWorkflow:
         executor = self.executors[role]
         await executor.verify_binding()
         await executor.verify_egress_policy()
+        review = await self.governance_review_context() if role == "quality-governance" else None
         template = json.loads(TEMPLATES.read_text(encoding="utf-8"))["templates"][role]
         module = (
             FEATURE_FILES[role].rsplit("/", 1)[1].removesuffix(".py")
@@ -207,6 +342,13 @@ class CaldovaWorkflow:
         marker = f"LAB722_FEATURE_READY:{self.run_id}:{role}"
         script = (
             public_verification_script(self.manifest) +
+            (
+                "import hashlib,pathlib\n"
+                "assert hashlib.sha256(pathlib.Path("
+                "'data/artifacts/development/data-manifest.json').read_bytes()).hexdigest()"
+                f"=={review['manifest_file_sha256']!r}, 'Manifest file differs from the verified primary'\n"
+                if review is not None else ""
+            ) +
             "import importlib,sys,duckdb\n"
             "from data.pipeline.contracts import Trial,SafetyReport\n"
             "sys.path.insert(0,'src/research-portal/backend')\n"
@@ -230,6 +372,15 @@ class CaldovaWorkflow:
                 default_headers={"Accept-Encoding": "identity"},
             )
             client.client = client.client.with_options(max_retries=6)
+            identity = {
+                "role": role, "run_id": str(self.run_id),
+                "sandbox_id": str(executor.binding.sandbox_id),
+                "dataset_version": self.manifest.dataset_version,
+                "logical_sha256": self.manifest.logical_sha256,
+            }
+            result_schema = WorkerResult.model_json_schema()
+            for field, expected in identity.items():
+                result_schema["properties"][field]["enum"] = [expected]
             worker = Agent(
                 client=client,
                 name=f"caldova-{role}-{template['version']}",
@@ -237,21 +388,21 @@ class CaldovaWorkflow:
                     " Batch related read_source calls into a single turn, keep schema output concise, "
                     "and avoid rereading unchanged files. Preserve an existing implementation if it "
                     "already passes complete source-fidelity verification; do not rewrite valid code."
+                    " Put non-blocking notes and expected later-stage caveats in summary. "
+                    "Return blockers as [] when there are no actual unresolved failures; "
+                    "never put a sentence saying 'no blockers' in that array."
                 ),
                 tools=[tools],
-                default_options={"response_format": WorkerResult, "max_tokens": 2000},
+                default_options={
+                    "response_format": result_schema, "max_tokens": 2000, **self.reasoning_options,
+                },
             )
-            identity = {
-                "role": role, "run_id": str(self.run_id),
-                "sandbox_id": str(executor.binding.sandbox_id),
-                "dataset_version": self.manifest.dataset_version,
-                "logical_sha256": self.manifest.logical_sha256,
-            }
             prompt = json.dumps({
                 "assignment": assignment.model_dump(mode="json"),
                 **identity,
                 "source_access": executor.source_access(),
                 "manifest": self.manifest.model_dump(mode="json"),
+                **({"governance_review": review} if review is not None else {}),
                 "database_path": "data/artifacts/development/" + self.manifest.database.path,
                 "verification_tool": "verify_feature",
                 "verification_success_marker": marker,
@@ -289,6 +440,20 @@ class CaldovaWorkflow:
                     "A successful call must return exit_code 0 and the exact verification_success_marker. "
                     "On failure fix only your assigned file and call verify_feature again. "
                     "Never reconstruct its controller-configured shell command."
+                ) if module else (
+                    "Call verify_feature with no arguments before returning your review. "
+                    "It verifies your clone's frozen artifacts and exact manifest bytes against "
+                    "governance_review.manifest_file_sha256 from the independently verified primary. "
+                    "The manifest file SHA-256 and the dataset logical_sha256 identify different things; "
+                    "do not compare them. Require exit_code 0 and the exact verification_success_marker. "
+                    "Review the supplied integration_evidence and egress_evidence against the expected "
+                    "run_id, primary_sandbox_id and expected_primary_checks in governance_review. "
+                    "These are trusted controller receipts, not model-authored claims. The egress probes "
+                    "run in the primary by design; not having a separate MCP egress tool is not missing "
+                    "evidence. Your own clone is not the independent primary. Review the two supplied "
+                    "implementation_results; the final worker-schema check runs only after your own "
+                    "report is returned. Report missing, mismatched or failed evidence and genuine "
+                    "source/data/policy problems as blockers. Never hide a failed check or approve release."
                 ),
                 "source_record_id_contract": (
                     "source_record_ids may be empty. If populated, use only exact source_record_id "
@@ -405,25 +570,35 @@ class CaldovaWorkflow:
             executor.binding.sandbox_id for executor in self.executors.values()
         }:
             raise ValueError("Worker mode requires a separate trusted integration Sandbox.")
-        self.egress_evidence = await validate_egress(self.validation_executor, self.run_id)
+        async with self.progress("Verify primary network policy"):
+            self.egress_evidence = await validate_egress(self.validation_executor, self.run_id)
         await agent.run(json.dumps({
             "mode": "workers",
             "assignments": [item.model_dump(mode="json") for item in self.plan.assignments
                             if item.role != "quality-governance"],
             "instruction": "Dispatch only these two implementation assignments exactly once. Do not dispatch governance yet.",
         }), options={"max_tokens": 1000})
-        if set(self.worker_results) != {"clinical-trials", "drug-safety"}:
-            raise RuntimeError("The orchestrator did not complete both implementation assignments.")
+        missing = {"clinical-trials", "drug-safety"} - self.worker_results.keys()
+        if missing or self.worker_failures:
+            details = "; ".join(
+                f"{item['role']} ({item['error_type']}): {item['message']}"
+                for item in self.worker_failures
+            )
+            raise RuntimeError(
+                f"Implementation assignments incomplete; missing roles: {', '.join(sorted(missing)) or 'none'}. "
+                f"{details or 'No accepted report was returned; inspect the saved failure evidence.'}"
+            )
         if any(worker.blockers for worker in self.worker_results.values()):
             blockers = "; ".join(
                 f"{worker.role}: {blocker}"
                 for worker in self.worker_results.values() for blocker in worker.blockers
             )
             raise RuntimeError(f"Implementation workers reported unresolved blockers: {blockers}")
-        self.integration_evidence = await integrate_and_validate(
-            self.validation_executor, self.executors["quality-governance"],
-            self.executors, self.manifest, self.run_id,
-        )
+        async with self.progress("Integrate and independently test accepted feature files"):
+            self.integration_evidence = await integrate_and_validate(
+                self.validation_executor, self.executors["quality-governance"],
+                self.executors, self.manifest, self.run_id,
+            )
         self.candidate_integrated = True
         assignment = next(item for item in self.plan.assignments if item.role == "quality-governance")
         await agent.run(json.dumps({
@@ -433,7 +608,12 @@ class CaldovaWorkflow:
             "instruction": "Dispatch only this governance assignment to review the integrated candidate.",
         }), options={"max_tokens": 1000})
         if set(self.worker_results) != set(self.executors):
-            raise RuntimeError("The orchestrator did not complete the final governance assignment.")
+            details = "; ".join(
+                f"{item['role']} ({item['error_type']}): {item['message']}"
+                for item in self.worker_failures if item["role"] == "quality-governance"
+            )
+            raise RuntimeError("The quality-governance assignment did not complete. "
+                               + (details or "Inspect the saved failure evidence."))
         if self.worker_results["quality-governance"].blockers:
             raise RuntimeError("Governance reported unresolved blockers: " + "; ".join(
                 self.worker_results["quality-governance"].blockers,
