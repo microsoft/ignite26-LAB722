@@ -30,6 +30,10 @@ Approved image digest ----------> ACA Express
 
 The Python Foundry orchestrator uses Microsoft Agent Framework to plan and coordinate work. It does not execute repository code. The three specialist roles execute commands and manipulate files only inside their assigned Sandbox clones.
 
+Planning uses a managed agent version with a strict `ImplementationPlan` output schema; Foundry rejects a per-request text-format override for a named agent. Tool-smoke and worker dispatch use an ordinary-text version of the same owned agent, so the planning schema does not constrain tool results. Strict validation still checks the exact run, immutable dataset identity, approved assignments and human-release requirement; Markdown-fenced or identity-changing output is rejected rather than repaired into an accepted plan.
+
+Each worker receives a fresh structured-output schema whose role, run, Sandbox, dataset version and logical hash are constrained to the exact assigned identity. This prevents those report fields from competing with other hashes in the prompt. Local parsing, immutable-identity comparison, bounded report-only retries and independent acceptance remain separate checks; the controller never rewrites a returned identity into an accepted result.
+
 The attendee configures one persistent orchestrator. Specialist roles are versioned templates started as separate sessions:
 
 1. Clinical-trials worker

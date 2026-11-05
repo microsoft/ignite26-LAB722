@@ -1,0 +1,23 @@
+{
+  "verification_id": "acateam-caldova-image-verification-20261030",
+  "verified_at": "2026-10-30T20:50:15.693186Z",
+  "credentials_supplied": false,
+  "registry_settings_changed": false,
+  "method": "OCI distribution HTTPS; credential-free scoped token; every blob size/SHA-256 checked; no runtime claim",
+  "images": [
+    {
+      "state": "starter",
+      "tag": "acateam.azurecr.io/lab722/caldova-research:starter-v2-20261030",
+      "digest": "sha256:5afebba6c3b833821af07b356cf90b3783ec71ea8c0dd108782874207b8e6c63",
+      "anonymous_manifest_config_and_all_layers_verified": true,
+      "compressed_bytes": 149754694
+    },
+    {
+      "state": "reference",
+      "tag": "acateam.azurecr.io/lab722/caldova-research:reference-v2-20261030",
+      "digest": "sha256:80402914e153b04857a59a0314f6353f1c70dd71c253e75a4554c976da053896",
+      "anonymous_manifest_config_and_all_layers_verified": true,
+      "compressed_bytes": 149693420
+    }
+  ]
+}

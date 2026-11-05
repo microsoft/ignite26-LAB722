@@ -86,9 +86,19 @@ class WorkerResult(Contract):
     sandbox_id: UUID
     dataset_version: str = Field(min_length=1, max_length=128)
     logical_sha256: Sha256
-    summary: Text
+    summary: Text = Field(
+        description="Completed work, review findings and non-blocking notes or expected later-stage caveats."
+    )
     source_record_ids: list[str] = Field(max_length=100)
-    blockers: list[Text] = Field(max_length=20)
+    blockers: list[Text] = Field(
+        max_length=20,
+        description=(
+            "Actual unresolved software, data or evidence failures only. Return an empty array [] "
+            "when there are none. Never include a 'no blockers' sentence, a successful check, or "
+            "the expected later worker-schema/human-approval steps here; put those notes in summary. "
+            "Every non-empty entry stops acceptance."
+        ),
+    )
 
 
 class CheckEvidence(Contract):

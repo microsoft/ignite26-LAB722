@@ -44,8 +44,19 @@ RUN CALDOVA_PREVIEW_STATE=reference CALDOVA_EXPECTED_PREVIEW_STATE=reference \
         python -m unittest discover -s tests -p test_research.py -v \
     && printf '%s\n' 'Dataset-specific trusted reference research checks passed.' > reference-validation.txt
 
+FROM reference-validation AS reference-release
+ARG SOURCE_REVISION=uncommitted-development
+LABEL org.opencontainers.image.revision="${SOURCE_REVISION}" io.caldova.preview-state="reference"
+ENV CALDOVA_PREVIEW_STATE=reference
+USER caldova
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"
+CMD ["uvicorn", "app:app", "--app-dir", "src/research-portal/backend", "--host", "0.0.0.0", "--port", "8080"]
+
 FROM prepared AS baseline
 ARG SOURCE_REVISION=uncommitted-development
+LABEL org.opencontainers.image.revision="${SOURCE_REVISION}" io.caldova.preview-state="starter"
 COPY src/workers/starter/trial_feature.py src/workers/starter/safety_feature.py src/research-portal/backend/
 RUN chmod -R go-w /opt/caldova-lab \
     && python src/developer-image/baseline.py --record --source-revision "${SOURCE_REVISION}" \

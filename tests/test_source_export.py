@@ -55,6 +55,9 @@ class FrozenSourceExportTests(unittest.TestCase):
         self.assertEqual(result["frozen_data"]["data_manifest_sha256"], self.manifest_sha)
         record = json.loads((destination / "source-context.json").read_text())
         self.assertEqual(record["frozen_data"], result["frozen_data"])
+        logo = "src/research-portal/frontend/src/assets/caldova-logo.svg"
+        self.assertEqual((destination / logo).read_bytes(), (ROOT / logo).read_bytes())
+        self.assertEqual(record["files"][logo], file_sha256(ROOT / logo))
         for name, digest in record["files"].items():
             self.assertEqual(file_sha256(destination / name), digest)
 

@@ -5,6 +5,7 @@
   "application_observed_at": "2026-10-10T12:08:24.1973015-05:00",
   "run_id": "9bbcce44-7e7b-4889-b7e4-4081ea9893dc",
   "source_inspector_sha256": "fe64fee44201162980b8c3ca9539f8598f9009c2ed660c3b86ae0a45d6bee579",
+  "presentation_note": "The HTML presentation was intentionally regenerated with the Plus Admin adaptation and original Caldova SVG logo. Its file pin reflects that presentation only; the original JSON projection, receipt hashes, generation/observation times and historical source_inspector_sha256 are unchanged. This is not a new execution or approval.",
   "original_receipt_sha256": {
     "baseline_descriptor": "335ff10ad58501ce323435035238fd4fa4867499c4f74112f2b666310a88058e",
     "human_approval": "e2246be7512ec4ebe3f350af1ae30b8ba1be099d585b4b1feeb93cf59b17d8ab",
@@ -20,8 +21,8 @@
       "sha256": "94de9b96dd1403259985d1a01b7a02f339d57aa2b2be326cfd785d5a6b2b6580"
     },
     "development-evidence.html": {
-      "bytes": 10877,
-      "sha256": "406fc02dd6d8679387a3d562fdb78c4b0f8299c84f2b6c61fbea9b78a035d15d"
+      "bytes": 46640,
+      "sha256": "0f66dbba100551c10eccfa17cbaadbd510bd6f7384ba2ab3ca89afe1ab208610"
     }
   }
 }

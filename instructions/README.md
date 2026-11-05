@@ -1,67 +1,34 @@
-# Attendee instructions
+# 2. Build a research app with an agent team
 
-## Caldova Research Preview Factory
+Caldova, a fictional pharmaceutical company, needs a research panel that shows clinical trials and adverse-event reports. First, deploy its starter application with Container Apps Express. Its two data-query functions are missing: your job is to use an agent team to implement them, check the results, and deploy the completed application.
 
-In this 75-minute lab, a Microsoft Foundry orchestrator assigns bounded work to specialist agents running in isolated Azure Container Apps Sandboxes. The agents add a research panel to Caldova's application. You inspect the isolation and outbound controls, follow deterministic validation, and connect the accepted source to an approved image on Azure Container Apps Express.
+You will use **Microsoft Foundry** to coordinate the agents, **Azure Container Apps Sandboxes** to isolate their work, and **Azure Container Apps Express** to run the application.
 
-The same seven segments support facilitator-guided delivery and self-paced study. Speaker notes and slides are in [the presentation package](../presentations/README.md). Narrated videos are not yet available.
+## 2.1 What you will do
 
-**The core guide is platform-neutral.** The [Skillable panel manual](skillable.md) adds the profile's Windows login controls, the prepared VM checkout location and explicit controller/application interpreters. Its default remains recorded evidence; publishing the panel does not establish Azure authentication, starter/artifact distribution or live attendee readiness. Use the recorded-evidence path without a raw dataset download or resource allocation. The optional live path requires facilitator-prepared, explicitly authorized resources and a supported controller runtime; [the facilitator checklist](facilitator.md) defines the handoff. The maintainer public workflow and read-only application/data readiness are verified, but a fresh participant dry run and the proposed 75-minute schedule are not yet measured. A completed reference is not an untouched starter, and material availability is not attendee-release approval.
+| Activity | Minutes |
+|---|---:|
+| Sign in and check your environment | 5 |
+| Deploy and explore the starter with Express | 7 |
+| Review the agent team's plan | 12 |
+| Create Sandbox clones and try their network policy | 15 |
+| Run the agents and review their results | 23 |
+| Build and deploy the application | 6 |
+| Compare a recorded example and discuss the results | 7 |
+| **Total** | **75** |
 
-## Choose your path
+Use the same steps in a guided session or at your own pace. The times are estimates; remote operations can take longer.
 
-| Path | What you do | What it proves |
-|---|---|---|
-| **Recorded evidence (default)** | Verify the bundled JSON/HTML checksums, follow all seven segments, inspect the recorded assignments/checks/image/approval/observation | You can explain and audit the verified development workflow; it is not a newly executed run |
-| **Live exercise** | Use a facilitator-provided scope, starter, controller runtime and authorized baseline/build operations | New execution must produce its own evidence and exact-image approvals; the retained demo's receipts cannot approve it |
+## 2.2 Your lab environment
 
-For recorded evidence, open PowerShell 7.2+ at the repository root. Run Segment 0's local checksum checks, then keep `$evidence` and `$evidenceDirectory` in that terminal across the following segments. The HTML viewer is self-contained and needs no network. A Python 3.12+ interpreter is needed only to run the full receipt inspector with the separately provided original files; the small bundled summary does not contain candidate code, raw execution logs or the four-file dataset.
+Your Windows VM has the tools and code ready at:
 
-The repository root is the directory containing `azure.yaml`, `instructions` and `scripts`. Do not run commands from the enclosing checkout folder. All commands below use Windows PowerShell paths. Linux controller execution uses the equivalent native paths, or the already-tested maintainer WSL launcher described in the facilitator checklist.
+```text
+C:\Users\LabUser\code\ignite26-LAB722
+```
 
-## What to retain
+Use the Azure account and subscription supplied with your lab. Infrastructure is already provisioned; you do not need to install tools or run an infrastructure deployment.
 
-Use [the checkpoint worksheet](worksheet.md) to record the run, dataset, manifest/logical hashes, snapshot/worker/primary IDs, acceptance/egress evidence, immutable image, separate approval and observation time. Do not invent an issue number, committed source revision or Foundry session ID when the supplied evidence does not contain one. The bundled evidence manifest contains reproducible file hashes, not a digital signature.
+Keep one PowerShell 7 terminal open throughout the lab. Later steps use variables created in earlier steps. Each command block runs as one unit and pauses at its **Enter** checkpoints so you can inspect the output before continuing.
 
-## Lab schedule
-
-| Segment | Time | Primary service | Outcome |
-|---|---:|---|---|
-| [0. Welcome and readiness](00-welcome-and-readiness.md) | 5 minutes | Supporting services | The execution path and pinned evidence/data identities are clear |
-| [1. Open the research portal](01-open-research-portal.md) | 4 minutes | ACA Express | Starter and completed-reference states are distinguishable |
-| [2. Configure the orchestrator](02-configure-orchestrator.md) | 15 minutes | Foundry Agent Service | The orchestrator has approved tools and a reviewed plan |
-| [3. Prepare the Sandbox](03-prepare-sandbox.md) | 15 minutes | ACA Sandboxes | A tested baseline snapshot is available |
-| [4. Run the agent team](04-run-agent-team.md) | 23 minutes | ACA Sandboxes | Three workers produce a validated release candidate |
-| [5. Build and publish](05-build-and-publish.md) | 6 minutes | ACR and ACA Express | The approved image is live |
-| [6. Trace the evidence](06-trace-the-evidence.md) | 7 minutes | Recorded workflow receipts | Recorded source-to-image-to-application identities are auditable |
-
-## Service allocation
-
-| Area | Minutes | Share |
-|---|---:|---:|
-| ACA Sandboxes | 38 | 50.7% |
-| ACA Express | 7 | 9.3% |
-| Foundry Agent Service | 15 | 20.0% |
-| Other services | 15 | 20.0% |
-| **Total** | **75** | **100%** |
-
-## Lab environment
-
-Use the dedicated product portals for the relevant exercises:
-
-- ACA Sandboxes: `http://sandboxes.azure.com/`
-- ACA Express: `https://containerapps.azure.com/`
-
-The live path starts with prepared resources and explicitly supplied authentication. Platform-specific authentication/trigger/output configuration is intentionally outside these instructions. Use Segment 0's structured report, the facilitator handoff and actual data-plane checks rather than assuming that an elapsed wait establishes readiness. Never reuse the retained demo's Sandbox IDs for a fresh participant run.
-
-## Data used in the lab
-
-The lab uses one versioned, read-only dataset shared by all attendees. Your primary Sandbox stages the artifact once. The worker clones inherit it from the baseline snapshot.
-
-The checkout's new live-path bundle is `caldova-public-lab-use-v2`: **168 trial records and 38 adverse-event reports** across the same three exact-name candidate selections. The [release record](../data/lab-release.json) pins its manifest and committed pipeline provenance. The recorded evidence and retained development preview still use v1 (60 trials and 20 reports); do not combine their image/run receipts with v2 pins.
-
-Trial records come from the pinned September 14, 2026 AACT-derived DuckDB conversion by Nason; report records come from one disclosed openFDA 2026 Q2 export shard. Neither source is queried live by the application, and the report selection is not complete or representative. The portal adds trial phase/status summaries, conjunctive filters and incremental display; these describe source coverage, not comparative efficacy or safety.
-
-The small four-file package is included in the checkout and staged before the clean VM is snapshotted; no attendee raw-source rebuild is required. The offline `stage-lab-data.ps1` helper verifies/reuses those exact files. Attendees must not download the full 7.07 GiB raw AACT-derived database into their checkout or Sandboxes. Trial condition/phase/status filters select trials only; they do not filter safety reports, link reports to trials or imply causation. The selected shard still has no retained tirzepatide reports, which the portal displays honestly.
-
-The project owner separately approved the v2 selected slice for fork/VM distribution. Its extraction-time flags and the historical v1 flags remain unchanged; source-use and distribution are separate records. New v2 starter/reference images, actual attendee permissions/startup and a fresh timed walkthrough still require validation. See [the data-source record](../data/sources/README.md) for identities, coverage and the exact source-use decision.
+When asking for help, give the numbered heading (for example **8.1.3**), the command, and its error. You review and authorize your own lab actions; instructor sign-off is not required to continue when the checks pass.

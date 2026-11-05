@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -11,6 +12,8 @@ from .sandbox import SandboxExecutor, sandbox_cli_environment, validate_timeout
 
 class _WorkerMCPStdioTool(MCPStdioTool):
     async def call_tool(self, tool_name: str, **kwargs: Any) -> str | list[Content]:
+        started = time.monotonic()
+        print(f"[{self.name}] MCP {tool_name}: started", file=sys.stderr, flush=True)
         try:
             return await super().call_tool(tool_name, **kwargs)
         except asyncio.CancelledError:
@@ -18,6 +21,11 @@ class _WorkerMCPStdioTool(MCPStdioTool):
             # Close this worker's bridge so EOF cancels and reaps its active native CLI.
             await self.close()
             raise
+        finally:
+            error = sys.exception()
+            state = f"failed ({type(error).__name__})" if error is not None else "returned"
+            print(f"[{self.name}] MCP {tool_name}: {state} ({time.monotonic() - started:.1f}s)",
+                  file=sys.stderr, flush=True)
 
 
 @asynccontextmanager

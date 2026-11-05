@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0",
+  "purpose": "public-lab-development",
+  "application_name": "caldova-research",
+  "registry": "acateam.azurecr.io",
+  "repository": "lab722/caldova-research",
+  "source_registry": "simon.azurecr.io/lab722-caldova-research",
+  "platform": "linux/amd64",
+  "source_revision": "e758f52d73970f6f22e9ceee9469cffb2c4953a1",
+  "source_context_manifest_sha256": "974750c3735c2bbe7f03ea213d8281e221fbf7df4e22fa16338478bc5e059e5e",
+  "dataset": {
+    "version": "caldova-public-lab-use-v2",
+    "manifest_sha256": "99810e57a77cd3bc8b107287037e54fb2521795a96ec71d431fd585c03289f91",
+    "database_sha256": "f12f3e239f7b439b5c4fde1b405bd4e2346fa49fba79b1c1b198f42874ef9559",
+    "logical_sha256": "6f23cdeeb1c1f04f79ba1c1bfff71acfdb732af5fcfc4861239684e6ba931c12",
+    "source_records_sha256": "5c31dcd20478c1644b50eff7a7286b9c568094dd1e26427843afd23fc9dfe57c",
+    "pipeline_source_sha256": "6b8711270201d8da064076ba6903fa745704d4da3de805c32cf2f791be352e28"
+  },
+  "images": {
+    "starter": {
+      "tag": "starter-v2-20261030",
+      "digest": "sha256:5afebba6c3b833821af07b356cf90b3783ec71ea8c0dd108782874207b8e6c63",
+      "acr_build_run": "cfay",
+      "prepared_baseline_sha256": "ce93d8b6f76436eea88db077be346ce8035cff753cfd4c5adea9080020a43c60",
+      "genuinely_missing_query_functions": true,
+      "participant_generated": false
+    },
+    "reference": {
+      "tag": "reference-v2-20261030",
+      "digest": "sha256:80402914e153b04857a59a0314f6353f1c70dd71c253e75a4554c976da053896",
+      "acr_build_run": "cfax",
+      "participant_generated": false
+    }
+  },
+  "verification": {
+    "container_runtime_run": "cfb0",
+    "container_runtime_verified_at": "2026-10-20T20:29:15.402142Z",
+    "runtime_source_files_verified_per_image": 35,
+    "native_api_selections_verified_per_image": 9,
+    "default_application_uid": 10001,
+    "exact_supplied_logo_verified": true,
+    "reference_acceptance_tests_passed": 8,
+    "anonymous_pull_run": null,
+    "anonymous_pull_receipt": "lab-image-distribution-verification-20261030.json",
+    "anonymous_pull_verified_at": "2026-10-30T20:50:15.693186Z",
+    "anonymous_pull_verified": true,
+    "registry_credentials_supplied": false,
+    "registry_settings_changed": false,
+    "participant_vm_pull_verified": false,
+    "express_deployment_verified": false,
+    "fresh_skillable_launch_verified": false,
+    "attendee_ready": false
+  },
+  "interpretation": "Ready-made, source-pinned v2 starter/reference assets, not a participant-generated or agent-accepted release. Images are copied byte-for-byte from source_registry into acateam with versioned portal-friendly tags; helpers still verify the exact digest. The destination already allowed anonymous pulls; publication does not change its access settings. Original build/runtime receipts describe the source image bytes. Container and credential-free pull checks are not proof of an allocated Express deployment, effective learner permissions, clean VM capture, or attendee readiness. Exact-target deployment still requires separate authorization."
+}

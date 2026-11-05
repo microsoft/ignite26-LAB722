@@ -131,6 +131,7 @@ class ReleaseTests(unittest.TestCase):
             {"sandbox_id": uuid4()},
             {"dataset_version": "another-dataset"},
             {"blockers": ["Integration is missing"]},
+            {"blockers": ["No blockers found. Final worker-schema validation is pending."]},
         ):
             with self.subTest(changes=changes):
                 worker = self.workers[-1].model_copy(update=changes)

@@ -1,6 +1,7 @@
 """Inspect pinned workflow receipts without running candidate code or contacting Azure."""
 
 import argparse
+import base64
 import html
 import importlib.util
 import json
@@ -205,16 +206,24 @@ def inspect_evidence(*, result_path, result_sha256, descriptor_path, descriptor_
 
 
 def render_html(report):
+    logo = base64.b64encode(
+        (ROOT / "src/research-portal/frontend/src/assets/caldova-logo.svg").read_bytes()
+    ).decode("ascii")
+
     def text(value):
         return html.escape(str(value), quote=True)
 
-    def table(title, headers, rows):
+    def table(title, headers, rows, anchor):
+        wide = ' class="wide-table"' if len(headers) > 2 else ""
         return (
-            f"<h2>{text(title)}</h2><div class=\"table-wrap\"><table><caption>{text(title)}</caption>"
+            f'<section class="evidence-section" id="{anchor}" aria-labelledby="{anchor}-heading">'
+            f'<h2 id="{anchor}-heading">{text(title)}</h2>'
+            f'<div class="table-wrap" role="region" aria-label="{text(title)} table" tabindex="0">'
+            f"<table{wide}><caption>{text(title)}</caption>"
             "<thead><tr>" + "".join(f"<th scope=\"col\">{text(header)}</th>" for header in headers) +
             "</tr></thead><tbody>" + "".join(
                 "<tr>" + "".join(f"<td>{text(value)}</td>" for value in row) + "</tr>" for row in rows
-            ) + "</tbody></table></div>"
+            ) + "</tbody></table></div></section>"
         )
 
     body = table("Run and frozen baseline", ("Field", "Recorded value"), [
@@ -222,50 +231,137 @@ def render_html(report):
         ("Kind / purpose", f'{report["dataset"]["dataset_kind"]} / {report["dataset"]["acceptance_purpose"]}'),
         ("Pipeline provenance", report["pipeline_provenance"]),
         *report["baseline"].items(),
-    ])
+    ], "run")
     body += table("Specialist assignments", ("Role", "Sandbox ID", "Source record IDs"), [
         (worker["role"], worker["sandbox_id"], ", ".join(worker["source_record_ids"]) or "None reported")
         for worker in sorted(report["workers"], key=lambda worker: worker["role"])
-    ])
+    ], "specialists")
     body += table("Bounded software tasks", ("Role", "Task", "Acceptance criteria"), [
         (assignment["role"], assignment["task"], ", ".join(assignment["acceptance_criteria"]))
         for assignment in sorted(report["assignments"], key=lambda assignment: assignment["role"])
-    ])
+    ], "tasks")
     body += table("Recorded deterministic checks", ("Check", "Passed", "Exit code", "Sandbox ID", "Output SHA-256"), [
         (check["name"], check["passed"], check["exit_code"], check["sandbox_id"], check["output_sha256"])
         for check in report["checks"]
-    ])
-    body += table("Accepted source hashes (code not executed)", ("Path", "SHA-256"), report["candidate_sources"].items())
-    for title, value in (
-        ("Published candidate", report["image"]), ("Separate human approval", report["human_approval"]),
-        ("Recorded application observation", report["application_observation"]),
+    ], "checks")
+    body += table("Accepted source hashes (code not executed)", ("Path", "SHA-256"),
+                  report["candidate_sources"].items(), "sources")
+    for title, value, anchor in (
+        ("Published candidate", report["image"], "image"),
+        ("Separate human approval", report["human_approval"], "approval"),
+        ("Recorded application observation", report["application_observation"], "observation"),
     ):
-        body += table(title, ("Field", "Value"), value.items()) if value else f"<h2>{text(title)}</h2><p>Not supplied.</p>"
-    body += table("Pinned receipt hashes", ("Receipt", "SHA-256"), report["receipt_sha256"].items())
+        body += table(title, ("Field", "Value"), value.items(), anchor) if value else (
+            f'<section class="evidence-section" id="{anchor}" aria-labelledby="{anchor}-heading">'
+            f'<h2 id="{anchor}-heading">{text(title)}</h2><p class="empty-state">Not supplied.</p></section>'
+        )
+    body += table("Pinned receipt hashes", ("Receipt", "SHA-256"), report["receipt_sha256"].items(), "receipts")
     notes = [report["interpretation"], report["limitations"], *report["not_evidenced"]]
     if report["missing_stages"]:
         notes.append("Missing: " + ", ".join(report["missing_stages"]))
-    body += "<h2>Limits of this evidence</h2>" + "".join(f"<p>{text(note)}</p>" for note in notes)
+    body += (
+        '<section class="evidence-section limits" id="limits" aria-labelledby="limits-heading">'
+        '<h2 id="limits-heading">Limits of this evidence</h2>' +
+        "".join(f"<p>{text(note)}</p>" for note in notes) + "</section>"
+    )
+    navigation = "".join(
+        f'<a href="#{anchor}"><span class="nav-index" aria-hidden="true">{index:02}</span>{label}</a>'
+        for index, (anchor, label) in enumerate((
+            ("run", "Run overview"), ("specialists", "Specialists"), ("tasks", "Software tasks"),
+            ("checks", "Recorded checks"), ("sources", "Accepted sources"), ("image", "Published image"),
+            ("approval", "Human approval"), ("observation", "App observation"),
+            ("receipts", "Receipt hashes"), ("limits", "Evidence limits"),
+        ), start=1)
+    )
+    style = """/*!
+Adapted from Plus Admin Free by BootstrapDash, revision
+af87c16d3e861d40726603c73266f7082ceb1398 (demo_1 palette and light dashboard layout).
+https://github.com/BootstrapDash/PlusAdmin-Free-Bootstrap-Admin-Template
+
+MIT License
+
+Copyright (c) 2020 BootstrapDash
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+:root{font-family:"Segoe UI",system-ui,sans-serif;color:#313131;background:#f8f9fb;line-height:1.5;--primary:#0033c4;--muted:#606b80;--border:#e8ebf1;--sidebar:236px}
+*{box-sizing:border-box}body{margin:0}a{color:var(--primary);text-underline-offset:3px}
+:focus-visible{outline:3px solid var(--primary);outline-offset:4px}[id]{scroll-margin-top:92px}
+.skip{position:absolute;top:-80px;left:20px;padding:12px 18px;background:white;z-index:100}.skip:focus{top:8px}
+.dashboard{display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);min-height:100vh}
+.topbar{grid-column:1/-1;position:sticky;top:0;z-index:10;min-height:76px;display:flex;align-items:center;gap:24px;background:white;border-bottom:1px solid var(--border);padding-right:32px}
+.brand{display:flex;align-items:center;min-width:var(--sidebar);padding:14px 22px;border-right:1px solid var(--border);text-decoration:none}
+.brand-logo{display:block;width:190px;height:auto}
+.header-context{font-size:13px;font-weight:600}.lab-label{margin-left:auto;color:var(--primary);font-size:12px;font-weight:700}.lab-label span{display:block;font-size:11px;color:var(--muted);font-weight:400}
+.sidebar{background:white;border-right:1px solid var(--border);position:sticky;top:76px;align-self:start;height:calc(100vh - 76px);overflow-y:auto;padding:28px 16px}
+.workspace-identity{padding:0 14px 24px;font-size:12px;font-weight:650}.workspace-identity span{display:block;color:var(--muted);font-size:11px;font-weight:400;margin-top:4px}
+.nav-caption{text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--muted);padding:0 14px;margin:0 0 12px;font-weight:600}
+nav{display:grid;gap:4px}nav a{display:flex;align-items:center;gap:12px;color:#3e4b5b;text-decoration:none;font-size:12px;border-radius:5px;padding:11px 12px}
+nav a:hover,nav a:focus-visible{background:#edf2ff;color:var(--primary)}nav a:first-child{background:#1a55e3;color:white}
+.nav-index{font-size:10px;opacity:.85}.sidebar-note{border-top:1px solid var(--border);padding:18px 12px 0;margin-top:24px;font-size:11px;color:var(--muted)}
+.content{min-width:0}main{max-width:1500px;margin:auto;padding:32px}h1{font-size:28px;letter-spacing:-.03em;line-height:1.25;margin:0 0 10px;color:#232b3e}h2{font-size:17px;line-height:1.4;margin:0 0 18px}
+p{overflow-wrap:anywhere}.eyebrow{text-transform:uppercase;letter-spacing:.11em;font-size:10px;font-weight:700;color:var(--muted);margin:0 0 7px}.intro{color:var(--muted);font-size:13px;margin:0}
+.page-heading{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:24px}.badge{font-size:11px;background:white;border:1px solid var(--border);padding:8px 12px;border-radius:4px;white-space:nowrap;color:#3e4b5b}
+.notice{padding:14px 18px;border:1px solid #f0e2bd;border-left:3px solid #b17a15;border-radius:4px;background:#fff8e9;color:#76561d;font-size:12px;margin:0 0 22px}.notice strong{display:block;margin-bottom:4px}
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-bottom:24px}.metric{background:white;border:1px solid var(--border);border-radius:5px;padding:22px;position:relative}
+.metric>span,.metric small{display:block;font-size:11px;color:var(--muted)}.metric>span{font-weight:600;margin-bottom:8px}.metric strong{font-size:32px;font-weight:650;color:#242d45;line-height:1.4;display:block;margin-bottom:6px}.metric small{font-size:10px}.metric .text-metric{font-size:24px;line-height:1.87}
+.evidence-section{padding:24px;background:white;border:1px solid var(--border);border-radius:5px;margin-bottom:22px;min-width:0}
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:4px}table{border-collapse:collapse;width:100%;background:white;table-layout:fixed}.wide-table{min-width:680px}
+caption{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--border);padding:13px 16px;overflow-wrap:anywhere;font-size:12px}
+th{background:#f5f7fb;color:#536079;font-size:10px;letter-spacing:.035em;font-weight:650}td:first-child{font-weight:600;color:#43506a}tbody tr:nth-child(even){background:#fcfcfe}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#f5f8ff}
+.limits{border-top:3px solid #1a55e3}.limits p{font-size:12px;color:var(--muted)}.empty-state{font-size:12px;color:var(--muted);padding:12px;background:#f8f9fb;border:1px dashed #d5dce8}
+footer{max-width:1500px;margin:auto;padding:0 32px 24px;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;color:var(--muted);font-size:10px}
+@media(max-width:900px){.dashboard{grid-template-columns:minmax(0,1fr)}.topbar{padding:0 20px;gap:16px;min-height:68px}.brand{min-width:0;border:0;padding:14px 0}.brand-logo{width:160px}.header-context{display:none}.lab-label span{display:none}.sidebar{position:static;height:auto;border-right:0;border-bottom:1px solid var(--border);padding:14px 20px}.workspace-identity,.nav-caption,.sidebar-note{display:none}nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}nav a{padding:8px 10px;font-size:11px}.nav-index{font-size:9px}main{padding:24px}.page-heading{align-items:start;flex-wrap:wrap}.metrics{gap:12px}.metric{padding:18px}.metric .text-metric{font-size:21px}.evidence-section{padding:20px}footer{padding:0 24px 24px}}
+@media(max-width:600px){main{padding:20px 16px}h1{font-size:25px}.metrics{grid-template-columns:1fr}.metric{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px}.metric>span{align-self:end}.metric strong{grid-column:2;grid-row:1/3;align-self:center}.metric small{grid-column:1}.evidence-section{padding:18px}th,td{padding:11px 12px;font-size:11px}th{font-size:10px}footer{padding:0 16px 20px}}
+@media print{.topbar,.sidebar,.skip{display:none}.dashboard{display:block}main{padding:0}.metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.table-wrap{overflow:visible}.wide-table{min-width:0}.evidence-section{break-inside:avoid}.notice{color:#313131}}
+"""
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; '
+        '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'; '
         'base-uri \'none\'; form-action \'none\'">'
-        '<title>Caldova recorded workflow evidence</title><style>'
-        'body{font:16px/1.5 system-ui,sans-serif;margin:0;color:#17223b;background:#f6f8fc}'
-        'main{max-width:1200px;margin:auto;padding:24px}h1,h2{line-height:1.2}'
-        '.notice{padding:16px;border-left:5px solid #936200;background:#fff1ce}'
-        'table{border-collapse:collapse;width:100%;background:white}caption{text-align:left;font-weight:600;padding:8px}'
-        'th,td{text-align:left;vertical-align:top;border:1px solid #ced5e1;padding:10px;overflow-wrap:anywhere}'
-        'th{background:#e8eef8}.table-wrap{overflow-x:auto}p{overflow-wrap:anywhere}'
-        'a{color:#0645ad}.skip{display:block;padding:8px}footer{margin-top:24px}'
-        '@media(max-width:600px){main{padding:12px}th,td{padding:6px;font-size:14px}}'
-        '</style></head><body><a class="skip" href="#evidence">Skip to evidence</a><main>'
+        f'<title>Caldova recorded workflow evidence</title><style>{style}</style></head><body>'
+        '<div class="dashboard"><a class="skip" href="#evidence">Skip to evidence</a>'
+        '<header class="topbar"><a class="brand" href="#evidence">'
+        f'<img class="brand-logo" src="data:image/svg+xml;base64,{logo}" alt="Caldova" width="1305" height="326"></a>'
+        '<span class="header-context">Workflow evidence</span>'
+        '<span class="lab-label">LAB722<span>Recorded run</span></span></header>'
+        '<aside class="sidebar"><div class="workspace-identity">Caldova workspace'
+        '<span>Research Preview Factory</span></div><p class="nav-caption">Evidence explorer</p>'
+        f'<nav aria-label="Workflow navigation">{navigation}</nav>'
+        '<p class="sidebar-note">Offline, read-only evidence.<br>No live operations or release approval.</p></aside>'
+        '<div class="content"><main id="evidence" tabindex="-1"><div class="page-heading">'
+        '<div><p class="eyebrow">Trace the recorded delivery</p>'
         '<h1>Caldova recorded workflow evidence</h1>'
+        '<p class="intro">Follow the run, specialist work and separate publication receipts.</p></div>'
+        '<span class="badge">Historical evidence</span></div>'
         '<p class="notice"><strong>Evidence integrity verified, not release approval.</strong> '
         'Attendee readiness: false. Current live state checked: false. No tests or candidate code executed.</p>'
-        f'<section id="evidence">{body}</section><footer>Offline receipt inspection; no external assets or telemetry workbook.</footer>'
-        '</main></body></html>'
+        '<section class="metrics" aria-label="Recorded evidence summary">'
+        f'<div class="metric"><span>Recorded specialists</span><strong>{len(report["workers"])}</strong>'
+        '<small>Historical worker reports</small></div>'
+        f'<div class="metric"><span>Recorded checks</span><strong>{len(report["checks"])}</strong>'
+        '<small>Recorded results, not rerun</small></div>'
+        '<div class="metric"><span>Current live state</span><strong class="text-metric">Not checked</strong>'
+        '<small>This viewer is offline</small></div></section>'
+        f'{body}</main><footer>Offline receipt inspection; no external assets or telemetry workbook.'
+        '<span>Microsoft Ignite 2026 / LAB722</span></footer></div></div></body></html>'
     )
 
 

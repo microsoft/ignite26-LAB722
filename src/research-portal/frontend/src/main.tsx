@@ -1,7 +1,9 @@
-import { StrictMode, useEffect, useState } from "react";
+import { StrictMode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { filterTrials, summarizeTrials } from "./trial-view";
+import { isSourceArchive } from "./citation";
+import caldovaLogo from "./assets/caldova-logo.svg";
 
 type Condition = "" | "obesity" | "type-2-diabetes";
 interface Candidate { candidate_id: string; name: string; research_area: string }
@@ -68,12 +70,31 @@ function errorMessage(error: unknown): string {
 
 function Citation({ evidence, sources }: { evidence: Evidence; sources: Source[] }) {
   const source = sources.find(item => item.source_id === evidence.source_id);
+  const archive = evidence.source_url !== null && isSourceArchive(evidence.source_url);
   return <div className="citation">
     <span>{source?.name ?? evidence.source_id}</span>
+    {archive && <code>{evidence.source_record_id}</code>}
     {evidence.source_url
-      ? <a href={evidence.source_url} target="_blank" rel="noreferrer">{evidence.source_record_id}</a>
+      ? <a href={evidence.source_url} target="_blank" rel="noreferrer">
+        {archive ? "Source partition ZIP (download; contains multiple reports)" : evidence.source_record_id}
+      </a>
       : <code>{evidence.source_record_id}</code>}
   </div>;
+}
+
+const iconPaths = {
+  grid: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
+  trials: "M9 3h6 M10 3v6L4 19a1.3 1.3 0 0 0 1 2h14a1.3 1.3 0 0 0 1-2L14 9V3 M8 14h8",
+  shield: "M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6z M8 12l3 3 5-6",
+  source: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h5",
+  menu: "M4 6h16 M4 12h16 M4 18h16",
+};
+
+function Icon({ name }: { name: keyof typeof iconPaths }) {
+  return <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    <path d={iconPaths[name]} />
+  </svg>;
 }
 
 function App() {
@@ -87,6 +108,8 @@ function App() {
   const [phase, setPhase] = useState("");
   const [trialStatus, setTrialStatus] = useState("");
   const [trialLimit, setTrialLimit] = useState(10);
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -127,18 +150,41 @@ function App() {
   const sources = metadata?.manifest.sources ?? [];
   const trialSummary = summarizeTrials(research?.trials ?? []);
   const matchingTrials = filterTrials(research?.trials ?? [], phase, trialStatus);
-  return <>
+  return <div className="app-shell">
     <a className="skip-link" href="#workspace">Skip to research workspace</a>
     <header className="topbar">
-      <a className="brand" href="#workspace"><span className="brand-mark" aria-hidden="true">C</span>Caldova<span className="brand-subtitle">Research</span></a>
-      <nav aria-label="Workspace navigation"><a href="#workspace">Research workspace</a><a href="#provenance">Data provenance</a></nav>
-      <span className="lab-label">LAB722 / development preview</span>
+      <a className="brand" href="#workspace"><img className="brand-logo" src={caldovaLogo} alt="Caldova" width="1305" height="326" /></a>
+      <button className="menu-toggle" ref={menuButton} type="button" aria-controls="workspace-navigation"
+        aria-expanded={navigationOpen} aria-label={navigationOpen ? "Close workspace navigation" : "Open workspace navigation"}
+        onClick={() => setNavigationOpen(value => !value)}><Icon name="menu" /></button>
+      <span className="header-context">Research operations <span>/ Evidence workspace</span></span>
+      <span className="lab-label">LAB722 <span>Development preview</span></span>
     </header>
-    <main id="workspace">
+    <aside id="workspace-navigation" className={`sidebar${navigationOpen ? " is-open" : ""}`} onKeyDown={event => {
+      if (event.key === "Escape") { setNavigationOpen(false); menuButton.current?.focus(); }
+    }}>
+      <div className="workspace-identity">
+        <div><strong>Caldova workspace</strong><span>Research Preview Factory</span></div></div>
+      <p className="nav-caption">Research workspace</p>
+      <nav aria-label="Workspace navigation" onClick={() => setNavigationOpen(false)}>
+        <a className="nav-link is-active" href="#workspace" aria-current="page"><Icon name="grid" />Overview</a>
+        {research?.status === "ready" && <>
+          <a className="nav-link" href="#trials-heading"><Icon name="trials" />Trial evidence</a>
+          <a className="nav-link" href="#safety-heading"><Icon name="shield" />Safety reports</a>
+        </>}
+        {metadata && <a className="nav-link" href="#provenance"><Icon name="source" />Data provenance</a>}
+      </nav>
+      <div className="sidebar-note"><Icon name="shield" /><strong>Evidence, with boundaries</strong>
+        <p>Frozen records. Visible sources. No clinical recommendations.</p></div>
+      <div className="sidebar-footer">Microsoft Ignite 2026<span>LAB722 / Caldova</span></div>
+    </aside>
+    <div className="content-shell">
+    <main id="workspace" tabIndex={-1}>
       <div className="page-heading">
         <div><p className="eyebrow">Evidence-backed research</p><h1>Research workspace</h1>
           <p className="intro">Inspect trial records and report mentions. Keep the source and its limitations beside the evidence.</p></div>
-        {metadata && <span className="state-label">{metadata.preview_state === "starter" ? "Starter preview" : "Reference preview"}</span>}
+        {metadata && <span className="state-label"><span className="status-dot" aria-hidden="true" />
+          {metadata.preview_state === "starter" ? "Starter preview" : "Reference preview"}</span>}
       </div>
       {metadata?.fixture_warning && <aside className="fixture-warning" aria-label="Development data warning">
         <strong>Synthetic development data</strong><p>{metadata.fixture_warning}</p>
@@ -158,7 +204,7 @@ function App() {
         }}>
           <option value="">All conditions</option><option value="obesity">Obesity</option><option value="type-2-diabetes">Type 2 diabetes</option>
         </select></label>
-        <div className="data-status"><span className="status-dot" aria-hidden="true"></span>
+        <div className="data-status"><span className={`status-dot${metadata ? "" : " is-pending"}`} aria-hidden="true"></span>
           {metadata ? "Local artifact verified at startup" : "Checking the data artifact"}</div>
       </section>
       {error && <section className="error-panel" role="alert"><h2>Research could not load</h2><p>{error}</p>
@@ -171,18 +217,25 @@ function App() {
       </section>}
       {research?.status === "ready" && <>
         <section className="metrics" aria-label="Evidence summary">
-          <div><span>Trials matching the filters</span><strong>{matchingTrials.length}</strong><small>Source records, not an efficacy comparison</small></div>
-          <div><span>Reports mentioning this candidate</span><strong>{research.safety_reports.length}</strong><small>Deduplicated reports, not an incidence rate</small></div>
-          <div><span>Evidence mode</span><strong className="text-metric">{metadata?.manifest.dataset_kind === "synthetic-development" ? "Training fixture" : "Public lab extract"}</strong><small>No live clinical inference</small></div>
+          <div className="metric-card metric-trials"><div className="metric-icon"><Icon name="trials" /></div>
+            <span>Trials matching the filters</span><strong>{matchingTrials.length}</strong><small>Source records, not an efficacy comparison</small></div>
+          <div className="metric-card metric-reports"><div className="metric-icon"><Icon name="shield" /></div>
+            <span>Reports mentioning this candidate</span><strong>{research.safety_reports.length}</strong><small>Deduplicated reports, not an incidence rate</small></div>
+          <div className="metric-card metric-source"><div className="metric-icon"><Icon name="source" /></div>
+            <span>Evidence mode</span><strong className="text-metric">{metadata?.manifest.dataset_kind === "synthetic-development" ? "Training fixture" : "Public lab extract"}</strong><small>No live clinical inference</small></div>
         </section>
         <div className="evidence-grid">
           <section className="evidence-panel" aria-labelledby="trials-heading">
-            <div className="panel-heading"><div><p className="eyebrow">Clinical-trial records</p><h2 id="trials-heading">Trial evidence</h2></div><span className="count-label">{matchingTrials.length} of {research.trials.length} records</span></div>
+            <div className="panel-heading"><div><p className="eyebrow">Clinical-trial records</p><h2 id="trials-heading" tabIndex={-1}>Trial evidence</h2></div><span className="count-label">{matchingTrials.length} of {research.trials.length} records</span></div>
             <div className="trial-summary" aria-label="Trial source coverage">
               <div><h3>By phase</h3><dl>{trialSummary.phases.map(([label, count]) =>
-                <div key={label}><dt>{label.replaceAll("PHASE", "Phase ")}</dt><dd>{count}</dd></div>)}</dl></div>
+                <div key={label}><dt>{label.replaceAll("PHASE", "Phase ")}
+                  <meter min={0} max={Math.max(1, research.trials.length)} value={count} aria-label={`${label}: ${count} of ${research.trials.length} trials`} />
+                </dt><dd>{count}</dd></div>)}</dl></div>
               <div><h3>By status</h3><dl>{trialSummary.statuses.map(([label, count]) =>
-                <div key={label}><dt>{label.replaceAll("_", " ").toLowerCase()}</dt><dd>{count}</dd></div>)}</dl></div>
+                <div key={label}><dt>{label.replaceAll("_", " ").toLowerCase()}
+                  <meter min={0} max={Math.max(1, research.trials.length)} value={count} aria-label={`${label}: ${count} of ${research.trials.length} trials`} />
+                </dt><dd>{count}</dd></div>)}</dl></div>
             </div>
             <p className="panel-note">Counts describe this candidate/condition extract, not efficacy or safety. Phase and status filters affect trials only.</p>
             <div className="trial-filters">
@@ -211,7 +264,7 @@ function App() {
             </button>}
           </section>
           <section className="evidence-panel" aria-labelledby="safety-heading">
-            <div className="panel-heading"><div><p className="eyebrow">Report mentions</p><h2 id="safety-heading">Safety-report records</h2></div><span className="count-label">{research.safety_reports.length} reports</span></div>
+            <div className="panel-heading"><div><p className="eyebrow">Report mentions</p><h2 id="safety-heading" tabIndex={-1}>Safety-report records</h2></div><span className="count-label">{research.safety_reports.length} reports</span></div>
             <p className="panel-note">Reports mention the selected candidate. They are not filtered to the trial condition and may mention more than one candidate.</p>
             {research.safety_reports.length === 0 && <p className="empty-state">No cached report records mention this candidate.</p>}
             {research.safety_reports.map(report => <article className="report-card" key={report.report_id}>
@@ -229,7 +282,7 @@ function App() {
           </section>
         </div>
       </>}
-      {metadata && <section id="provenance" className="provenance" aria-labelledby="provenance-heading">
+      {metadata && <section id="provenance" className="provenance" aria-labelledby="provenance-heading" tabIndex={-1}>
         <div><p className="eyebrow">Trace the input</p><h2 id="provenance-heading">Data provenance</h2>
           <p className="dataset-version">{metadata.manifest.dataset_version}</p>
           <p>{metadata.manifest.record_counts.raw_safety_reports} selected report versions normalize to {metadata.manifest.record_counts.safety_reports} distinct reports across the frozen lab extract.</p>
@@ -252,7 +305,8 @@ function App() {
       {metadata && <aside className="limitations" aria-label="Responsible-use limitations"><h2>Read the evidence within its limits</h2><p>{metadata.manifest.limitations}</p></aside>}
     </main>
     <footer>Caldova Research Preview Factory<span>Microsoft Ignite 2026 / LAB722</span></footer>
-  </>;
+    </div>
+  </div>;
 }
 
 const root = document.getElementById("root");

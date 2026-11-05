@@ -40,7 +40,8 @@ function Get-LabImageTarget {
 }
 
 function Get-LabExpressTarget {
-    param([guid] $SubscriptionId, [string] $ResourceGroupName, [string] $ExpressEnvironmentName)
+    param([guid] $SubscriptionId, [string] $ResourceGroupName, [string] $ExpressEnvironmentName,
+        [string] $PortalApplicationName, [switch] $RequireExpressMode)
     if ($SubscriptionId -eq [guid]::Empty -or
         $ResourceGroupName -notmatch '^[A-Za-z0-9][A-Za-z0-9._()-]{0,89}$' -or
         $ResourceGroupName.EndsWith('.') -or
@@ -52,9 +53,28 @@ function Get-LabExpressTarget {
         '--subscription', $SubscriptionId.ToString())
     if ($environment['id'] -ine $id -or $environment['type'] -ine 'Microsoft.App/managedEnvironments' -or
         $environment['name'] -cne $ExpressEnvironmentName -or
-        $environment['properties']['provisioningState'] -cne 'Succeeded' -or
-        $environment['tags']['lab'] -cne 'LAB722') {
+        $environment['properties']['provisioningState'] -cne 'Succeeded') {
         throw 'The Express environment ID, LAB722 tag or state does not match the allocated target.'
+    }
+    if ($RequireExpressMode -and $environment['properties']['environmentMode'] -cne 'Express') {
+        throw 'Starter creation requires the existing Express-mode environment; no replacement was created.'
+    }
+    if ($PortalApplicationName) {
+        if ($PortalApplicationName -cnotmatch '^[a-z][a-z0-9-]{0,30}[a-z0-9]$' -or
+            $environment['properties']['environmentMode'] -cne 'Express') {
+            throw 'Portal deployment requires an explicit application and an Express-mode environment.'
+        }
+        $appId = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.App/containerApps/$PortalApplicationName"
+        $app = Invoke-LabImageAz @('resource', 'show', '--ids', $appId, '--api-version', '2025-10-02-preview',
+            '--subscription', $SubscriptionId.ToString(),
+            '--query', '{id:id,type:type,location:location,environmentId:properties.environmentId}')
+        if ($app['id'] -ine $appId -or $app['type'] -ine 'Microsoft.App/containerApps' -or
+            $app['environmentId'] -ine $id -or $app['location'] -ine $environment['location']) {
+            throw 'The existing portal application is not bound to the selected same-scope Express environment.'
+        }
+    }
+    elseif ($environment['tags'] -isnot [Collections.IDictionary] -or $environment.tags['lab'] -cne 'LAB722') {
+        throw 'The Express environment LAB722 tag does not match the allocated target.'
     }
     return @{ Id = $id; Location = $environment.location }
 }

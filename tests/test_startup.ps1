@@ -8,7 +8,8 @@ $root = Split-Path -Parent $PSScriptRoot
 $savedEnvironment = @{}
 foreach ($name in @('AZURE_SUBSCRIPTION_ID', 'LAB_USER_PRINCIPAL_ID', 'LAB_USER_PRINCIPAL_TYPE',
     'LAB_STARTUP_PURPOSE', 'LAB_DATA_MANIFEST', 'LAB_DATA_MANIFEST_SHA256', 'LAB_PYTHON_EXECUTABLE',
-    'LAB_APPLICATION_NAME', 'LAB_APPLICATION_IMAGE_DIGEST', 'LAB_APPLICATION_PREVIEW_STATE', 'LAB_APPLICATION_IMAGE_SOURCE')) {
+    'LAB_APPLICATION_NAME', 'LAB_APPLICATION_IMAGE_DIGEST', 'LAB_APPLICATION_PREVIEW_STATE', 'LAB_APPLICATION_IMAGE_SOURCE',
+    'LAB_APPLICATION_ENVIRONMENT_SOURCE')) {
     $savedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name)
 }
 . (Join-Path (Join-Path $root 'scripts') 'start-lab.ps1') -ResourceGroupName 'stub-rg'
@@ -36,7 +37,8 @@ function Reset-Test([string] $Fault = '', [switch] $Existing) {
     $env:AZURE_SUBSCRIPTION_ID = $script:subscription
     Remove-Item Env:LAB_USER_PRINCIPAL_ID,Env:LAB_USER_PRINCIPAL_TYPE -ErrorAction SilentlyContinue
     foreach ($name in @('LAB_STARTUP_PURPOSE', 'LAB_DATA_MANIFEST', 'LAB_DATA_MANIFEST_SHA256', 'LAB_PYTHON_EXECUTABLE',
-        'LAB_APPLICATION_NAME', 'LAB_APPLICATION_IMAGE_DIGEST', 'LAB_APPLICATION_PREVIEW_STATE', 'LAB_APPLICATION_IMAGE_SOURCE')) {
+        'LAB_APPLICATION_NAME', 'LAB_APPLICATION_IMAGE_DIGEST', 'LAB_APPLICATION_PREVIEW_STATE', 'LAB_APPLICATION_IMAGE_SOURCE',
+        'LAB_APPLICATION_ENVIRONMENT_SOURCE')) {
         Remove-Item "Env:$name" -ErrorAction SilentlyContinue
     }
     $script:calls = [Collections.Generic.List[object]]::new()
@@ -175,6 +177,16 @@ function Invoke-LabNative {
             frozen_identity = @{ data_manifest_sha256 = $script:frozenHash }
             primary_id = $receipt.primary_id; snapshot_id = $receipt.snapshot_id
         }
+        if ($Arguments -contains '-PrimaryOnly') {
+            $receipt.descriptor = Join-Path $outputDirectory 'primary-descriptor.json'
+            $receipt.phase = 'primary-prepared'
+            $receipt.disk_id = '60000000-0000-0000-0000-000000000003'
+            $receipt.Remove('bindings')
+            $receipt.Remove('snapshot_id')
+            $descriptor.phase = 'primary-prepared'
+            $descriptor.disk_id = $receipt.disk_id
+            $descriptor.Remove('snapshot_id')
+        }
         if ($env:LAB_STARTUP_PURPOSE -ceq 'public-lab-development') {
             $descriptor.dataset_kind = 'reviewed-public'
             $descriptor.acceptance_purpose = 'public-lab-development'
@@ -189,8 +201,14 @@ function Invoke-LabNative {
         }
         if ($script:fault -eq 'PreparationWrongScope') { $descriptor.scope.resource_group = 'other-rg' }
         [IO.File]::WriteAllText($receipt.descriptor, ($descriptor | ConvertTo-Json -Depth 6), [Text.UTF8Encoding]::new($false))
-        [IO.File]::WriteAllText($receipt.bindings, '[]', [Text.UTF8Encoding]::new($false))
+        if ($receipt.ContainsKey('bindings')) {
+            [IO.File]::WriteAllText($receipt.bindings, '[]', [Text.UTF8Encoding]::new($false))
+        }
         [IO.File]::WriteAllText($receipt.manifest, $script:frozenText, [Text.UTF8Encoding]::new($false))
+        if ($Arguments -contains '-PrimaryOnly') {
+            $receipt.descriptor_sha256 = (Get-FileHash $receipt.descriptor -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($script:fault -eq 'PreparationPrimaryWrongPin') { $receipt.descriptor_sha256 = '0' * 64 }
+        }
         if ($script:fault -eq 'PreparationWrongArtifact') {
             [IO.File]::WriteAllText($receipt.manifest, 'different artifact', [Text.UTF8Encoding]::new($false))
         }
@@ -280,6 +298,15 @@ function Invoke-LabNative {
             if ($env:LAB_APPLICATION_IMAGE_SOURCE -ceq 'SimonRegistry') {
                 $json.containers[0].image = "simon.azurecr.io/lab722-stub-app@$env:LAB_APPLICATION_IMAGE_DIGEST"
             }
+            if ($env:LAB_APPLICATION_IMAGE_SOURCE -ceq 'ReferenceRegistry') {
+                $json.containers[0].image = "acateam.azurecr.io/lab722/caldova-research@$env:LAB_APPLICATION_IMAGE_DIGEST"
+            }
+            if ($env:LAB_APPLICATION_ENVIRONMENT_SOURCE -ceq 'Portal') {
+                $json.environmentId = "$script:groupId/providers/Microsoft.App/managedEnvironments/portal-express"
+                if ($script:fault -eq 'PortalForeignGroup') {
+                    $json.environmentId = $json.environmentId.Replace('/stub-rg/', '/foreign-rg/')
+                }
+            }
             if ($script:fault -eq 'DnlRegistry') {
                 $json.containers[0].image = "stubregistry-hash.azurecr.io/caldova/research-portal@$env:LAB_APPLICATION_IMAGE_DIGEST"
             }
@@ -287,6 +314,8 @@ function Invoke-LabNative {
                 'ApplicationMissing' { return @{ exit_code = 3; stdout = 'untrusted secret diagnostic' } }
                 'ApplicationWrongScope' { $json.id += '-other' }
                 'ApplicationWrongEnvironment' { $json.environmentId += '-other' }
+                'ApplicationWrongRegion' { $json.location = 'eastus2' }
+                'PortalDifferentRegion' { $json.location = 'westcentralus' }
                 'ApplicationWrongImage' { $json.containers[0].image = 'otherregistry.azurecr.io/caldova/research-portal:mutable' }
                 'ApplicationStopped' { $json.running = 'Stopped' }
                 'ApplicationFailed' { $json.state = 'Failed' }
@@ -295,6 +324,20 @@ function Invoke-LabNative {
                 'ApplicationExtraContainer' { $json.containers += $json.containers[0] }
             }
             return @{ exit_code = 0; stdout = ($json | ConvertTo-Json -Depth 5 -Compress) }
+        }
+        if ($id.EndsWith('/Microsoft.App/managedEnvironments/portal-express')) {
+            $json = @{
+                id = $id; type = 'Microsoft.App/managedEnvironments'; name = 'portal-express'
+                location = 'westus3'; state = 'Succeeded'; mode = 'Express'
+            }
+            switch ($script:fault) {
+                'PortalStandard' { $json.mode = 'Standard' }
+                'PortalWrongRegion' { $json.location = 'eastus2' }
+                'PortalDifferentRegion' { $json.location = 'West Central US' }
+                'PortalInvalidRegion' { $json.location = $null }
+                'PortalFailed' { $json.state = 'Failed' }
+            }
+            return @{ exit_code = 0; stdout = ($json | ConvertTo-Json -Compress) }
         }
         $expected = @{
             'Microsoft.ContainerRegistry/registries/stubregistry' = @('Microsoft.ContainerRegistry/registries', 'stubregistry', '2023-07-01')
@@ -372,6 +415,25 @@ try {
     $env:LAB_USER_PRINCIPAL_ID = '60000000-0000-0000-0000-000000000001'
     Assert-Fails { Invoke-LabStartup -ResourceGroupName stub-rg } 'Optional harness identity'
     Assert-Test ($script:calls.Count -eq 0) 'Partial harness identity caused native calls.'
+    $script:passed++
+
+    Reset-Test -Existing
+    $env:LAB_STARTUP_PURPOSE = 'synthetic-development'
+    $env:LAB_DATA_MANIFEST = 'stub-frozen-manifest.json'
+    $env:LAB_DATA_MANIFEST_SHA256 = $script:frozenHash
+    $report = Invoke-LabStartup -ResourceGroupName stub-rg -Mode PreparePrimary
+    Assert-Test ($report.primary_ready -and $report.frozen_data_verified -and
+        -not $report.baseline_ready -and -not $report.attendee_ready -and
+        -not $report.outputs.Contains('CALDOVA_WORKER_BINDINGS_PATH') -and
+        -not $report.outputs.Contains('CALDOVA_BASELINE_DESCRIPTOR_PATH')) 'Primary-only startup falsely authorized worker execution.'
+    Assert-Test ($report.outputs.CALDOVA_PRIMARY_DESCRIPTOR_SHA256 -ceq
+        (Get-FileHash $report.outputs.CALDOVA_PRIMARY_DESCRIPTOR_PATH -Algorithm SHA256).Hash.ToLowerInvariant() -and
+        $report.pending_reasons[1].Contains('portal')) 'Primary-only startup lost its independent pin or remaining portal work.'
+    Reset-Test 'PreparationPrimaryWrongPin' -Existing
+    $env:LAB_STARTUP_PURPOSE = 'synthetic-development'
+    $env:LAB_DATA_MANIFEST = 'stub-frozen-manifest.json'
+    $env:LAB_DATA_MANIFEST_SHA256 = $script:frozenHash
+    Assert-Fails { Invoke-LabStartup -ResourceGroupName stub-rg -Mode PreparePrimary } 'artifacts do not match'
     $script:passed++
 
     Reset-Test -Existing
@@ -552,6 +614,7 @@ try {
         @('LAB_APPLICATION_IMAGE_DIGEST', ('sha256:' + ('A' * 64))),
         @('LAB_APPLICATION_PREVIEW_STATE', 'completed'),
         @('LAB_APPLICATION_IMAGE_SOURCE', 'arbitrary-registry'),
+        @('LAB_APPLICATION_ENVIRONMENT_SOURCE', 'arbitrary-environment'),
         @('LAB_STARTUP_PURPOSE', 'attendee-release'),
         @('LAB_DATA_MANIFEST_SHA256', 'not-a-checksum')
     )) {
@@ -585,24 +648,28 @@ try {
     }
     $script:passed++
 
-    foreach ($case in @('SimonRegistry', 'DnlRegistry')) {
+    foreach ($case in @('SimonRegistry', 'ReferenceRegistry', 'DnlRegistry')) {
         Reset-Test -Fault $(if ($case -eq 'DnlRegistry') { 'DnlRegistry' } else { '' }) -Existing
         $env:LAB_APPLICATION_NAME = 'stub-app'
         $env:LAB_APPLICATION_IMAGE_DIGEST = 'sha256:' + ('a' * 64)
         $env:LAB_APPLICATION_PREVIEW_STATE = 'reference'
-        if ($case -eq 'SimonRegistry') { $env:LAB_APPLICATION_IMAGE_SOURCE = $case }
+        if ($case -ne 'DnlRegistry') { $env:LAB_APPLICATION_IMAGE_SOURCE = $case }
         $env:LAB_STARTUP_PURPOSE = 'public-lab-development'
         $env:LAB_DATA_MANIFEST = 'stub-frozen-manifest.json'
         $env:LAB_DATA_MANIFEST_SHA256 = $script:frozenHash
         $env:LAB_PYTHON_EXECUTABLE = 'python-application-stub'
         $report = Invoke-LabStartup -ResourceGroupName stub-rg -Mode Readiness
         Assert-Test ($report.application_ready -and -not $report.attendee_ready) 'Explicit image source did not retain development-only readiness.'
-        $expected = if ($case -eq 'SimonRegistry') { 'simon.azurecr.io/lab722-stub-app@' } else { 'stubregistry-hash.azurecr.io/caldova/research-portal@' }
+        $expected = switch ($case) {
+            'SimonRegistry' { 'simon.azurecr.io/lab722-stub-app@' }
+            'ReferenceRegistry' { 'acateam.azurecr.io/lab722/caldova-research@' }
+            default { 'stubregistry-hash.azurecr.io/caldova/research-portal@' }
+        }
         Assert-Test ($report.outputs.CALDOVA_APPLICATION_IMAGE.StartsWith($expected)) 'Readiness checked the wrong immutable image source.'
     }
     $script:passed++
 
-    foreach ($fault in @('ApplicationMissing', 'ApplicationWrongScope', 'ApplicationWrongEnvironment',
+    foreach ($fault in @('ApplicationMissing', 'ApplicationWrongScope', 'ApplicationWrongEnvironment', 'ApplicationWrongRegion',
         'ApplicationWrongImage', 'ApplicationStopped', 'ApplicationFailed', 'ApplicationPrivate',
         'ApplicationWrongHost', 'ApplicationExtraContainer', 'ApplicationCheckFailure',
         'ApplicationCheckMalformed', 'ApplicationCheckWrongPin', 'ApplicationCheckWidensScope',
@@ -623,6 +690,34 @@ try {
     }
     $script:passed++
 
+    foreach ($fault in @('', 'PortalDifferentRegion', 'PortalForeignGroup', 'PortalStandard', 'PortalWrongRegion',
+        'PortalInvalidRegion', 'PortalFailed', 'ApplicationWrongImage')) {
+        Reset-Test $fault -Existing
+        $env:LAB_APPLICATION_NAME = 'stub-app'
+        $env:LAB_APPLICATION_IMAGE_DIGEST = 'sha256:' + ('a' * 64)
+        $env:LAB_APPLICATION_IMAGE_SOURCE = 'SimonRegistry'
+        $env:LAB_APPLICATION_ENVIRONMENT_SOURCE = 'Portal'
+        $env:LAB_APPLICATION_PREVIEW_STATE = 'starter'
+        $env:LAB_STARTUP_PURPOSE = 'public-lab-development'
+        $env:LAB_DATA_MANIFEST = 'stub-frozen-manifest.json'
+        $env:LAB_DATA_MANIFEST_SHA256 = $script:frozenHash
+        $env:LAB_PYTHON_EXECUTABLE = 'python-application-stub'
+        if ($fault -and $fault -ne 'PortalDifferentRegion') {
+            Assert-Fails { Invoke-LabStartup -ResourceGroupName stub-rg -Mode Readiness } 'allocated|healthy.*Express|immutable image|scoped resource'
+        } else {
+            $report = Invoke-LabStartup -ResourceGroupName stub-rg -Mode Readiness
+            Assert-Test ($report.application_ready -and
+                $report.outputs.EXPRESS_ENVIRONMENT_NAME -ceq 'portal-express') 'Verified portal app environment was not retained for later updates.'
+            $expectedRegion = if ($fault -eq 'PortalDifferentRegion') { 'westcentralus' } else { 'westus3' }
+            Assert-Test ($report.outputs.CALDOVA_APPLICATION_REGION -ceq $expectedRegion -and
+                $report.outputs.AZURE_LOCATION -ceq 'westus3') 'Portal app region replaced the infrastructure region or was not retained.'
+            Assert-Test (-not @($script:calls | Where-Object {
+                $_.arguments -contains 'create' -or $_.arguments -contains 'update'
+            }).Count) 'Readiness changed a portal-created environment.'
+        }
+    }
+    $script:passed++
+
     $resolved = & {
         function Get-Command {
             [CmdletBinding()]
@@ -636,6 +731,39 @@ try {
     Assert-Test ($resolved.exit_code -eq 0 -and $resolved.stdout.Trim() -ceq 'launcher-ready') 'Multiple native launchers were combined instead of selecting one.'
     # Exercise the actual native timeout without executing Azure CLI or contacting any service.
     Assert-Fails { & $nativeRunner 'pwsh' @('-NoProfile', '-NonInteractive', '-Command', 'Start-Sleep -Seconds 5') 100 } 'timed out'
+    $script:passed++
+
+    $progressDirectory = Join-Path (Join-Path $root '.validation-workspaces') (
+        'startup-progress-test-' + [guid]::NewGuid().ToString('N'))
+    [void] [IO.Directory]::CreateDirectory($progressDirectory)
+    $script:preparationDirectories.Add($progressDirectory)
+    $progressScript = Join-Path $progressDirectory 'prepare-stub.ps1'
+    [IO.File]::WriteAllText($progressScript, @'
+param([switch] $AuthorizeProvisioning, [switch] $PrimaryOnly)
+Start-Sleep -Seconds 31
+Write-Output 'preparation-complete'
+'@, [Text.UTF8Encoding]::new($false))
+    foreach ($primaryOnly in @($true, $false)) {
+        $progress = [IO.StringWriter]::new()
+        $savedError = [Console]::Error
+        try {
+            [Console]::SetError($progress)
+            $arguments = @('-NoProfile', '-NonInteractive', '-File', $progressScript, '-AuthorizeProvisioning')
+            if ($primaryOnly) { $arguments += '-PrimaryOnly' }
+            $result = & $nativeRunner 'pwsh' $arguments 45000
+            Assert-Test ($result.exit_code -eq 0 -and $result.stdout.Trim() -ceq 'preparation-complete') 'Progress reporting changed native execution or captured output.'
+            if ($primaryOnly) {
+                Assert-Test ($progress.ToString() -match 'Preparing only the primary Sandbox: still running' -and
+                    $progress.ToString() -notmatch 'snapshot|clone') 'Primary-only progress incorrectly claims snapshot or clone creation.'
+            } else {
+                Assert-Test ($progress.ToString() -match 'Preparing the primary, snapshot and three worker clones: still running') 'Full preparation progress no longer describes the complete operation.'
+            }
+        }
+        finally {
+            [Console]::SetError($savedError)
+            $progress.Dispose()
+        }
+    }
     $script:passed++
     Write-Output "PASS: $script:passed focused startup regression groups (offline; no Azure calls)."
 }

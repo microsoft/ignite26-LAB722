@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "13738278945605043209"
+      "templateHash": "11376146023845936545"
     }
   },
   "parameters": {
@@ -53,14 +53,14 @@
     },
     "modelName": {
       "type": "string",
-      "defaultValue": "gpt-4.1-mini",
+      "defaultValue": "gpt-5.2",
       "metadata": {
         "description": "Foundry model name."
       }
     },
     "modelVersion": {
       "type": "string",
-      "defaultValue": "2025-04-14",
+      "defaultValue": "2025-12-11",
       "metadata": {
         "description": "Foundry model version."
       }
@@ -81,7 +81,7 @@
     },
     "modelCapacity": {
       "type": "int",
-      "defaultValue": 1,
+      "defaultValue": 40,
       "minValue": 1,
       "metadata": {
         "description": "Foundry model deployment capacity."

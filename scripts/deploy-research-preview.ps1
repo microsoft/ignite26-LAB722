@@ -8,6 +8,7 @@ param(
     [Parameter(Mandatory, ParameterSetName = 'Scope')] [string] $RegistryName,
     [Parameter(Mandatory, ParameterSetName = 'Scope')] [string] $ExpressEnvironmentName,
     [Parameter(ParameterSetName = 'Scope')] [switch] $AuthorizeDeployment,
+    [Parameter(ParameterSetName = 'Scope')] [switch] $PortalCreatedApplication,
 
     [Parameter(Mandatory)]
     [ValidatePattern('^sha256:[0-9a-f]{64}$')]
@@ -15,7 +16,7 @@ param(
 
     [ValidatePattern('^[a-z][a-z0-9-]{0,30}[a-z0-9]$')] [string] $AppName = 'caldova-research',
 
-    [ValidateSet('LabRegistry', 'SimonRegistry')] [string] $ImageSource = 'LabRegistry',
+    [ValidateSet('LabRegistry', 'ReferenceRegistry', 'SimonRegistry')] [string] $ImageSource = 'LabRegistry',
     [ValidateLength(1, 128)]
     [ValidatePattern('^[a-z0-9]+(?:(?:[._-]|/)[a-z0-9]+)*$')]
     [string] $Repository = 'caldova/research-portal',
@@ -31,10 +32,13 @@ Set-StrictMode -Version Latest
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $repositoryRoot
 
-if ($ImageSource -eq 'SimonRegistry') {
-    $expectedRepository = "lab722-$AppName"
+$referenceImage = $ImageSource -in @('ReferenceRegistry', 'SimonRegistry')
+if ($referenceImage) {
+    $expectedRepository = if ($ImageSource -eq 'ReferenceRegistry') {
+        'lab722/caldova-research'
+    } else { "lab722-$AppName" }
     if ($PSBoundParameters.ContainsKey('Repository') -and $Repository -cne $expectedRepository) {
-        throw "Simon reference images must use the repository '$expectedRepository'."
+        throw "Supplied reference images must use the repository '$expectedRepository'."
     }
     $Repository = $expectedRepository
 }
@@ -49,12 +53,12 @@ if (-not $PSCmdlet.ShouldProcess("$ImageSource/$Repository@$ImageDigest",
 if ($PSCmdlet.ParameterSetName -eq 'Scope' -and -not $AuthorizeDeployment) {
     throw 'Portable deployment requires explicit AuthorizeDeployment after reviewing the target and pinned image.'
 }
-if ($ImageSource -eq 'SimonRegistry' -and -not $ReferenceAnonymousPull -and
+if ($referenceImage -and -not $ReferenceAnonymousPull -and
     ([string]::IsNullOrWhiteSpace($env:LAB_REFERENCE_PULL_USERNAME) -or
      [string]::IsNullOrWhiteSpace($env:LAB_REFERENCE_PULL_PASSWORD))) {
-    throw 'A private Simon reference image requires facilitator-provided read-only LAB_REFERENCE_PULL_USERNAME and LAB_REFERENCE_PULL_PASSWORD in memory. No registry permissions or anonymous access will be enabled.'
+    throw 'A private reference image requires facilitator-provided read-only LAB_REFERENCE_PULL_USERNAME and LAB_REFERENCE_PULL_PASSWORD in memory. No registry permissions or anonymous access will be enabled.'
 }
-if ($ImageSource -eq 'SimonRegistry' -and $ReferenceAnonymousPull -and
+if ($referenceImage -and $ReferenceAnonymousPull -and
     ($env:LAB_REFERENCE_PULL_USERNAME -or $env:LAB_REFERENCE_PULL_PASSWORD)) {
     throw 'Choose either explicitly anonymous reference pulling or the private read-only credentials, not both.'
 }
@@ -72,8 +76,12 @@ if ($PSCmdlet.ParameterSetName -eq 'Azd') {
 . (Join-Path $PSScriptRoot 'lab-image-target.ps1')
 $target = Get-LabImageTarget -SubscriptionId $SubscriptionId `
     -ResourceGroupName $ResourceGroupName -RegistryName $RegistryName
-$expressTarget = Get-LabExpressTarget -SubscriptionId $SubscriptionId `
-    -ResourceGroupName $ResourceGroupName -ExpressEnvironmentName $ExpressEnvironmentName
+$expressArguments = @{
+    SubscriptionId = $SubscriptionId; ResourceGroupName = $ResourceGroupName
+    ExpressEnvironmentName = $ExpressEnvironmentName
+}
+if ($PortalCreatedApplication) { $expressArguments.PortalApplicationName = $AppName }
+$expressTarget = Get-LabExpressTarget @expressArguments
 $scope = @('--resource-group', $ResourceGroupName, '--subscription', $SubscriptionId.ToString())
 $registryName = $RegistryName
 
@@ -91,8 +99,10 @@ if ($existing.Count -eq 0) {
 
 $registry = @{ loginServer = $target.LoginServer }
 $credential = $null
-if ($ImageSource -eq 'SimonRegistry') {
-    $registry = @{ loginServer = 'simon.azurecr.io' }
+if ($referenceImage) {
+    $registry = @{ loginServer = $(if ($ImageSource -eq 'ReferenceRegistry') {
+        'acateam.azurecr.io'
+    } else { 'simon.azurecr.io' }) }
     if (-not $ReferenceAnonymousPull) {
         $credential = @{ username = $env:LAB_REFERENCE_PULL_USERNAME
             passwords = @(@{ value = $env:LAB_REFERENCE_PULL_PASSWORD }) }
@@ -182,7 +192,7 @@ if ($application.id -ine $expectedApplicationId -or
 $existingSecrets = Invoke-RestMethod -Method Post -Headers $headers `
     -Uri "https://management.azure.com${applicationId}/listSecrets?api-version=2025-10-02-preview" `
     -ContentType 'application/json' -Body '{}'
-$secretName = if ($ImageSource -eq 'SimonRegistry') { 'caldova-reference-pull' } else { 'caldova-acr-pull' }
+$secretName = if ($referenceImage) { 'caldova-reference-pull' } else { 'caldova-acr-pull' }
 $secrets = @($existingSecrets.value | Where-Object { $null -ne $_ })
 $registries = @($application.properties.configuration.registries |
     Where-Object { $null -ne $_ -and $_.server -ne $registry.loginServer })

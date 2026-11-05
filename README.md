@@ -37,23 +37,65 @@ Fill in the sections below yourself, then:
 
 Build a governed research workflow for Caldova, a fictional pharmaceutical company. Configure a Microsoft Foundry orchestrator, run specialist agents in isolated Azure Container Apps Sandboxes, prove outbound network controls, and publish a validated research application to Azure Container Apps Express. The materials support guided and self-paced study; narrated segment videos are still planned.
 
+### The lab at a glance
+
+Start with an incomplete research application, use an agent team to implement its two missing query functions, then verify, package and deploy the result with separate human approval.
+
+```text
+Explore -> Plan -> Prepare isolated workspaces -> Implement and verify
+        -> Build -> Approve and deploy -> Inspect the application and evidence
+```
+
+| Stage | What you do | What you learn |
+|---|---|---|
+| Explore and plan | Deploy the starter and inspect the clinical-trials, drug-safety and governance assignments | Define the work and distinguish model instructions from enforced software boundaries |
+| Prepare and prove | Build the primary with `aca.exe`, snapshot it, create three clones and test isolation and egress | Give workers the same starting point without a shared mutable filesystem; verify actual controls |
+| Implement and verify | Run the two implementors, test their combined changes independently in the primary, then run governance review | An agent's success message is not independent proof that the application works |
+| Build and release | Build in ACR, review the exact image digest and target, authorize deployment and check the running app | Passing tests and a successful build are not deployment approval |
+| Inspect and explain | Try the completed features, inspect citations and limitations, and compare the recorded example | Connect the visible result to its source, checks and release decisions |
+
+**This is agent-assisted development, not an agent-powered application at runtime.** Foundry hosts reasoning and tool requests; the VM controller mediates execution; Sandboxes isolate development; Express runs the completed application. Participants operate and inspect the supplied controller and tools rather than build them from scratch.
+
+The application uses a frozen AACT/ClinicalTrials.gov-derived and openFDA sample, not live research coverage. Citations and limitations remain visible alongside the results.
+
+![Completed Caldova application with trial evidence, safety reports and source limitations](instructions/assets/screenshots/completed-application-example.png)
+
+*Example of the completed application. An empty or populated result reflects the selected frozen sample, not clinical advice or comparative safety.*
+
 ### 🚀 Getting started
 
-#### In a guided session
+#### Run the lab in Skillable
 
-If you're following along during a live session:
+**Skillable is the intended delivery environment** for the approximately 75-minute guided or self-paced lab.
 
-1. Open the [participant instructions](instructions/README.md) and choose recorded evidence or the facilitator-authorized live path.
-2. Verify the recorded package or supplied scoped readiness report, then follow the seven segments.
-3. Use the [presentation and speaker notes](presentations/README.md) alongside the guide. The 75-minute schedule is a target, not a measured dry run.
+1. Launch your assigned Skillable lab and open its Windows VM. Use the VM and Azure credentials from the lab's **Resources** tab, not a personal Azure account.
+2. Follow the instruction panel, also maintained as the [participant guide](instructions/README.md) and [generated Skillable manual](instructions/skillable.md). Use one PowerShell 7 session throughout.
+3. Verify the prepared checkout, tools, frozen dataset and allocated Azure resources. Infrastructure deployment is platform preparation, not a learner exercise.
+4. Create the starter Express app, prepare the primary and clones, run the agents, and build and deploy your accepted changes. The learner explicitly reviews and authorizes release.
 
-#### On your own
+The prepared VM checkout is `C:\Users\LabUser\code\ignite26-LAB722`. The lab uses a per-learner Foundry project/model endpoint, Sandbox group, registry and Express infrastructure. Remote operations can take longer than the target timings. Instructors can use the [presentation and speaker notes](presentations/README.md) to orient learners between segments.
 
-If you're learning at your own pace:
+#### Run the completed application locally
 
-1. Clone this repository
-2. Start with the bundled recorded-evidence path in the [participant instructions](instructions/README.md); it needs no Azure account or raw dataset download
-3. Follow the same segments and checkpoint worksheet. A live run requires the [facilitator handoff](instructions/facilitator.md); Skillable-specific integration and narrated videos are outside the current materials milestone
+To explore the application without provisioning Azure resources, use **Docker with Linux containers** and a checkout of this repository. From the repository root in PowerShell:
+
+```powershell
+$images = Get-Content '.\data\lab-images.json' -Raw | ConvertFrom-Json
+$referenceImage = '{0}/{1}@{2}' -f $images.registry, $images.repository, $images.images.reference.digest
+docker run --name lab722-caldova-local --publish 127.0.0.1:8080:8080 $referenceImage
+```
+
+While the container is running, open [http://localhost:8080](http://localhost:8080). This uses the catalog's public, digest-pinned **completed reference image** with the frozen v2 dataset; no Azure sign-in or registry credentials are required. Stop with `Ctrl+C`; reuse the retained container with `docker start --attach lab722-caldova-local`.
+
+This is an application preview, **not** an agent run, Sandbox exercise or evidence that your own changes passed. To build the application from the checked-in source instead, see the [research portal source](src/README.md#research-portal) and its [Containerfile](src/research-portal/Containerfile); the default source build uses synthetic development data rather than the frozen lab sample.
+
+#### Run the full workflow from your own machine
+
+The end-to-end lab still needs Azure: Foundry model access and quota, a Sandbox group with capacity for the primary and three workers, ACR, Express infrastructure and the required permissions. Local Docker does not emulate those services.
+
+Prepare your own environment using the [facilitator handoff](instructions/facilitator.md), [infrastructure setup](infra/README.md) and [startup/runtime guidance](scripts/README.md#platform-neutral-startup), then follow the same [participant sequence](instructions/README.md). Keep the application and controller Python environments separate. Replace Skillable-specific checkout/runtime paths with your own prepared paths, and use only your authorized subscription and resource group.
+
+Without those cloud resources, the bundled [recorded example](instructions/assets/development-evidence.html) provides a read-only source-to-deployment walkthrough alongside the local application preview. Its receipts describe a recorded run, not a new local execution.
 
 ### 🎯 Learning outcomes
 
@@ -75,6 +117,54 @@ By the end of this session, you will be able to:
 - Bicep and Azure Resource Manager templates
 - React and TypeScript
 - GitHub source and the controller-owned stdio Model Context Protocol bridge
+
+### Architecture
+
+The lab separates agent-assisted development from application serving. Models reason in Microsoft Foundry; the controller on the lab VM mediates execution in remote Sandboxes. The deployed application serves packaged research data, not a live agent workflow.
+
+#### Learner and development control plane
+
+![Development and lab architecture: Foundry requests work, the VM controller mediates tools, and isolated Sandbox clones feed independent tests and governance review](docs/diagrams/development-lab-architecture.svg)
+
+[Open the development architecture SVG](docs/diagrams/development-lab-architecture.svg) to inspect the full diagram.
+
+| Component | Responsibility |
+|---|---|
+| Microsoft Foundry | Persistent orchestrator and specialist model sessions: reasoning and tool requests |
+| Lab VM controller | Local function handlers, scoped `aca.exe` execution, the stdio MCP bridge and saved run evidence |
+| Container Apps Sandboxes | Non-root development workspaces with protected files, isolated clone filesystems and explicit egress policies |
+| Container Apps Express | The learner-facing application, serving its packaged read-only research data |
+
+Foundry requests `check_sandbox` or `dispatch_worker`; their function handlers run on the VM. Workers use controller-mediated MCP tools for bounded remote file edits and tests. Opening a Foundry playground does **not** start or attach to the running PowerShell controller. See [Meet the agent team](instructions/02-configure-orchestrator.md).
+
+The learner creates three isolated clones from the prepared snapshot. Each implementor can change only its assigned feature module; data and tests stay protected. Only the two accepted feature files move into both the primary and governance workspaces. Passing tests and governance review do not grant release approval. Follow [Run the agent team](instructions/04-run-agent-team.md).
+
+The VM displays role, MCP tool, phase and elapsed-time progress. Its main debugging/review surface is the saved `.validation-workspaces\agent-runs\<run-id>\worker-result.json` (including returned source hashes) or `failure.json`. The Foundry portal is not a complete VM/MCP trace viewer unless additional tracing is configured.
+
+#### Build, release and application serving
+
+```text
+VM: SHA-256-pinned accepted worker result + hash-checked returned source
+    + unchanged frozen data
+      |
+      `--> Staged build context on VM
+             |
+             `--> ACR Tasks: candidate image build + container acceptance
+                    |
+                    `--> Candidate image digest (not approved for deployment)
+                           |
+                           `--> Separate human approval
+                                (run + dataset + exact digest + target app)
+                                  |
+                                  `--> Deploy that exact digest to ACA Express
+
+Attendee browser --> ACA Express-hosted Caldova application
+                       React UI --> FastAPI API
+                                      |
+                                      `--> Packaged read-only DuckDB + source records
+```
+
+Application queries do **not** call Foundry, workers or MCP. The Azure Monitor workbook is an optional observation surface for available app/platform signals, not comprehensive controller tracing; no workbook is supplied by this repository. Use the local evidence to follow the development run, then compare the built and deployed digests in [Build and deploy](instructions/05-build-and-publish.md) and [Compare with a recorded example](instructions/06-trace-the-evidence.md).
 
 ### 📚 Continue your learning
 
