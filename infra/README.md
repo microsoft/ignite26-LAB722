@@ -123,6 +123,108 @@ The initial test-2 deployment's capacity 1 was sufficient for a small smoke requ
 
 The development-only `SANDBOX_MAX_COUNT=9` override was deployed to retain five earlier diagnostic Sandboxes plus the prepared primary and three workers; all nine slots are allocated. The attendee/template default remains 8. The native group GET does not return capacity: the explicit Bicep API `2026-02-01-preview` ARM GET verified `maxSandboxCount=9`. Preparation checks use that exact API before new allocation, not an assumed default or the native response's missing field. Reuse allocates nothing and verifies the existing scoped inventory and bindings.
 
+## Single-allocation generated analysis
+
+The November 6 simplification adds `src\runtime`: a key-protected browser UI/API, Foundry-generated bounded Python, the `execute_python` MCP tool and actual execution receipts. It removes learner sign-in, partner accounts and app-local tenant/result ownership. The earlier fixed proof remains available in `runtimeMode=proof`; the new runtime uses `runtimeMode=analysis`. Runtime resources remain disabled by default, preserving `lab-ready-1`.
+
+Preparation uses the existing core resources and four service grants. No extra Reader role is needed: the deployer verifies group identity removal, while the trusted execution supervisor probes the platform identity endpoint locally before starting untrusted Python.
+
+1. Prepare the public-data seed/snapshot, then create A from that snapshot. A is the fixed application target and must exist before the app is deployed. Leave one slot for the learner to create B, used only for filesystem isolation.
+2. Build/publish the approved runtime source in the allocated ACR using `src\runtime\Containerfile`. Stage only `src\runtime`, `src\sandbox_process.py` and `tests\test_runtime.py` into an explicit source context; do not upload local environments, secrets, caches or the entire working directory.
+3. Deploy through the scoped helper below. It preserves existing assignment names, removes the Sandbox group's identity without changing its capacity, and supplies the access key to ARM in memory. It generates a key for a new app, or reuses the existing app key on updates. Explicit `-AppAccessKey` accepts a SecureString if rotation is required.
+4. Configure the analysis Toolbox using `-RuntimeMode analysis`. Verify health, missing-key HTTP 401, one actual generated-code request and its correlated execution receipt before delivery.
+
+```powershell
+.\scripts\deploy-test.ps1 -DeployRuntimeApp -RuntimeMode analysis `
+    -SubscriptionId $subscriptionId -ResourceGroup $resourceGroup -Location $region `
+    -FoundryAccountName $foundryAccount -FoundryProjectName $project `
+    -RegistryName $registry -ExpressEnvironmentName $expressEnvironment `
+    -BaselineDescriptorPath $cleanSeedDescriptor -ExecutionSandboxId $sandboxA `
+    -RuntimeImage $approvedImmutableImage -RuntimeRoleAssignmentNames $adoptedAssignments
+
+.\scripts\deploy-test.ps1 -ConfigureRuntimeToolbox -RuntimeMode analysis `
+    -SubscriptionId $subscriptionId -ResourceGroup $resourceGroup `
+    -FoundryAccountName $foundryAccount -FoundryProjectName $project `
+    -AuthorizeToolboxCreate
+```
+
+Do not put the access key in an `azd` environment file, parameter file, command literal or transcript. The facilitator retrieves the app's `proof-key` secret through the approved platform/portal channel and privately supplies it to that allocation's learner. The key is an endpoint capability, not a user identity. Browser code holds it only in tab memory.
+
+For full `azd` preparation, set `ENABLE_RUNTIME_PROOF=true`, `RUNTIME_MODE=analysis`, `RUNTIME_PROOF_IMAGE`, `RUNTIME_SANDBOX_ID` and `RUNTIME_SNAPSHOT_ID`, supplying `RUNTIME_PROOF_KEY` through the approved secret channel. The full Bicep template disables the group identity in this mode; the runtime-only ARM references existing core resources and must be used through the helper or an equivalent provisioner that verifies that identity removal first.
+
+The runtime exposes only one active server-created run and a fixed Sandbox, not model-selected Azure targets. Python has a 30-second remote wall limit, 15-second CPU limit, 256 MiB address-space limit and 128 KiB combined output limit. It runs as UID/GID 65534 with cleared environment, no-new-privileges and bounded processes/files. The supervisor kills detached analysis children and verifies the three frozen data hashes before/after. The image runs the new focused checks before publication.
+
+`/api/analyze` follows Foundry/Toolbox/MCP; `/api/execute` is explicitly a direct edited-code action. Zero exit status is execution success, not answer correctness. There is no phase-count-specific result validator or durable user/result service.
+
+Image publication and runtime execution in the ACAPMS test allocation are separate from Skillable VM/profile delivery. Do not claim a fresh Skillable run or measured 75-minute completion until those are observed.
+
+## Optional runtime proof preparation
+
+The runtime redesign is separate from the published `lab-ready-1` learner path. `main.bicep` defaults `enableRuntimeProof` to **false**. The opt-in module deploys the fixed maintainer proof, not learner sign-in, tenant authorization, generated Python or a chat application.
+
+Prepare it outside the learner timer, in this order:
+
+1. Provision the existing registry, Express environment, Foundry project/model and Sandbox group. Do not run the default fresh deployment against a retained environment with different capacity or model settings.
+2. Prepare a clean public-data seed with `prepare-worker-baseline.ps1 -Mode RuntimeSeed`; see [the runtime seed contract](../scripts/README.md#clean-runtime-seed). Supply one free Sandbox slot. The helper retains the seed on failure and writes its ID before verification. Learners later create their separate execution instances from the verified snapshot; never clone an active user's workspace.
+3. Make the separately approved, immutable proof image available in the **target registry**. The current test-registry image is not a published attendee release. This module neither builds nor copies an image.
+4. Supply a fixed execution Sandbox ID and a fresh proof key through the approved deployment secret channel. Deploy the runtime module and its connections using a provisioner authorized to assign the four scoped service roles. Learners do not perform these assignments.
+5. Run `deploy-test.ps1 -ConfigureRuntimeToolbox` after ARM succeeds. It verifies and reuses the matching default Toolbox version, or creates the initial version only with explicit authorization and a successful inventory confirming absence.
+6. A facilitator verifies app health, HTTP 401 without the proof key, then the authenticated `/proof` request. The current proof lazily creates its saved agent on that first request; a successful ARM deployment alone does not establish inference or Sandbox execution readiness.
+
+### Template choices
+
+```powershell
+# Existing full infrastructure template, with runtime disabled by default.
+.\scripts\compile-arm.ps1
+
+# Runtime-only template referencing already-provisioned core resources.
+.\scripts\compile-arm.ps1 -RuntimeOnly
+```
+
+The outputs are `infra\skillable\azuredeploy.json` and `infra\skillable\runtime-proof.azuredeploy.json`. Both are generated from Bicep; do not edit the ARM JSON by hand. Use the runtime-only template to adopt the retained proof without resetting core infrastructure.
+
+| Runtime-only parameter | Supplied by the provisioner |
+|---|---|
+| `location`, `tags` | Allocated workload region and existing lab tags |
+| `registryName`, `expressEnvironmentName` | Existing same-allocation resources |
+| `foundryAccountName`, `foundryProjectName`, `sandboxGroupName` | Existing project and execution group |
+| `image` | Approved target-registry image with `@sha256:` digest |
+| `sandboxId` | Verified fixed execution instance, never an argument selected by the model |
+| `proofKey` | Secure parameter; at least 32 characters |
+| `appName`, `identityName` | Optional; defaults match the current maintainer proof |
+| `roleAssignmentNames` | Existing assignment names for adoption; omit only for genuinely new grants |
+
+The full `azd` template accepts `ENABLE_RUNTIME_PROOF`, `RUNTIME_PROOF_IMAGE`, `RUNTIME_SANDBOX_ID` and `RUNTIME_PROOF_KEY`. Keep the key out of `azd env set`, `.azure` files, source, transcripts and recorded commands. The harness must provide its approved secret-injection mechanism; this change does not invent that platform mechanism.
+
+For the retained `ig2026-lab-testing` proof, preserve these existing assignment names rather than asking ARM to create duplicates:
+
+| `roleAssignmentNames` key | Existing assignment name |
+|---|---|
+| `runtimeFoundry` | `718374f5-e7c9-4340-be96-669fc4123e68` |
+| `runtimeSandbox` | `fe0b77e6-ac4f-4129-850f-ef7072b16762` |
+| `runtimeAcr` | `d6fc006a-627d-4c88-adb6-67a0d7bd89e6` |
+| `projectToolbox` | `41f70c9d-7286-42a2-8d06-01fd1bcadb9d` |
+
+The runtime identity receives Foundry User on the project, SandboxGroup Data Owner on the group, and AcrPull on the registry. The project managed identity receives Foundry User on its own project for Toolbox authentication. No runtime subscription-wide grant or learner directory assignment is added.
+
+### Toolbox setup and verification
+
+Run from the repository root with existing Azure CLI and `azd` authentication:
+
+```powershell
+.\scripts\deploy-test.ps1 -ConfigureRuntimeToolbox `
+    -SubscriptionId 30501c6c-81f6-41ac-a388-d29cf43a020d `
+    -ResourceGroup ig2026-lab-testing `
+    -FoundryAccountName lab722-4fpje6f4ykpcg-ai `
+    -FoundryProjectName caldova
+```
+
+For a new allocation, substitute its actual scope and add `-AuthorizeToolboxCreate` for the initial creation. The helper reads only the backend connection's authentication type and target, never its key. It resolves the versioned definition in `runtime-proof-toolbox.json` to that target and exposes only `inspect_frozen_dataset`. Inventory, authentication, mismatched tools or read-back failures stop with an error; they do not trigger replacement or a second create. After an uncertain create, inspect the same operation before retrying. Do not use `azd ai toolbox deploy` as a repeatable bootstrap: it creates a new immutable version.
+
+On November 6, 2026, both templates compiled and Azure provider validation of the standalone runtime template succeeded using a dummy validation-only key. **The template was not deployed.** The Toolbox helper reused and verified the existing version 1 without changing it. Bicep reports missing preview resource types (BCP081); narrow connection-field suppressions document the older local catalog's missing `ProjectManagedIdentity`/`audience` definitions. Provider validation does not replace an actual deployment and end-to-end proof request.
+
+The clean seed and two snapshot-derived workspaces passed live filesystem, non-root environment, egress, remote-exit and stop/resume checks. This baseline contains Python and frozen public data; it does not install the DuckDB Python package or establish generated-analysis execution. Azure platform identity variables are stripped from the analysis child environment, not proven absent from the platform. Test the remaining identity-access boundary before enabling untrusted code.
+
 ## Later Skillable integration
 
 The generated template, both resource-group rollouts, and the neutral two-input startup contract are available. Remaining integration work:

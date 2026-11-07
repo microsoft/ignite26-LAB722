@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "11376146023845936545"
+      "templateHash": "4544312578031598115"
     }
   },
   "parameters": {
@@ -95,6 +95,49 @@
       "metadata": {
         "description": "Sandbox group capacity; increase only for retained development evidence plus new worker clones."
       }
+    },
+    "enableRuntimeProof": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Opt in to runtime proof or analysis resources. Default preserves the published learner deployment."
+      }
+    },
+    "runtimeMode": {
+      "type": "string",
+      "defaultValue": "proof",
+      "allowedValues": [
+        "proof",
+        "analysis"
+      ]
+    },
+    "runtimeProofImage": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "runtimeSandboxId": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "runtimeProofKey": {
+      "type": "securestring",
+      "defaultValue": ""
+    },
+    "runtimeAppName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "runtimeSnapshotId": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "runtimeIdentityName": {
+      "type": "string",
+      "defaultValue": "lab722-runtime-proof-mi"
+    },
+    "runtimeRoleAssignmentNames": {
+      "type": "object",
+      "defaultValue": {}
     }
   },
   "variables": {
@@ -551,6 +594,9 @@
         },
         "mode": "Incremental",
         "parameters": {
+          "enableGroupIdentity": {
+            "value": "[not(and(parameters('enableRuntimeProof'), equals(parameters('runtimeMode'), 'analysis')))]"
+          },
           "location": {
             "value": "[parameters('location')]"
           },
@@ -580,7 +626,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "4719685968381517459"
+              "templateHash": "4907390958609454040"
             }
           },
           "parameters": {
@@ -606,6 +652,13 @@
               "type": "string",
               "metadata": {
                 "description": "User-assigned identity resource ID used by the Sandbox group."
+              }
+            },
+            "enableGroupIdentity": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Keep the legacy group identity by default. Generated-analysis Sandboxes must not inherit it."
               }
             },
             "labUserPrincipalId": {
@@ -645,12 +698,7 @@
               "name": "[format('{0}-sandboxes', parameters('baseName'))]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
-              "identity": {
-                "type": "UserAssigned",
-                "userAssignedIdentities": {
-                  "[format('{0}', parameters('sandboxIdentityId'))]": {}
-                }
-              },
+              "identity": "[if(parameters('enableGroupIdentity'), createObject('type', 'UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('sandboxIdentityId')), createObject())), createObject('type', 'None'))]",
               "properties": {
                 "defaultCpu": "2",
                 "defaultMemory": "4Gi",
@@ -689,6 +737,397 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments', 'core')]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableRuntimeProof')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "runtime-proof",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "runtimeMode": {
+            "value": "[parameters('runtimeMode')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[union(variables('tags'), createObject('purpose', 'runtime-stage1'))]"
+          },
+          "registryName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'core'), '2025-04-01').outputs.containerRegistryName.value]"
+          },
+          "expressEnvironmentName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'express'), '2025-04-01').outputs.expressEnvironmentName.value]"
+          },
+          "foundryAccountName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'foundry'), '2025-04-01').outputs.foundryAccountName.value]"
+          },
+          "foundryProjectName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'foundry'), '2025-04-01').outputs.foundryProjectName.value]"
+          },
+          "sandboxGroupName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'sandboxes'), '2025-04-01').outputs.sandboxGroupName.value]"
+          },
+          "image": {
+            "value": "[parameters('runtimeProofImage')]"
+          },
+          "sandboxId": {
+            "value": "[parameters('runtimeSandboxId')]"
+          },
+          "snapshotId": {
+            "value": "[parameters('runtimeSnapshotId')]"
+          },
+          "proofKey": {
+            "value": "[parameters('runtimeProofKey')]"
+          },
+          "appName": "[if(empty(parameters('runtimeAppName')), if(equals(parameters('runtimeMode'), 'analysis'), createObject('value', 'lab722-runtime-analysis'), createObject('value', 'lab722-runtime-stage1')), createObject('value', parameters('runtimeAppName')))]",
+          "modelDeployment": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'foundry'), '2025-04-01').outputs.modelDeploymentName.value]"
+          },
+          "identityName": {
+            "value": "[parameters('runtimeIdentityName')]"
+          },
+          "roleAssignmentNames": {
+            "value": "[parameters('runtimeRoleAssignmentNames')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.40.2.10011",
+              "templateHash": "6085393618761350625"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "registryName": {
+              "type": "string"
+            },
+            "expressEnvironmentName": {
+              "type": "string"
+            },
+            "foundryAccountName": {
+              "type": "string"
+            },
+            "foundryProjectName": {
+              "type": "string"
+            },
+            "sandboxGroupName": {
+              "type": "string"
+            },
+            "runtimeMode": {
+              "type": "string",
+              "defaultValue": "proof",
+              "allowedValues": [
+                "proof",
+                "analysis"
+              ]
+            },
+            "snapshotId": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "modelDeployment": {
+              "type": "string",
+              "defaultValue": "gpt-5.2"
+            },
+            "image": {
+              "type": "string",
+              "minLength": 80,
+              "metadata": {
+                "description": "Approved immutable proof image in the supplied registry. Publish/copy it before enabling this module."
+              }
+            },
+            "sandboxId": {
+              "type": "string",
+              "minLength": 36,
+              "maxLength": 36,
+              "metadata": {
+                "description": "Existing execution Sandbox ID from the verified clean baseline; not a tenant selected by the model."
+              }
+            },
+            "proofKey": {
+              "type": "securestring",
+              "minLength": 32
+            },
+            "appName": {
+              "type": "string",
+              "defaultValue": "[if(equals(parameters('runtimeMode'), 'analysis'), 'lab722-runtime-analysis', 'lab722-runtime-stage1')]"
+            },
+            "identityName": {
+              "type": "string",
+              "defaultValue": "lab722-runtime-proof-mi"
+            },
+            "roleAssignmentNames": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Preserve existing role assignment names on adopted deployments. Empty values generate deterministic names."
+              }
+            }
+          },
+          "variables": {
+            "foundryUserRole": "53ca6127-db72-4b80-b1b0-d745d6d5456d",
+            "sandboxOwnerRole": "c24cf47c-5077-412d-a19c-45202126392c",
+            "acrPullRole": "7f951dda-4ed3-4680-a7ca-43fe172d538d",
+            "projectEndpoint": "[format('https://{0}.services.ai.azure.com/api/projects/{1}', parameters('foundryAccountName'), parameters('foundryProjectName'))]",
+            "toolboxName": "[if(equals(parameters('runtimeMode'), 'analysis'), 'runtime-analysis-toolbox', 'runtime-stage1-proof')]",
+            "backendName": "[if(equals(parameters('runtimeMode'), 'analysis'), 'runtime-analysis-backend', 'runtime-proof-backend')]",
+            "toolboxConnectionName": "[if(equals(parameters('runtimeMode'), 'analysis'), 'runtime-analysis-toolbox', 'runtime-proof-toolbox')]",
+            "toolboxEndpoint": "[format('{0}/toolboxes/{1}/mcp?api-version=v1', variables('projectEndpoint'), variables('toolboxName'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[parameters('identityName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName'))]",
+              "name": "[coalesce(tryGet(parameters('roleAssignmentNames'), 'runtimeFoundry'), guid(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), variables('foundryUserRole')))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('foundryUserRole'))]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.App/sandboxGroups', parameters('sandboxGroupName'))]",
+              "name": "[coalesce(tryGet(parameters('roleAssignmentNames'), 'runtimeSandbox'), guid(resourceId('Microsoft.App/sandboxGroups', parameters('sandboxGroupName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), variables('sandboxOwnerRole')))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('sandboxOwnerRole'))]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]",
+              "name": "[coalesce(tryGet(parameters('roleAssignmentNames'), 'runtimeAcr'), guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), variables('acrPullRole')))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('acrPullRole'))]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName'))]",
+              "name": "[coalesce(tryGet(parameters('roleAssignmentNames'), 'projectToolbox'), guid(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), 'runtime-toolbox', variables('foundryUserRole')))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('foundryUserRole'))]",
+                "principalId": "[reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), '2025-06-01', 'full').identity.principalId]",
+                "principalType": "ServicePrincipal"
+              }
+            },
+            {
+              "type": "Microsoft.App/containerApps",
+              "apiVersion": "2026-03-02-preview",
+              "name": "[parameters('appName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')))]": {}
+                }
+              },
+              "properties": {
+                "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', parameters('expressEnvironmentName'))]",
+                "configuration": {
+                  "activeRevisionsMode": "Single",
+                  "ingress": {
+                    "external": true,
+                    "targetPort": 8080,
+                    "transport": "auto",
+                    "allowInsecure": false
+                  },
+                  "registries": [
+                    {
+                      "server": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName')), '2023-07-01').loginServer]",
+                      "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName'))]"
+                    }
+                  ],
+                  "secrets": [
+                    {
+                      "name": "proof-key",
+                      "value": "[parameters('proofKey')]"
+                    }
+                  ]
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "[parameters('appName')]",
+                      "image": "[parameters('image')]",
+                      "resources": {
+                        "cpu": "[json('0.5')]",
+                        "memory": "1Gi"
+                      },
+                      "env": [
+                        {
+                          "name": "PROOF_KEY",
+                          "secretRef": "proof-key"
+                        },
+                        {
+                          "name": "AZURE_CLIENT_ID",
+                          "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').clientId]"
+                        },
+                        {
+                          "name": "AZURE_SUBSCRIPTION_ID",
+                          "value": "[subscription().subscriptionId]"
+                        },
+                        {
+                          "name": "RESOURCE_GROUP",
+                          "value": "[resourceGroup().name]"
+                        },
+                        {
+                          "name": "SANDBOX_GROUP",
+                          "value": "[parameters('sandboxGroupName')]"
+                        },
+                        {
+                          "name": "SANDBOX_ID",
+                          "value": "[parameters('sandboxId')]"
+                        },
+                        {
+                          "name": "SANDBOX_SNAPSHOT_ID",
+                          "value": "[parameters('snapshotId')]"
+                        },
+                        {
+                          "name": "SANDBOX_REGION",
+                          "value": "[parameters('location')]"
+                        },
+                        {
+                          "name": "SANDBOX_GROUP_IDENTITY_DISABLED",
+                          "value": "[if(equals(parameters('runtimeMode'), 'analysis'), 'true', 'false')]"
+                        },
+                        {
+                          "name": "MODEL_DEPLOYMENT",
+                          "value": "[parameters('modelDeployment')]"
+                        },
+                        {
+                          "name": "FOUNDRY_PROJECT_ENDPOINT",
+                          "value": "[variables('projectEndpoint')]"
+                        },
+                        {
+                          "name": "TOOLBOX_ENDPOINT",
+                          "value": "[variables('toolboxEndpoint')]"
+                        }
+                      ]
+                    }
+                  ],
+                  "scale": {
+                    "minReplicas": 0,
+                    "maxReplicas": 1
+                  }
+                }
+              },
+              "dependsOn": [
+                "[extensionResourceId(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), 'Microsoft.Authorization/roleAssignments', coalesce(tryGet(parameters('roleAssignmentNames'), 'projectToolbox'), guid(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), 'runtime-toolbox', variables('foundryUserRole'))))]",
+                "[extensionResourceId(resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName')), 'Microsoft.Authorization/roleAssignments', coalesce(tryGet(parameters('roleAssignmentNames'), 'runtimeAcr'), guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), variables('acrPullRole'))))]",
+                "[extensionResourceId(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), 'Microsoft.Authorization/roleAssignments', coalesce(tryGet(parameters('roleAssignmentNames'), 'runtimeFoundry'), guid(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), variables('foundryUserRole'))))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName'))]",
+                "[extensionResourceId(resourceId('Microsoft.App/sandboxGroups', parameters('sandboxGroupName')), 'Microsoft.Authorization/roleAssignments', coalesce(tryGet(parameters('roleAssignmentNames'), 'runtimeSandbox'), guid(resourceId('Microsoft.App/sandboxGroups', parameters('sandboxGroupName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), variables('sandboxOwnerRole'))))]"
+              ]
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/projects/connections",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}/{2}', parameters('foundryAccountName'), parameters('foundryProjectName'), variables('backendName'))]",
+              "properties": {
+                "category": "RemoteTool",
+                "authType": "CustomKeys",
+                "target": "[format('https://{0}/mcp', reference(resourceId('Microsoft.App/containerApps', parameters('appName')), '2026-03-02-preview').configuration.ingress.fqdn)]",
+                "credentials": {
+                  "keys": {
+                    "X-Lab722-Proof-Key": "[parameters('proofKey')]"
+                  }
+                },
+                "metadata": {
+                  "lab": "LAB722",
+                  "purpose": "[parameters('runtimeMode')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.App/containerApps', parameters('appName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/projects/connections",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}/{2}', parameters('foundryAccountName'), parameters('foundryProjectName'), variables('toolboxConnectionName'))]",
+              "properties": {
+                "category": "RemoteTool",
+                "authType": "ProjectManagedIdentity",
+                "audience": "https://ai.azure.com",
+                "target": "[variables('toolboxEndpoint')]",
+                "metadata": {
+                  "lab": "LAB722",
+                  "purpose": "[parameters('runtimeMode')]"
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "RUNTIME_APP_NAME": {
+              "type": "string",
+              "value": "[parameters('appName')]"
+            },
+            "RUNTIME_APP_URL": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.App/containerApps', parameters('appName')), '2026-03-02-preview').configuration.ingress.fqdn)]"
+            },
+            "RUNTIME_IDENTITY_ID": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName'))]"
+            },
+            "RUNTIME_IDENTITY_CLIENT_ID": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('identityName')), '2023-01-31').clientId]"
+            },
+            "RUNTIME_TOOLBOX_ENDPOINT": {
+              "type": "string",
+              "value": "[variables('toolboxEndpoint')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'core')]",
+        "[resourceId('Microsoft.Resources/deployments', 'express')]",
+        "[resourceId('Microsoft.Resources/deployments', 'foundry')]",
+        "[resourceId('Microsoft.Resources/deployments', 'sandboxes')]"
       ]
     }
   ],
@@ -744,6 +1183,14 @@
     "SANDBOX_REGION": {
       "type": "string",
       "value": "[parameters('location')]"
+    },
+    "RUNTIME_APP_URL": {
+      "type": "string",
+      "value": "[if(parameters('enableRuntimeProof'), reference(resourceId('Microsoft.Resources/deployments', 'runtime-proof'), '2025-04-01').outputs.RUNTIME_APP_URL.value, '')]"
+    },
+    "RUNTIME_TOOLBOX_ENDPOINT": {
+      "type": "string",
+      "value": "[if(parameters('enableRuntimeProof'), reference(resourceId('Microsoft.Resources/deployments', 'runtime-proof'), '2025-04-01').outputs.RUNTIME_TOOLBOX_ENDPOINT.value, '')]"
     }
   }
 }

@@ -2,6 +2,8 @@
 
 This folder contains the lab-owned research portal and a prepared, genuinely incomplete developer baseline. The orchestrator and Sandbox gateway run outside worker clones.
 
+The separate [runtime analysis application](runtime/README.md) adds key-protected Foundry-generated and edited Python execution for the simplified runtime lab. It does not replace the tagged developer path.
+
 ## Research portal
 
 `research-portal/` contains a FastAPI/Python backend, React/TypeScript frontend, and digest-pinned multi-stage container build. Direct Python and JavaScript dependencies are pinned, and the frontend has a generated lockfile.

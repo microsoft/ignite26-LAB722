@@ -10,10 +10,10 @@ The repository's `.gitattributes` preserves authored bytes across Windows and Li
 |---|---|
 | `export-skillable-instructions.ps1` | Generate the paged Skillable panel manual from the participant sources, with a separate welcome page and VM login controls |
 | `initialize-lab-desktop.ps1` | During learner-VM preparation, create PowerShell 7 and Windows Terminal shortcuts that open the prepared checkout; requires both tools already installed |
-| `compile-arm.ps1` | Compile `infra/main.bicep` to the checked-in Skillable ARM template |
+| `compile-arm.ps1` | Compile the full Skillable ARM template, or the existing-resource runtime template with `-RuntimeOnly` |
 | `start-lab.ps1` | Validate/provision infrastructure, inspect opt-in readiness, prepare only the primary for the portal exercise, or explicitly prepare a complete baseline |
 | `stage-lab-data.ps1` | Verify or idempotently stage the versioned checkout dataset offline; optionally configure the current process for startup/Prepare |
-| `deploy-test.ps1` | Create or update an `azd` test environment in the ACAPMS subscription |
+| `deploy-test.ps1` | Create/update an `azd` test environment, explicitly deploy the simplified runtime into existing infrastructure, or verify/bootstrap its Toolbox |
 | `validate-foundry.ps1` | Verify project-scoped agent access and a bounded live Responses inference contract |
 | `validate-agent-workflow.ps1` | Validate planning/tool dispatch or run scoped implementors, independent integration, and governance against an explicit prepared baseline |
 | `validate-sandbox.ps1` | Configure `aca`, create or reuse a Sandbox, and verify execution, egress, snapshot identity, and clone filesystem inheritance |
@@ -21,7 +21,7 @@ The repository's `.gitattributes` preserves authored bytes across Windows and Li
 | `deploy-lab-starter.ps1` | Pin the existing portal starter to its catalog digest; explicit Create mode is a one-time learner-authorized fallback in an existing Express environment |
 | `build-research-image.ps1` | Run the nine containerized data/API checks in ACR, then build a Linux AMD64 starter or reference image and return its digest |
 | `build-developer-image.ps1` | Build the genuine frozen-data Python/Node starter, or the separately selected tested reference; return the digest and source-context pin |
-| `prepare-worker-baseline.ps1` | Read-only capacity/primary checks for the manual CLI exercise; explicit legacy provisioning or verified reuse of retained baselines |
+| `prepare-worker-baseline.ps1` | Read-only capacity/primary checks; explicit legacy preparation/reuse or a fresh verified public-data `RuntimeSeed` |
 | `connect-lab-workers.ps1` | Verify and register portal-created snapshot/clones from a pinned prepared-primary descriptor; create replacement resources only with explicit `-CatchUp` |
 | `build-agent-candidate.ps1` | Stage only the accepted specialist source and exact frozen artifact, then validate/build an unapproved digest-pinned candidate |
 | `deploy-research-preview.ps1` | Configure repository-scoped image credentials, deploy a digest-pinned research preview, and verify its health and state |
@@ -33,6 +33,42 @@ For the user-supplied AACT mirror, the maintainer module `python -m data.pipelin
 After acquisition, `python -m data.pipeline.extract_public` uses the existing data-aware runtime to prepare a bounded, checksum/provenance-bound **unreviewed** draft outside the checkout. Its conservative mapping, strict record limits and source fidelity are tested; it does not build an approved artifact, update startup or deploy the app. See [review draft commands and human approval requirements](../data/sources/README.md#conservative-public-review-draft).
 
 `python -m data.pipeline.freeze_public` builds a public artifact using the project owner's recorded approval for the exact selected draft/provenance. It preserves original fields, validates complete records and stages four frozen files; the freeze command itself never publishes or deploys. `--pipeline-commit` additionally requires every allowlisted source byte to match that full Git commit. The retained v1 has 60 trials and 20 reports; the new v2 slice has 168 trials and 38 reports. See [versioned v2 delivery](../data/sources/README.md#versioned-v2-lab-bundle). Neither generation nor distribution rewrites historical source-use flags or proves attendee readiness.
+
+## Simplified runtime deployment
+
+The approved runtime is key-authenticated, single-allocation analysis with no learner sign-in or partner exercise. `deploy-test.ps1 -DeployRuntimeApp -RuntimeMode analysis` uses the current clean descriptor, fixed clone A and approved immutable image. It removes the Sandbox group identity, reuses the four existing scoped grant names supplied for adoption, and submits the access key directly to ARM in memory. Updates reuse the app's existing key unless an explicit SecureString replacement is supplied.
+
+`-ConfigureRuntimeToolbox -RuntimeMode analysis` bootstraps or verifies the separate `runtime-analysis-toolbox`, exposing only `execute_python` through `runtime-analysis-backend`. Its default proof mode remains backward compatible and never updates an existing incompatible Toolbox. No automatic version churn, role broadening or production deployment is part of either action.
+
+Prepare A before deployment; learners can create B from the clean snapshot if capacity is available. Do not bind the app to the clean seed, clone an active A, or let a model choose an Azure target. See [single-allocation deployment](../infra/README.md#single-allocation-generated-analysis) for the command sequence, secret channel and execution bounds.
+
+## Clean runtime seed
+
+`RuntimeSeed` prepares the runtime experiment, not the tagged manual-primary exercise. It creates one fresh public `python-3.13` instance, copies only the pinned v2 manifest, source-record JSON and DuckDB file, makes the data read-only to UID 65534, and verifies an empty writable `/workspace` before snapshot capture. The input verifier uses the already-prepared Python interpreter's standard library; it installs nothing.
+
+From the repository root, with a prepared native ACA CLI and explicit provisioning authorization:
+
+```powershell
+.\scripts\prepare-worker-baseline.ps1 -Mode RuntimeSeed `
+    -SubscriptionId $subscriptionId -ResourceGroup $resourceGroup `
+    -Region $region -GroupName $sandboxGroup `
+    -OutputDirectory '.build-contexts\runtime-seed-new' `
+    -AcaExecutable $aca -AuthorizeProvisioning -AsJson
+```
+
+The helper checks actual group capacity before creating one retained seed. Success returns a `runtime-seed.json` descriptor with seed/snapshot IDs, three hashes, the fixed execution prefix and explicit unverified identity/tenant fields. Failure retains `seed-id.json`; it does not allocate a replacement on retry. To verify and capture that exact retained clean seed, add `-PrimaryId $retainedSeedId` and use a new output directory. Resume requires the `LAB722`/`runtime-clean-seed` labels, verifies the existing data/workspace/policies and does not recopy or clear files. It creates a snapshot only after those checks pass.
+
+Use the descriptor's execution prefix:
+
+```text
+runuser -u nobody -- env -i PATH=/opt/python/3/bin:/usr/bin:/bin HOME=/workspace /opt/python/3/bin/python3 -I
+```
+
+`runuser` alone inherits Azure-injected identity variables. The cleared child environment prevents that inheritance; it is not a demonstrated denial of every discoverable platform identity mechanism. Do not expose credential values to learners. This seed verifies standard-library data inspection, not DuckDB query dependencies or generated code.
+
+On November 6, the clean seed/snapshot and two separate clones passed live data-hash, writable-state separation, non-root write-denial, restored egress, exit-19 and explicit stop/resume checks in `ig2026-lab-testing`. All resources are retained and the group has four of four slots allocated; do not repeat fresh preparation there. The existing proof app still uses its original fixed Sandbox, not the new exercise clone.
+
+For the optional app/identity/connections template and idempotent Toolbox setup, see [runtime proof preparation](../infra/README.md#optional-runtime-proof-preparation). Neither helper modifies the old learner instructions, enables runtime by default, publishes an image or configures learner sign-in.
 
 ## Portable image and data delivery
 

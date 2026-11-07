@@ -43,6 +43,21 @@ param modelCapacity int = 40
 @maxValue(16)
 param sandboxMaxCount int = 8
 
+@description('Opt in to runtime proof or analysis resources. Default preserves the published learner deployment.')
+param enableRuntimeProof bool = false
+
+@allowed(['proof', 'analysis'])
+param runtimeMode string = 'proof'
+
+param runtimeProofImage string = ''
+param runtimeSandboxId string = ''
+@secure()
+param runtimeProofKey string = ''
+param runtimeAppName string = ''
+param runtimeSnapshotId string = ''
+param runtimeIdentityName string = 'lab722-runtime-proof-mi'
+param runtimeRoleAssignmentNames object = {}
+
 var suffix = uniqueString(subscription().id, resourceGroup().id, environmentName)
 var baseName = 'lab722-${suffix}'
 var tags = {
@@ -89,6 +104,7 @@ module express './modules/express.bicep' = {
 module sandboxes './modules/sandboxes.bicep' = {
   name: 'sandboxes'
   params: {
+    enableGroupIdentity: !(enableRuntimeProof && runtimeMode == 'analysis')
     location: location
     baseName: baseName
     tags: tags
@@ -96,6 +112,28 @@ module sandboxes './modules/sandboxes.bicep' = {
     labUserPrincipalId: labUserPrincipalId
     labUserPrincipalType: labUserPrincipalType
     maxSandboxCount: sandboxMaxCount
+  }
+}
+
+module runtimeProof './modules/runtime-proof.bicep' = if (enableRuntimeProof) {
+  name: 'runtime-proof'
+  params: {
+    runtimeMode: runtimeMode
+    location: location
+    tags: union(tags, { purpose: 'runtime-stage1' })
+    registryName: core.outputs.containerRegistryName
+    expressEnvironmentName: express.outputs.expressEnvironmentName
+    foundryAccountName: foundry.outputs.foundryAccountName
+    foundryProjectName: foundry.outputs.foundryProjectName
+    sandboxGroupName: sandboxes.outputs.sandboxGroupName
+    image: runtimeProofImage
+    sandboxId: runtimeSandboxId
+    snapshotId: runtimeSnapshotId
+    proofKey: runtimeProofKey
+    appName: empty(runtimeAppName) ? (runtimeMode == 'analysis' ? 'lab722-runtime-analysis' : 'lab722-runtime-stage1') : runtimeAppName
+    modelDeployment: foundry.outputs.modelDeploymentName
+    identityName: runtimeIdentityName
+    roleAssignmentNames: runtimeRoleAssignmentNames
   }
 }
 
@@ -112,3 +150,5 @@ output FOUNDRY_MODEL_DEPLOYMENT_NAME string = foundry.outputs.modelDeploymentNam
 output EXPRESS_ENVIRONMENT_NAME string = express.outputs.expressEnvironmentName
 output SANDBOX_GROUP_NAME string = sandboxes.outputs.sandboxGroupName
 output SANDBOX_REGION string = location
+output RUNTIME_APP_URL string = enableRuntimeProof ? runtimeProof!.outputs.RUNTIME_APP_URL : ''
+output RUNTIME_TOOLBOX_ENDPOINT string = enableRuntimeProof ? runtimeProof!.outputs.RUNTIME_TOOLBOX_ENDPOINT : ''

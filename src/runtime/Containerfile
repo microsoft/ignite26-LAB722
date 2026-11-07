@@ -1,0 +1,14 @@
+FROM python:3.13-slim-trixie@sha256:09a17cad02668ae61ece136b4fd36ac3849e14f670ebedb637ea3e15580525bc
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+RUN python -c "import hashlib,io,os,tarfile,urllib.request; b=urllib.request.urlopen('https://github.com/microsoft/azure-container-apps/releases/download/aca-cli-v1.0.0-preview.4/aca-cli-v1.0.0-preview.4-linux-x64.tar.gz',timeout=120).read(); assert hashlib.sha256(b).hexdigest()=='94807575393858e9973041f32327a0562c754017a1668e4d6b19870f231d8f8e'; t=tarfile.open(fileobj=io.BytesIO(b),mode='r:gz'); open('/usr/local/bin/aca','wb').write(t.extractfile('aca').read()); os.chmod('/usr/local/bin/aca',0o755)"
+COPY src/runtime/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && pip check
+COPY src/runtime ./src/runtime
+COPY src/sandbox_process.py ./src/sandbox_process.py
+COPY tests/test_runtime.py ./tests/test_runtime.py
+RUN python -m unittest discover -s tests -p test_runtime.py -v
+RUN useradd --uid 10001 --create-home runtime
+USER runtime
+EXPOSE 8080
+CMD ["uvicorn", "src.runtime.server:app", "--host", "0.0.0.0", "--port", "8080"]

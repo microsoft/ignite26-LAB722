@@ -34,6 +34,24 @@
     },
     "sandboxMaxCount": {
       "value": "${SANDBOX_MAX_COUNT=8}"
+    },
+    "enableRuntimeProof": {
+      "value": "${ENABLE_RUNTIME_PROOF=false}"
+    },
+    "runtimeMode": {
+      "value": "${RUNTIME_MODE=proof}"
+    },
+    "runtimeSnapshotId": {
+      "value": "${RUNTIME_SNAPSHOT_ID=}"
+    },
+    "runtimeProofImage": {
+      "value": "${RUNTIME_PROOF_IMAGE=}"
+    },
+    "runtimeSandboxId": {
+      "value": "${RUNTIME_SANDBOX_ID=}"
+    },
+    "runtimeProofKey": {
+      "value": "${RUNTIME_PROOF_KEY=}"
     }
   }
 }

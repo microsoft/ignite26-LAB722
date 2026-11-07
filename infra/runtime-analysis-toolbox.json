@@ -1,0 +1,18 @@
+{
+  "name": "runtime-analysis-toolbox",
+  "description": "LAB722 single-allocation bounded Python analysis, not learner identity or tenant authorization",
+  "tools": [
+    {
+      "type": "mcp",
+      "server_label": "analysis",
+      "server_url": "${RUNTIME_APP_URL}/mcp",
+      "project_connection_id": "runtime-analysis-backend",
+      "allowed_tools": ["execute_python"],
+      "require_approval": "never"
+    }
+  ],
+  "metadata": {
+    "lab": "LAB722",
+    "purpose": "runtime-analysis-v1"
+  }
+}

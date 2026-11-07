@@ -1,7 +1,8 @@
+#requires -Version 7.3
 [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('Provision', 'Reuse', 'CheckCapacity', 'VerifyPrimary')]
+    [ValidateSet('Provision', 'Reuse', 'CheckCapacity', 'VerifyPrimary', 'RuntimeSeed')]
     [string] $Mode,
 
     [Parameter(Mandatory)]
@@ -538,13 +539,143 @@ function Write-BaselineArtifact {
     finally { $stream.Dispose() }
 }
 
+function New-RuntimeSeed {
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
+    param([hashtable] $Options, [string] $Output)
+    if (-not $Options.AuthorizeProvisioning) {
+        throw 'RuntimeSeed requires explicit -AuthorizeProvisioning; resources are retained on failure.'
+    }
+    if (-not $PSCmdlet.ShouldProcess(
+        "$($Options.SubscriptionId)/$($Options.ResourceGroup)/$($Options.GroupName)",
+        'Create a fresh public Python seed, copy only pinned public data and capture a clean snapshot')) { return }
+    $resume = $Options.PrimaryId -ne [guid]::Empty
+    $requiredSlots = if ($resume) { 0 } else { 1 }
+    $inventory = Get-BaselineInventory $Options $requiredSlots
+    $data = & (Join-Path $PSScriptRoot 'stage-lab-data.ps1') -ValidateOnly `
+        -PythonExecutable $Options.PythonExecutable
+    $source = Split-Path -Parent $data.manifest
+    $manifest = Get-Content -LiteralPath $data.manifest -Raw | ConvertFrom-Json -AsHashtable
+    $pins = @{
+        'data-manifest.json' = $data.manifest_sha256
+        'source-records.json' = $manifest.source_records.sha256
+        'caldova-research.duckdb' = $manifest.database.sha256
+    }
+    foreach ($file in $pins.Keys) {
+        if ((Get-FileHash -LiteralPath (Join-Path $source $file)).Hash.ToLowerInvariant() -cne $pins[$file]) {
+            throw "The pinned runtime input changed: $file."
+        }
+    }
+    [void] [IO.Directory]::CreateDirectory($Output)
+    if ($resume) {
+        if ($Options.PrimaryId.ToString() -notin $inventory.ids) { throw 'The retained seed is not in this group.' }
+        $resource = ConvertFrom-BaselineNativeJson (Invoke-BaselineAca $Options @(
+            'sandbox', 'get', '--group', $Options.GroupName, '--id', $Options.PrimaryId.ToString()))
+        if ($resource.labels.purpose -cne 'runtime-clean-seed' -or $resource.labels.lab -cne 'LAB722') {
+            throw 'RuntimeSeed can resume only an explicitly identified LAB722 clean seed, not a used workspace.'
+        }
+        $name = $resource.labels.name
+    } else {
+        $name = 'lab722-runtime-seed-' + [guid]::NewGuid().ToString('N')
+        $created = Invoke-BaselineAca $Options @(
+            'sandbox', 'create', '--group', $Options.GroupName, '--disk', 'python-3.13',
+            '--cpu', '2000m', '--memory', '4096Mi', '--label', 'lab=LAB722',
+            '--label', 'purpose=runtime-clean-seed', '--label', "name=$name",
+            '--egress-default', 'Deny', '--traffic-inspection', 'Full') -LongOperation
+        $resource = ConvertFrom-BaselineNativeJson $created -AllowMissing
+        if ($null -eq $resource) {
+            $matches = [regex]::Matches($created, '(?m)^Created sandbox:\s*([0-9a-fA-F-]{36})\s*$')
+            if ($matches.Count -ne 1) { throw 'Seed creation returned no unambiguous ID; inspect retained operations.' }
+            $resource = @{ id = $matches[0].Groups[1].Value }
+        }
+    }
+    $seed = Assert-BaselineId $resource
+    Write-BaselineArtifact (Join-Path $Output 'seed-id.json') (@{
+        seed_id = $seed.ToString(); name = $name; complete = $false
+    } | ConvertTo-Json)
+    if (-not $resume) {
+        [void] (Invoke-BaselineAca $Options @(
+            'sandbox', 'lifecycle', 'set', '--group', $Options.GroupName, '--id', $seed.ToString(),
+            '--auto-suspend', 'enable', '--idle-timeout-seconds', '900',
+            '--mode', 'Memory', '--auto-delete', 'disable'))
+        [void] (Invoke-BaselineAca $Options @(
+            'sandbox', 'exec', '--group', $Options.GroupName, '--id', $seed.ToString(),
+            '-c', 'install -d -m 0755 /opt/lab722-data; install -d -o nobody -g nogroup -m 0755 /workspace'))
+        foreach ($file in ($pins.Keys | Sort-Object)) {
+            [void] (Invoke-BaselineAca $Options @(
+                'sandbox', 'fs', 'cp', '--group', $Options.GroupName,
+                (Join-Path $source $file), "${seed}:/opt/lab722-data/$file"))
+        }
+        [void] (Invoke-BaselineAca $Options @(
+            'sandbox', 'exec', '--group', $Options.GroupName, '--id', $seed.ToString(),
+            '-c', 'chmod 0444 /opt/lab722-data/*; chmod 0555 /opt/lab722-data'))
+    }
+    $pinJson = ConvertTo-Json -InputObject $pins -Compress
+    $script = @"
+import hashlib,json,os,pathlib
+p=pathlib.Path('/opt/lab722-data')
+pins=json.loads('$pinJson')
+assert os.getuid()!=0
+assert sorted(f.name for f in p.iterdir())==sorted(pins)
+assert all(hashlib.sha256((p/n).read_bytes()).hexdigest()==v for n,v in pins.items())
+assert not os.access(p,os.W_OK) and all(not os.access(p/n,os.W_OK) for n in pins)
+assert os.access('/workspace',os.W_OK) and not list(pathlib.Path('/workspace').iterdir())
+assert not any(k.startswith(('AZURE_','PROOF_','MSI_','IDENTITY_')) for k in os.environ)
+s=json.loads((p/'source-records.json').read_text())
+assert len(s['trials'])==168 and len(s['safety_reports'])==38
+print(json.dumps({'verified':True,'uid':os.getuid(),'workspace_empty':True,'pins':pins}))
+"@
+    $prefix = 'runuser -u nobody -- env -i PATH=/opt/python/3/bin:/usr/bin:/bin HOME=/workspace /opt/python/3/bin/python3 -I'
+    $command = $prefix + ' -c ' +
+        (Quote-BaselineShell $script)
+    $check = ConvertFrom-BaselineNativeJson (Invoke-BaselineAca $Options @(
+        'sandbox', 'exec', '--group', $Options.GroupName, '--id', $seed.ToString(), '-c', $command))
+    if ($check['verified'] -ne $true -or $check['workspace_empty'] -ne $true) {
+        throw 'Clean runtime seed verification failed; the seed is retained without a snapshot descriptor.'
+    }
+    $metadata = ConvertFrom-BaselineNativeJson (Invoke-BaselineAca $Options @(
+        'sandbox', 'get', '--group', $Options.GroupName, '--id', $seed.ToString()))
+    [void] (Assert-BaselineId $metadata $seed)
+    if ($metadata.egressPolicy.defaultAction -cne 'Deny' -or
+        $metadata.egressPolicy.trafficInspection -cne 'Full' -or
+        ($null -ne $metadata.egressPolicy['rules'] -and @($metadata.egressPolicy['rules']).Count -gt 0) -or
+        @($metadata.credentialRefs).Count -gt 0 -or @($metadata.volumes).Count -gt 0 -or
+        $metadata.lifecycle.autoDeletePolicy.enabled -ne $false -or
+        $metadata.lifecycle.autoSuspendPolicy.enabled -ne $true -or
+        $metadata.lifecycle.autoSuspendPolicy.interval -ne 900 -or
+        $metadata.lifecycle.autoSuspendPolicy.mode -cne 'Memory') {
+        throw 'Seed policy, credentials, mounts or auto-delete configuration does not match the clean baseline.'
+    }
+    $snapshot = ConvertFrom-BaselineNativeJson (Invoke-BaselineAca $Options @(
+        'sandbox', 'snapshot', '--group', $Options.GroupName, '--id', $seed.ToString(),
+        '--name', $name, '--label', 'purpose=runtime-clean-seed') -LongOperation)
+    $snapshotId = Assert-BaselineId $snapshot
+    $descriptor = @{
+        schema_version = '1.0'; purpose = 'runtime-clean-public-data'
+        subscription_id = $Options.SubscriptionId.ToString(); resource_group = $Options.ResourceGroup
+        region = $Options.Region; group_name = $Options.GroupName
+        seed_id = $seed.ToString(); snapshot_id = $snapshotId.ToString()
+        dataset_version = $data.dataset_version; files = $pins
+        workspace = '/workspace'; dataset_directory = '/opt/lab722-data'
+        execution_uid = $check.uid; verified = $true
+        execution_prefix = $prefix
+        platform_identity_environment_absent = $false; analysis_environment_cleared = $true
+        learner_sign_in_verified = $false; tenant_isolation_verified = $false
+    }
+    $path = Join-Path $Output 'runtime-seed.json'
+    Write-BaselineArtifact $path (ConvertTo-Json -InputObject $descriptor -Depth 6)
+    return @{ descriptor = $path; seed_id = $seed.ToString(); snapshot_id = $snapshotId.ToString() }
+}
+
 function Invoke-PrepareWorkerBaseline {
     [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'Medium')]
     param([hashtable] $Options)
     $output = Get-BaselineNewDirectory $Options.OutputDirectory
     if ($Options.SubscriptionId -eq [guid]::Empty) { throw 'An explicit nonempty subscription UUID is required.' }
+    if ($Options.Mode -eq 'RuntimeSeed') {
+        return New-RuntimeSeed -Options $Options -Output $output -WhatIf:$WhatIfPreference
+    }
     if ($Options.Mode -notin @('Provision', 'Reuse', 'CheckCapacity', 'VerifyPrimary')) {
-        throw 'Choose explicit Provision, Reuse, CheckCapacity or VerifyPrimary mode.'
+        throw 'Choose explicit Provision, Reuse, CheckCapacity, VerifyPrimary or RuntimeSeed mode.'
     }
     if ($Options['PrimaryOnly'] -and $Options.Mode -ne 'Provision') {
         throw 'PrimaryOnly requires explicitly authorized Provision mode.'

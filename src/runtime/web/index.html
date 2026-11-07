@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Caldova | Sandbox runtime lab</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header><p class="eyebrow">LAB722 / Azure Container Apps</p><h1>Caldova runtime analysis</h1>
+      <p>Follow a request from Foundry to its tool and actual Sandbox execution.</p></header>
+    <section>
+      <h2>1. Open your lab allocation</h2>
+      <p>No learner sign-in or partner access exercise. The access key protects this allocated endpoint;
+        it is not a user identity. Keep it private.</p>
+      <label for="key">Facilitator-provided access key</label>
+      <input id="key" type="password" autocomplete="off" spellcheck="false">
+      <button id="connect" type="button">Connect</button>
+      <pre id="configuration" aria-live="polite">Not connected.</pre>
+    </section>
+    <section>
+      <h2>2. Ask Foundry to generate and execute Python</h2>
+      <label for="prompt">Analysis request</label>
+      <textarea id="prompt" rows="3">Group the frozen trial records by phase. Return chart data and the source trial IDs used.</textarea>
+      <button id="analyze" type="button" disabled>Ask Foundry</button>
+      <p>This follows Express &rarr; Foundry &rarr; Toolbox &rarr; MCP backend &rarr; Sandbox.</p>
+    </section>
+    <section>
+      <h2>3. Inspect or edit the code</h2>
+      <label for="code">Python executed in the fixed Sandbox</label>
+      <textarea id="code" rows="12" spellcheck="false">import json, os
+print(json.dumps({"uid": os.getuid(), "message": "Hello from the Sandbox"}))</textarea>
+      <button id="execute" type="button" disabled>Run edited code</button>
+      <p>This goes directly from Express to the Sandbox. It does not call Foundry.
+        Use it to test a failure, a timeout or a denied operation.</p>
+    </section>
+    <section aria-live="polite">
+      <h2>4. Read the execution evidence</h2>
+      <p id="status">No request yet.</p>
+      <pre id="evidence"></pre>
+      <div id="chart"></div>
+      <h3>Actual result / stdout</h3><pre id="result"></pre>
+      <h3>Actual stderr</h3><pre id="stderr"></pre>
+      <h3>Agent summary (not independent validation)</h3><p id="answer"></p>
+    </section>
+    <footer>Frozen public dataset: caldova-public-lab-use-v2. Software lab only, not medical advice.
+      Execution success is not proof of answer correctness. Writable state is shared within your allocation;
+      each request uses a fresh Foundry conversation.</footer>
+  </main>
+</body>
+</html>
