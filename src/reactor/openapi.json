@@ -1,0 +1,50 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "LAB722 reactor execution", "version": "1.0"},
+  "servers": [{"url": "https://FACILITATOR_SUPPLIED_EXECUTION_ENDPOINT"}],
+  "paths": {
+    "/offload": {
+      "post": {
+        "operationId": "reactor_execute",
+        "summary": "Execute a backend-authorized bounded workflow in task Sandboxes",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["run_id", "user_id", "customer_id", "conversation_id", "run_grant", "tasks"],
+                "properties": {
+                  "run_id": {"type": "string"},
+                  "user_id": {"type": "string"},
+                  "customer_id": {"type": "string"},
+                  "conversation_id": {"type": "string"},
+                  "run_grant": {"type": "string", "description": "Runtime-only backend-issued authorization; never supplied by the model"},
+                  "tasks": {
+                    "type": "array", "minItems": 1, "maxItems": 2,
+                    "items": {
+                      "type": "object", "additionalProperties": false,
+                      "required": ["step", "code"],
+                      "properties": {
+                        "step": {"type": "string", "enum": ["phases", "safety", "egress", "limit", "failure"]},
+                        "code": {"type": "string", "maxLength": 16384}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Correlated execution receipts and independent acceptance"},
+          "401": {"description": "Service token invalid"},
+          "403": {"description": "Caller or owned execution binding rejected"},
+          "409": {"description": "Execution already claimed; inspect status instead of replay"},
+          "502": {"description": "Offload failed; explicit reconciliation required"}
+        }
+      }
+    }
+  }
+}

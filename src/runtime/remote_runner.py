@@ -98,6 +98,19 @@ def stop_analysis(child):
         time.sleep(0.01)
 
 
+def prepare_customer_note(payload):
+    if "customer_note" in payload:
+        note = payload["customer_note"]
+        if not isinstance(note, str) or len(note.encode()) > 1024:
+            raise ValueError("The server-owned customer note is outside the lab contract.")
+        path = pathlib.Path("/workspace/customer-note.txt")
+        if path.is_symlink():
+            raise PermissionError("Customer note path must not be a symbolic link.")
+        path.write_text(note)
+        path.chmod(0o600)
+        os.chown(path, 65534, 65534)
+
+
 def run(payload):
     if os.getuid() != 0:
         raise RuntimeError("The trusted execution supervisor must start as root.")
@@ -106,6 +119,7 @@ def run(payload):
         raise ValueError("Code must be nonempty Python, at most 16 KiB, without NUL bytes.")
     pins = frozen_files()
     identity_status = identity_endpoint_status()
+    prepare_customer_note(payload)
     if ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) != 0:
         raise OSError(ctypes.get_errno(), "Cannot enable analysis descendant reaping.")
     started = time.monotonic()
@@ -159,6 +173,7 @@ def run(payload):
         "schema_version": "1.0",
         "run_id": payload["run_id"],
         "execution_marker": payload["marker"],
+        "code_sha256": hashlib.sha256(code.encode()).hexdigest(),
         "status": reason or ("completed" if child.returncode == 0 else "failed"),
         "exit_code": child.returncode,
         "stdout": output["stdout"].decode("utf-8", errors="replace"),

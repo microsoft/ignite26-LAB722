@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caldova research | LAB722 reactor</title>
+<style>
+body{font:16px system-ui;background:#f4f6f9;color:#172436;max-width:960px;margin:2rem auto;padding:1rem}
+section{background:white;border:1px solid #dbe2eb;border-radius:12px;padding:1.2rem;margin:1rem 0}
+label{display:block;margin:.6rem 0}input,select,textarea,button{font:inherit;padding:.55rem}
+textarea{width:95%;min-height:5rem}button{cursor:pointer;background:#1663ab;color:white;border:0;border-radius:6px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere}#status{font-weight:600}
+</style>
+<h1>Caldova research</h1>
+<p>LAB722 reactor: a hosted workflow and task-scoped Sandbox execution.</p>
+<section>
+<h2>Demo application account</h2>
+<p>Alice and Bob are application accounts, not Entra users. Their passwords come from your facilitator.</p>
+<label>Username <input id="username" autocomplete="username"></label>
+<label>Password <input id="password" type="password" autocomplete="current-password"></label>
+<button id="login">Sign in</button> <button id="logout">Sign out</button>
+<p id="identity"></p>
+</section>
+<section>
+<h2>One micro-transaction</h2>
+<p>Start with phases. Then expand to the two-worker workflow. Negative probes are expected to fail.</p>
+<label>Task <select id="task">
+<option value="phases">Trial phase analysis</option><option value="safety">Safety report count</option>
+<option value="workflow">Two workers and review</option><option value="egress">Prohibited Sandbox egress</option>
+<option value="limit">Wall-time limit breach</option><option value="failure">Controlled exit 19</option>
+</select></label>
+<label>Question <textarea id="question">Analyze all frozen trial records and explain the independent acceptance evidence.</textarea></label>
+<label>Idempotency key <input id="key"></label>
+<button id="run" disabled>Run</button> <button id="refresh">Inspect owned run</button>
+<button id="cancel">Cancel and reconcile owned run</button>
+<p id="connection" aria-live="polite"></p>
+<p id="status" aria-live="polite">Not running</p>
+<p>Run ID <input id="run-id" placeholder="Current owned run"></p>
+<p>Artifact ID <input id="artifact-id" placeholder="From owned run artifacts"></p>
+<button id="artifact">Inspect evidence artifact</button>
+<pre id="output"></pre>
+</section>
+<script>
+let csrf="";
+const el=id=>document.getElementById(id);
+const show=value=>el("output").textContent=JSON.stringify(value,null,2);
+async function api(path,body){
+ const options=body===undefined?{}:{method:"POST",headers:{"Content-Type":"application/json","X-CSRF-Token":csrf},body:JSON.stringify(body)};
+ const response=await fetch(path,options);
+ const text=await response.text();
+ let value;try{value=JSON.parse(text)}catch{value={error:text}};
+ if(!response.ok)throw new Error("HTTP "+response.status+": "+JSON.stringify(value));
+ return value;
+}
+async function session(){
+ const value=await api("/api/session");csrf=value.csrf;
+ el("identity").textContent=value.user_id?`${value.user_id} / ${value.customer_id} (application-asserted)`:"Signed out";
+ el("run").disabled=!value.hosted_configured || !value.user_id;
+ el("connection").textContent=value.hosted_configured?"Hosted endpoint configured; verify the live call path.":"Hosted orchestrator not connected. Sign-in and owned inspection remain available; ask the facilitator to configure the learner-created endpoint.";
+}
+function clearOwnedView(){el("output").textContent="";el("run-id").value="";el("artifact-id").value="";el("key").value=crypto.randomUUID()}
+async function action(fn){try{el("status").textContent="Working...";const result=await fn();show(result);el("status").textContent="Operation completed; inspect the evidence."}catch(error){el("status").textContent=error.message}}
+el("key").value=crypto.randomUUID();
+el("login").onclick=()=>action(async()=>{const result=await api("/api/login",{username:el("username").value,password:el("password").value});el("password").value="";clearOwnedView();await session();return result});
+el("logout").onclick=()=>action(async()=>{const result=await api("/api/logout",{});clearOwnedView();await session();return result});
+el("run").onclick=()=>action(async()=>{const result=await api("/api/runs",{task:el("task").value,question:el("question").value,idempotency_key:el("key").value});el("run-id").value=result.run.run_id;return result});
+el("refresh").onclick=()=>action(()=>api("/api/runs/"+encodeURIComponent(el("run-id").value)));
+el("cancel").onclick=()=>action(()=>api("/api/runs/"+encodeURIComponent(el("run-id").value)+"/cancel",{}));
+el("artifact").onclick=()=>action(()=>api("/api/runs/"+encodeURIComponent(el("run-id").value)+"/artifacts/"+encodeURIComponent(el("artifact-id").value)));
+session().catch(error=>el("status").textContent=error.message);
+</script>
+</html>

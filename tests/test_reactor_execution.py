@@ -1,0 +1,181 @@
+import asyncio
+import hashlib
+import json
+import unittest
+from unittest.mock import AsyncMock
+from uuid import uuid4
+
+from src.reactor.evaluation import PHASE_COUNTS, evaluate
+from src.reactor.sandboxes import TaskSandboxes
+from src.runtime.frozen import PINS
+
+
+class Evaluation(unittest.TestCase):
+    def test_successful_but_wrong_answer_fails_independent_check(self):
+        source = {"trials": [{"trial_id": "NCT1"}], "safety_reports": [{"report_id": "R1"}, {"report_id": "R2"}]}
+        correct = json.dumps({"counts": PHASE_COUNTS, "source_ids": ["NCT1"]})
+        wrong = json.dumps({"counts": {"PHASE3": 77}, "source_ids": ["NCT1"]})
+        self.assertTrue(evaluate("phases", correct, source)["passed"])
+        self.assertFalse(evaluate("phases", wrong, source)["passed"])
+        self.assertFalse(evaluate("safety", '{"count":3}', source)["passed"])
+        self.assertFalse(evaluate("safety", '{"count":2}', source)["passed"])
+        self.assertTrue(evaluate("safety", '{"count":2,"source_ids":["R1","R2"]}', source)["passed"])
+
+
+class Lifecycle(unittest.IsolatedAsyncioTestCase):
+    def manager(self):
+        return TaskSandboxes(
+            subscription=str(uuid4()), resource_group="test-rg", region="westus3",
+            group="test-group", snapshot=str(uuid4()), identity_client_id=str(uuid4()),
+        )
+
+    async def test_execution_failure_still_deletes_exact_task_sandbox(self):
+        manager = self.manager()
+        sandbox = str(uuid4())
+        manager.native = AsyncMock(side_effect=[
+            json.dumps({"id": sandbox, "sourcesRef": {"snapshot": {"id": manager.snapshot}},
+                        "egressPolicy": {"defaultAction": "Deny", "trafficInspection": "Full"}}),
+            RuntimeError("interrupted execution"),
+            "",
+        ])
+        with self.assertRaisesRegex(RuntimeError, "interrupted"):
+            await manager.execute(str(uuid4()), "failure", "raise SystemExit(19)")
+        self.assertEqual(manager.native.call_args_list[-1].args[0], ["delete", "--id", sandbox, "--yes"])
+        creation = manager.native.call_args_list[0].args[0]
+        self.assertNotIn("--cpu", creation)
+        self.assertNotIn("--memory", creation)
+
+    async def test_receipt_is_correlated_and_cleanup_is_required(self):
+        manager = self.manager()
+        sandbox = str(uuid4())
+        run_id = str(uuid4())
+
+        async def native(arguments, **kwargs):
+            if arguments[0] == "create":
+                return json.dumps({"id": sandbox, "sourcesRef": {"snapshot": {"id": manager.snapshot}},
+                                   "egressPolicy": {"defaultAction": "Deny", "trafficInspection": "Full"}})
+            if arguments[0] == "exec":
+                import base64
+                import shlex
+                environment = shlex.split(arguments[-1])[1]
+                payload = json.loads(base64.b64decode(environment.split("=", 1)[1]))
+                return json.dumps({
+                    "schema_version": "1.0", "dataset_version": "caldova-public-lab-use-v2",
+                    "identity_endpoint_status": 401,
+                    "run_id": run_id, "execution_marker": payload["marker"],
+                    "code_sha256": hashlib.sha256(payload["code"].encode()).hexdigest(),
+                    "files_sha256": PINS, "execution_uid": 65534,
+                    "environment_cleared": True, "no_new_privileges": True,
+                    "status": "completed", "stdout": "{}", "stderr": "",
+                    "captured_bytes": 2, "elapsed_seconds": 0.1, "exit_code": 0,
+                })
+            return ""
+
+        manager.native = AsyncMock(side_effect=native)
+        receipt = await manager.execute(run_id, "phases", 'print("{}")')
+        self.assertEqual(receipt["sandbox_id"], sandbox)
+        self.assertEqual(receipt["cleanup"], "deleted")
+
+    async def test_cancelled_execution_cleans_up_before_propagating(self):
+        manager = self.manager()
+        sandbox = str(uuid4())
+        entered = asyncio.Event()
+        deleted = asyncio.Event()
+
+        async def native(arguments, **kwargs):
+            if arguments[0] == "create":
+                return json.dumps({"id": sandbox, "sourcesRef": {"snapshot": {"id": manager.snapshot}},
+                                   "egressPolicy": {"defaultAction": "Deny", "trafficInspection": "Full"}})
+            if arguments[0] == "exec":
+                entered.set()
+                await asyncio.sleep(60)
+            deleted.set()
+            return ""
+
+        manager.native = AsyncMock(side_effect=native)
+        task = asyncio.create_task(manager.execute(str(uuid4()), "phases", 'print("{}")'))
+        await entered.wait()
+        task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await task
+        self.assertTrue(deleted.is_set())
+
+    async def test_uncertain_creation_reconciles_only_matching_run(self):
+        manager = self.manager()
+        run_id, sandbox = str(uuid4()), str(uuid4())
+        manager.native = AsyncMock(side_effect=[
+            TimeoutError("create result lost"),
+            json.dumps([{"id": sandbox, "labels": {"lab": "LAB722", "purpose": "reactor-task", "run": run_id}}]),
+            "",
+        ])
+        with self.assertRaises(TimeoutError):
+            await manager.execute(run_id, "phases", 'print("{}")')
+        self.assertEqual(manager.native.call_args_list[-1].args[0], ["delete", "--id", sandbox, "--yes"])
+
+    async def test_recovery_refuses_foreign_inventory(self):
+        manager = self.manager()
+        manager.native = AsyncMock(return_value=json.dumps([{
+            "id": str(uuid4()), "labels": {"lab": "LAB722", "purpose": "runtime-clean-seed"},
+        }]))
+        with self.assertRaises(PermissionError):
+            await manager.recover_abandoned(str(uuid4()))
+        self.assertEqual(manager.native.await_count, 1)
+
+    async def test_wrong_created_egress_policy_stops_execution_and_deletes(self):
+        manager = self.manager()
+        sandbox = str(uuid4())
+        manager.native = AsyncMock(side_effect=[
+            json.dumps({"id": sandbox, "sourcesRef": {"snapshot": {"id": manager.snapshot}},
+                        "egressPolicy": {"defaultAction": "Allow", "trafficInspection": "Full"}}),
+            "",
+        ])
+        with self.assertRaises(PermissionError):
+            await manager.execute(str(uuid4()), "egress", "pass")
+        self.assertEqual(manager.native.await_count, 2)
+        self.assertEqual(manager.native.call_args_list[-1].args[0], ["delete", "--id", sandbox, "--yes"])
+
+    async def test_four_queued_tasks_never_create_more_than_two_active_sandboxes(self):
+        manager = self.manager()
+        entered, release = asyncio.Event(), asyncio.Event()
+        active, peak = 0, 0
+
+        async def native(arguments, **kwargs):
+            nonlocal active, peak
+            if arguments[0] == "create":
+                active += 1
+                peak = max(peak, active)
+                await asyncio.sleep(0)
+                return json.dumps({"id": str(uuid4()), "sourcesRef": {"snapshot": {"id": manager.snapshot}},
+                                   "egressPolicy": {"defaultAction": "Deny", "trafficInspection": "Full"}})
+            if arguments[0] == "exec":
+                if active == 2:
+                    entered.set()
+                await release.wait()
+                import base64
+                import shlex
+                environment = shlex.split(arguments[-1])[1]
+                payload = json.loads(base64.b64decode(environment.split("=", 1)[1]))
+                return json.dumps({
+                    "schema_version": "1.0", "dataset_version": "caldova-public-lab-use-v2",
+                    "identity_endpoint_status": 401, "run_id": payload["run_id"],
+                    "execution_marker": payload["marker"],
+                    "code_sha256": hashlib.sha256(payload["code"].encode()).hexdigest(),
+                    "files_sha256": PINS, "execution_uid": 65534,
+                    "environment_cleared": True, "no_new_privileges": True,
+                    "status": "completed", "stdout": "{}", "stderr": "",
+                    "captured_bytes": 2, "elapsed_seconds": 0.1, "exit_code": 0,
+                })
+            active -= 1
+            return ""
+
+        manager.native = AsyncMock(side_effect=native)
+        tasks = [asyncio.create_task(manager.execute(str(uuid4()), "phases", "pass")) for _ in range(4)]
+        await asyncio.wait_for(entered.wait(), timeout=5)
+        self.assertEqual(peak, 2)
+        release.set()
+        await asyncio.gather(*tasks)
+        self.assertEqual(peak, 2)
+        self.assertEqual(active, 0)
+
+if __name__ == "__main__":
+    unittest.main()
