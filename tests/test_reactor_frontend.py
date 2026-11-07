@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 import httpx
 from starlette.exceptions import HTTPException
 
-from src.reactor.frontend import create_app
+from src.reactor.frontend import HostedClient, create_app
 
 
 class FrontendSessions(unittest.IsolatedAsyncioTestCase):
@@ -47,6 +47,35 @@ class FrontendSessions(unittest.IsolatedAsyncioTestCase):
         self.client.cookies.set("reactor_session", "forged-cookie")
         result = await self.client.get("/api/runs/owned-run")
         self.assertEqual(result.status_code, 401)
+
+    async def test_public_origin_survives_tls_termination_and_rejects_foreign_origin(self):
+        await self.client.aclose()
+        application = create_app(
+            backend=self.backend, hosted=self.hosted, session_key=secrets.token_urlsafe(48),
+            public_origin="https://frontend.test",
+        )
+
+        async def tls_ingress(scope, receive, send):
+            await application({**scope, "scheme": "http"}, receive, send)
+
+        self.client = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=tls_ingress), base_url="https://frontend.test",
+        )
+        self.csrf = (await self.client.get("/api/session")).json()["csrf"]
+        self.backend.call.return_value = {"user_id": "user-alice", "customer_id": "customer-alice"}
+        result = await self.client.post(
+            "/api/login", headers={"X-CSRF-Token": self.csrf, "Origin": "https://frontend.test"},
+            json={"username": "alice", "password": "fixture"},
+        )
+        self.assertEqual(result.status_code, 200)
+        self.csrf = (await self.client.get("/api/session")).json()["csrf"]
+        self.backend.call.reset_mock()
+        result = await self.client.post(
+            "/api/login", headers={"X-CSRF-Token": self.csrf, "Origin": "https://foreign.test"},
+            json={"username": "alice", "password": "fixture"},
+        )
+        self.assertEqual(result.status_code, 403)
+        self.backend.call.assert_not_awaited()
 
     async def test_foreign_cancel_is_rejected_before_touching_hosted_task(self):
         await self.login()
@@ -100,6 +129,41 @@ class FrontendSessions(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.hosted.invoke.call_args.kwargs["binding"], binding)
         release.set()
         await asyncio.sleep(0.02)
+
+
+class HostedResponses(unittest.IsolatedAsyncioTestCase):
+    async def test_http_success_is_not_workflow_success_and_metadata_stays_private(self):
+        credential = AsyncMock()
+        credential.get_token.return_value.token = "fake-token"
+        client = HostedClient("https://hosted.test/responses", credential)
+        await client.http.aclose()
+        binding = {
+            "run_id": "owned-run", "user_id": "user-alice", "customer_id": "customer-alice",
+            "conversation_id": "owned-conversation", "run_grant": "fake-private-grant",
+        }
+        response_body = {
+            "status": "completed", "agent_session_id": "owned-session",
+            "metadata": {"reactor_binding": binding},
+            "output": [{"content": [{"type": "output_text", "text": "Accepted execution evidence."}]}],
+        }
+        client.http = httpx.AsyncClient(transport=httpx.MockTransport(
+            lambda request: httpx.Response(200, json=response_body),
+        ))
+        try:
+            for status in ("failed", "in_progress"):
+                response_body["status"] = status
+                with self.subTest(status=status), self.assertRaises(HTTPException) as raised:
+                    await client.invoke(question="Analyze phases.", task="phases", binding=binding)
+                self.assertEqual(raised.exception.status_code, 502)
+                self.assertNotIn(binding["run_grant"], raised.exception.detail)
+            response_body["status"] = "completed"
+            result = await client.invoke(question="Analyze phases.", task="phases", binding=binding)
+            self.assertEqual(result["agent_session_id"], "owned-session")
+            self.assertEqual(result["output"], ["Accepted execution evidence."])
+            self.assertNotIn("metadata", result)
+            self.assertNotIn(binding["run_grant"], str(result))
+        finally:
+            await client.close()
 
 
 if __name__ == "__main__":

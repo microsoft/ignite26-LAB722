@@ -2,6 +2,7 @@
 import json
 
 FIELDS = ("run_id", "user_id", "customer_id", "conversation_id", "run_grant")
+GRANT_HEADER = "X-Reactor-Run-Grant"
 
 
 def binding_from_metadata(metadata):
@@ -25,4 +26,7 @@ async def invoke_bound(toolbox, operation: str, binding: dict, model_tasks: list
             raise ValueError("The model task is invalid.")
         # No model-provided identity, grant, URL, method or header survives.
         tasks.append({"step": task["step"], "code": task["code"]})
-    return await toolbox.call_tool(operation, **{name: binding[name] for name in FIELDS}, tasks=tasks)
+    return await toolbox.call_tool(operation, **{
+        GRANT_HEADER: binding["run_grant"],
+        "body": {**{name: binding[name] for name in FIELDS if name != "run_grant"}, "tasks": tasks},
+    })

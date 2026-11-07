@@ -1,79 +1,74 @@
 # LAB722 reactor walkthrough report
 
-## Scope and verdict
+## Scope and result
 
-**November 7, 2026; branch `lab-reactor`; implementation commit `2c23e1a5de6dd1fcabcfaf1baf8f49c6ed1c5122`; intended environment: the authorized `ig2026-lab-learner` allocation. Literal learner execution: blocked at readiness.**
+**November 7, 2026; branch `lab-reactor`; authorized allocation `ig2026-lab-learner`, westus3.** The owner authorized permanent provisioning after the Entra probes. The earlier no-audience/no-creation blocker is resolved.
 
-The owner declined creation of a tenant service API registration. No existing dedicated execution API audience was supplied. We did not create tenant resources or substitute first-party-audience tokens, shared keys, the old runtime or a self-hosted orchestrator. No new Express apps, hosted agent or reactor Toolbox have been deployed.
+The real path now works: frontend Express -> native Foundry hosted workflow -> managed Toolbox OpenAPI -> execution Express -> new task Sandbox -> independent result check -> exact deletion. Both demo owners completed useful work. The final rehearsal used service image v8, hosted image v7/native version 6 and Toolbox version 3. These are locally committed reactor changes, not a push, merge or tag movement. The learner entry is [the maintained guide](lab-rejig-learner-instructions.md); the root implementation/walkthrough contracts are unchanged.
 
-The new source uses separate frontend/execution Express apps, a request-owned native hosted Responses workflow, managed Toolbox OpenAPI and dynamically created task Sandboxes. This is source-supported/local-validation evidence, not a verified live call path. The learner entry is [the maintained guide](lab-rejig-learner-instructions.md); the root walkthrough contract is unchanged. Commits are local only; `lab-ready-1` remains at `572037ae91d419c87d98ed5f577cf6cf5ac953a9`.
+## L1-L5 verdicts
 
-## Objective coverage
-
-| Outcome | Local observed/source-supported coverage | Fresh live verdict |
+| Outcome | Verdict | Observed evidence and limit |
 |---|---|---|
-| L1 | Real Argon2 login for both accounts; signed sessions/CSRF; allowed owned work and denied swapped run/result/conversation/cancel/grant; tenant/audience/signature/OID/delegation checks; model-hidden binding wrapper | **Blocked**: actual service tokens, hosted context and gateway binding not exercised |
-| L2 | Bounded process/receipt validation and actual isolated Linux private-note UID/read/symlink checks; existing root supervisor reused | **Blocked**: useful hosted execution, Sandbox-origin egress denial and limit breach not freshly exercised |
-| L3 | Transactional idempotency, single execution claim, restart fail-closed, cancellation cleanup and exact-run uncertain-create reconciliation in focused tests | **Blocked**: interruption/recovery with live task resources not exercised |
-| L4 | Wrong phase answer and omitted safety provenance rejected alongside correct controls; code/input/marker/resource correlation implemented | **Blocked**: live hosted wrong-result/correlation path not exercised |
-| L5 | One reserved run/customer, two total task slots and at most two workers; cleanup fencing; image/configuration versions and concrete revert instructions | **Blocked**: live fan-out, Sandbox/token usage and revert not exercised |
+| L1: service authentication and application ownership | **Passed** | Alice `6915f705-efb7-45c2-960d-c712f1fbdcc6` and Bob `92becf61-f752-4a22-9cd3-f0c93fde29c1` completed accepted phases work with distinct native sessions. Both directions of foreign run/artifact/conversation/cancel returned 403; owned conversation controls returned 200. Bob's identity-swapping prompt remained Bob-owned. Actual gateway execution with a forged owner/grant returned 403; anonymous POST returned 401. Genuine execute-grant swap/replay combinations are additionally covered offline, not represented as live token extraction. |
+| L2: constrained code and actions | **Passed** | Sandbox-origin `urllib.request.urlopen` failed visibly with HTTP 403 under the actual `Deny`/`Full` resource policy. Limit run `26fba2c3-cf15-493b-8598-283365d81916` returned `timed_out`, exit -9, **30.084 seconds**, and deletion. Useful phases/safety work succeeded. A policy-specific traffic verdict is unavailable: full causal attribution of the network 403 is not claimed. |
+| L3: interruption, retries and recovery | **Passed** | Controlled failure `9f633a14-d9df-46ce-8476-68d5620d848f` exited 19 and retained owned evidence after deletion. Completed/failed creation-key retries returned the same run and one evidence artifact. Alice's running limit `90c02b6d-dd63-4702-87a1-28f99197cab2` was cancelled and cleaned; its same-key retry returned the cancelled record. Bob's concurrent workflow still completed, and Alice recovered useful work with a new key. No durable restart restoration is claimed. |
+| L4: independent acceptance and provenance | **Passed** | Final phases and two-worker results matched the frozen counts/source IDs; every receipt's run, UTF-8 code digest, native session and deletion were compared. Earlier live v7 execution `149eea4f-a637-4a89-ab2b-763c11fef736` exited zero but counted zero records: the unchanged independent checker rejected it. The final offline fixture also rejects PHASE3=77 and missing safety source IDs while accepting correct controls. That earlier wrong-result evidence is not mislabeled as a v8 malicious-worker run. |
+| L5: budget, usage and change control | **Passed** | A second fresh Alice run returned 429 while her slot was reserved; Bob was admitted. Aggregate inventory observed **two Running task Sandboxes**, then zero. Bob's two-worker run `52d4b66a-8719-44f0-91cb-0907755ffa64` had two accepted receipts and **9.378 total Sandbox seconds**. Digests/versions and a concrete known-good-image revert procedure are recorded. Outer hosted usage returned null; model token totals/costs are unavailable. Revert is documented, not live-exercised. |
 
-Each learner outcome has an action, observation, explanation and transfer question in the maintained learner guide. Instructional support is **partial** where required live capability remains unverified; no live outcome is evaluated as passed. Offline evaluator tests are labeled offline. Actual-created policy fields are recorded as `receipt.egress_policy.defaultAction` and `trafficInspection`; the UI does not expose a policy-specific traffic verdict, so full live egress enforcement is not established. Configured policies and mocked service identities are not live enforcement evidence.
+These verdicts cover the stated minimum technical exercises, not production readiness or every possible attack. Local fixtures and live checks are identified separately. Missing traffic diagnostics, model usage and durable state are not passing measurements.
 
-## Validation evidence
+## Actual resources and identities
 
-| Check | Evidence and limit |
+| Component | Final state / identity |
 |---|---|
-| Windows reactor unit/API checks | `python -B -m unittest discover -s tests -p 'test_reactor_*.py' -v`: **38 checks, 37 passed and one Linux-root skip** |
-| Final Linux service-image checks | ACR run `ds5`, **38 passed, no skips**, including the actual private-note UID/read/symlink check; log retained in session artifact `reactor-services-ds5-20261107.log`; all 24 reactor source/test files matched the build context |
-| Preserved supervisor regression | ACR run `ds3`, **10 passed, no skips**; log retained as `reactor-supervisor-ds3-20261107.log` |
-| Genuine hosted image | ACR run `ds1` succeeded; pinned hosted module imported during Linux build |
-| ARM | `az bicep build --file .\infra\reactor.bicep --stdout` succeeds; missing-preview-types warnings mean cloud property validation is not established |
-| Deployment helper | PowerShell parser passed; three offline mocked cases verified omitted endpoint, retained HTTPS endpoint and HTTP rejection before deployment; no cloud write in these checks |
-| Shared-registry follow-up | Verified `acateam`/`prodish-stuff`, imported both exact manifests under `lab722`, and fetched both manifests using anonymous pull tokens without Azure credentials; digests unchanged. Compiled ARM defaults omit registry credentials and condition image-pull roles on private mode; five offline helper cases passed |
-| Native definitions | Both `setup-reactor-foundry.py hosted/toolbox --describe` serialize the supported SDK definitions offline; no cloud registration occurs |
-| Whitespace | `git diff --check` |
+| Frontend | `lab722-reactor-frontend`, service v8; UAMI object ID `486909ad-db2b-45e8-8ea0-86d7ac4c8a4a`; HTTPS UI, signed demo sessions and canonical public origin |
+| Execution | `lab722-reactor-execution`, service v8; UAMI object ID `013f06e3-db04-4e4b-a1a7-7aed860f13af`; group-scoped Sandbox management |
+| Native hosted agent | `reactor-orchestrator` **version 6 active**, endpoint enabled; platform-created ServiceIdentity `df4bfc73-c702-4506-9107-f2fe63e6b462`, separate managed blueprint |
+| Toolbox / connection | `runtime-reactor` **version 3 default**; `reactor-execution` OpenAPI / ProjectManagedIdentity connection; repeated setup reused v3 |
+| Actual execution bearer caller | Project MI `1db2558e-4f2e-4c02-ad7f-4cd79c5d7dcb`; tenant `72f988bf-86f1-41af-91ab-2d7cd011db47`; audience `api://b9b2ea56-35aa-4c34-b50f-4ccfffd1c6a6` |
+| Dedicated API | Allocation-owned single-tenant application client ID `b9b2ea56-35aa-4c34-b50f-4ccfffd1c6a6`; token version 1; approved service-principal assignment requirement false; no client secret, demo Entra user or delegated Graph grant |
+| Registry permissions | Project MI has scoped `AcrPull` on `acateam`; native runtime has project Foundry User. The unnecessary runtime AcrPull probe assignment was removed. Express pulls anonymously; no registry policy was changed. |
+| Sandbox group | `lab722-hg4qnurp4clyw-sandboxes`, no usable group identity; approved snapshot `4f90fd07-005f-48f6-bb0a-a691a45af976` |
 
-Final component image candidates, not a live deployment:
+Alice/Bob are application accounts. Live native context returned the frontend UAMI's object ID as platform user for both, with different call/session IDs. No `x-ms-user-identity` impersonation was enabled; the current Foundry User role excludes that action. Displayed app owners are not delegated Entra credentials.
 
-- Services `acateam.azurecr.io/lab722/reactor-services:20261107-v3`, built in run `ds5`: `sha256:12edea1007a697b1adf902b7e69785799f398c8e7367d18307cb1c40d24b590e`.
-- Hosted `acateam.azurecr.io/lab722/reactor-hosted:20261107-v1`: `sha256:29aecc979a793c5656a8272813c81f0e4f2f9e09d422f5272259a4cdccfc382d`.
+## Immutable delivery and checks
 
-The owner selected `acateam.azurecr.io/lab722` after the initial local delivery. Both images were imported unchanged from the build registry `lab722hg4qnurp4clywacr.azurecr.io`; the shared registry already had anonymous pulls enabled, and those pulls were independently verified. No registry access policy, tenant resources or application deployment was changed. Earlier service candidates `ds2` (30 checks) and `ds4` (36 checks) are superseded by `ds5`; the hosted component source is unchanged since `ds1`. The Windows CLI initially failed path resolution, then failed streaming Unicode build logs; registry task status and authenticated log retrieval independently verified the build results. Later builds used `--no-logs`. Those repairs were facilitator validation, not a passing literal learner run.
-
-## Findings and corrections
-
-| Location / outcome | Severity | Expected versus found; smallest correction | Verification |
-|---|---|---|---|
-| `execution.py` / L3 | Major | Concurrent owned cancellation escaped `/offload` as `CancelledError`; return explicit HTTP 409 only for the owned-cancel state and propagate other cancellation | Concurrent API test passed; targeted independent rereview found no issue |
-| `main.py` / all outcomes | Blocker | Startup used `asyncio.run` inside the ASGI running loop; use a synchronous factory and asynchronous lifespan, close credentials and refuse missing-state orphans | Running-loop/orphan tests passed; targeted independent rereview found no issue |
-| `main.py`, `frontend.py`, deployment helper / sequence | Major | Preparation required an endpoint from an agent learners had not created; allow an empty endpoint, disclose unconnected state and reject submission before reserving work | Startup and login/inspection/no-reservation tests passed; three offline helper cases passed |
-| Learner sections 2 and 4 / L1 | Major | Expected OID/audience fields and execution-negative action were missing; supply literal configuration fields, independent values, offline swapped-binding fixture and separate live unbound-401 action | Fresh targeted B/C reread resolved; live foreign-grant proof remains unverified |
-| Learner sections 3-5 / L4 | Major | Finding receipt fields did not compare them; supply trusted pins/source IDs and run/marker/code-digest comparisons for every receipt; move prediction before Run | Fresh final B/C reread resolved; wrong-answer and correct-control tests passed |
-| Learner section 5 / L2 | Major | No numeric timeout comparison or precise egress verdict; supply field paths/bounds and actual-created policy fields; classify unavailable traffic verdict explicitly | Fresh final B/C reread resolved; full live enforcement remains unverified |
-| Learner recovery / L3 | Major | Abandoned ephemeral state had no authorized cleanup handoff; supply exact task selector, facilitator deletion of confirmed IDs and ending criteria | Fresh targeted B/C reread resolved; local fail-closed and exact-cleanup tests passed |
-| Learner section 6 / L5 | Major | Single-run inventory could not show aggregate capacity, and version/revert lookups were unspecified; supply aggregate selector, exact lookups and optional previous-reference labels | Fresh final B/C reread resolved; four-queued-task/two-physical-slot test passed |
-
-These corrections are source/local or instructional evidence, not undocumented repairs to a completed live learner run. The final unconnected-preparation change received an informed coordinator check and focused tests, not a new blind implementation review.
-
-## Walkthrough gate
-
-**A:** independent implementation review completed, its cancellation finding was corrected, and targeted startup/cancellation rereview reported no concrete issue. **B-C:** eight initial instructional findings and three remaining targeted points were corrected; the final scoped reread found none remaining. This does not fill the disclosed live capability gaps.
-
-**D:** blocked at the first required readiness prerequisite: no approved dedicated execution API audience/service grants. No Azure credential switch, substitute shared-key environment or later live checkpoint is represented as passed. Fresh reactor starting/final resource state was not changed by a deployment.
-
-**E:** blind offline calibration detected **4/4 seeded defects, zero misses and zero false alarms**; all three correct controls were accepted. Defects covered the PowerShell prerequisite, successful-but-wrong answer, nonexistent Toolbox identity field and incorrect project-MI-to-demo-user explanation. Fixture retained as `reactor-review-calibration-20261107.json`.
-
-The representative human comprehension and pacing check has **not occurred**. The 75-minute budget remains an unmeasured authoring target. Fresh Skillable permission/platform delivery, real hosted readiness and end-to-end gateway mapping remain unverified.
-
-## Smallest remaining live action
-
-Supply an approved **existing dedicated service API audience and its permitted service grants**, without new tenant resource creation. Then deploy the prepared services/connection and run the documented one-task Alice/Bob identity gate. Verify actual tokens and gateway argument mapping before progressing to two workers, live boundaries, recovery and capacity.
-
-| Classification | Remaining boundary |
+| Artifact / check | Final evidence |
 |---|---|
-| Confirmed blocker | No dedicated execution API audience/app registration and permitted app-only grants have been supplied. Tenant resource creation was declined. |
-| Unverified platform gate | Supported Foundry connection must request that dedicated audience using the actual outbound service identity; live token audience/OID and hosted activation are not yet verified. |
-| Unverified gateway gate | Native Toolbox must advertise the operation and deliver all declared binding fields unchanged; metadata/grant privacy must hold across the actual hosted request. |
-| Not-run acceptance | Fresh allowed/denied Alice/Bob runs, Sandbox execution/egress/limits, interruption/recovery, acceptance correlation, fan-out/usage and revert still require live rehearsal. |
-| Resolved image delivery | Both reactor manifests are published under `acateam.azurecr.io/lab722` and anonymously readable; no private-registry grants are needed for their public-pull path. |
+| Service image v8 | `acateam.azurecr.io/lab722/reactor-services@sha256:48d6a42cd9d7bc87a551f2f05264fb8de6de0efef10bf3ec31e947ca96ff355a` |
+| Hosted image v7 | `acateam.azurecr.io/lab722/reactor-hosted@sha256:2b3ef7ec815035dd5cbfe2c9905cbc5307efd46364bb2b149c91d6e2cb3cb289` |
+| Windows runtime suite | `python -m unittest discover -s tests -p 'test_reactor_*.py'`: **44 tests, 43 passed + one Linux-root skip** |
+| Linux service build | ACR `cj23`: **44 passed, no skips**, including the real private-note supervisor check |
+| Native dispatcher test | Windows and ACR hosted build `cj22`: **1 passed**; real MAF dispatcher, external calls mocked, concurrent owned bindings and typed pending-to-complete results |
+| Preserved supervisor baseline | Earlier Linux ACR `ds3`: 10 passed; not counted as a fresh v8 cloud transaction |
+| Setup / infrastructure | Native helper was exercised for real registration and Toolbox reuse. Bicep, PowerShell parser and whitespace validation supplement cloud/HTTP checks; preview-type warnings are not cloud readiness. |
+
+Frozen v2 has 168 trials, 38 safety reports and PHASE3=76. Source pin is `5c31dcd20478c1644b50eff7a7286b9c568094dd1e26427843afd23fc9dfe57c`; the maintained learner guide includes the manifest/DuckDB pins and every correlation comparison.
+
+Private session artifacts retain the full owned receipts, checks and inventory: `reactor-live-first-task-20261107.json`, `reactor-live-acceptance-20261107.json`, `reactor-live-forged-execution-20261107.json`, `reactor-live-v7-owned-artifact-20261107.json`, `reactor-live-gateway-timeout-20261107.json`, `reactor-ending-sandbox-inventory-20261107.json`, `reactor-native-ending-sessions-20261107.json`, `reactor-cj23-20261107.log` and `reactor-cj22-20261107.log`. Passwords, tokens, grants and signed log URLs are not committed.
+
+## Repairs discovered by real execution
+
+| Boundary | Observed defect | Persistent correction |
+|---|---|---|
+| Async MI startup | Missing `aiohttp` prevented real transport startup | Pin dependency in both manifests; real credential-transport test |
+| TLS ingress / login | Internal HTTP origin rejected external HTTPS login | Canonical `FRONTEND_PUBLIC_ORIGIN`; foreign-origin denial retained |
+| Native tool mapping / privacy | MCP required `body`; error diagnostics echoed its grant | Actual operation `reactor___reactor_execute`; grant moved to verified redacted header |
+| Native deployment | Reserved env/protocol mismatch and wrong image-pull principal | Preview opt-in, protocol 2.0.0, platform-injected reserved env, project-MI ACR pull and separate runtime role |
+| Express configuration | Saved hosted URL did not update the running process; revision restart rejected | Verified app Stop/Start and HTTP configuration check |
+| Native MAF dispatch | Handler `execute` replaced the framework dispatcher | Rename to `orchestrate`; execute the real dispatcher in Linux build tests |
+| Native CLI create | Even `-o json` returned human `Created sandbox: ...` | Structured read-after-create by exact run/step selector; reject foreign labels before execution/deletion |
+| Worker input / MCP output | Guessed frozen layout yielded zero; SDK returned typed text list | Exact worker schemas and one typed text Content result; independent checker kept rejecting wrong output |
+| Long task transport | Gateway failed at 30s; execution finished and cleaned at ~34s | 20s HTTP handoff, declared 202, bounded runtime-only collection of the same task; no execution replay or new MCP endpoint |
+
+The final long-limit run completed through that pending path, unlike the preserved failed pre-repair attempt. HTTP 200 is separately checked for Responses `status: completed`. The run grant never enters model input, generated code, browser output or the tool's JSON body; actual gateway error-header redaction was checked. Exhaustive platform telemetry retention auditing is not claimed.
+
+## Walkthrough gate and ending state
+
+**A:** original implementation review plus two targeted live-fix rereviews completed; final rereviews reported no significant issues. **B-C:** original instructional reviews and a fresh final learner-material check completed. That final check found one runtime-grant sequencing ambiguity: facilitator pre-creation of the logical agent and starter version was described but absent from the role-setup commands. The commands and actor responsibilities now explicitly prepare the runtime identity/grants before learners arrive; learners deploy a new version of that prepared agent. The reviewer confirmed the correction resolved the finding and found no other high-confidence learner-blocking defects. Maintained document relative links passed validation. **D:** one full API-assisted technical rehearsal completed in the intended Azure allocation after the documented repairs. It is not a claim that an uninformed learner followed the original unrepaired guide without help. **E:** original blind offline calibration detected 4/4 seeded defects with no misses/false alarms and accepted all correct controls.
+
+At ending inventory, there were **zero reactor task Sandboxes**. The seed `938dfe19-6eed-4319-b380-1a710335bc4f` and fixed A `cec64c6c-c7d1-4ced-8518-16bfc23d154b` remained present and Stopped. Nine active sessions belonging to this reactor were stopped through the native API; zero remained active. Both Express apps and the enabled native endpoint remain available for the next prepared rehearsal. No old runtime, snapshot, unrelated worktree file or `lab-ready-1` tag was changed.
+
+**Not exercised:** representative human comprehension/pacing, fresh Skillable tenant/platform delivery, production-scale load and live revert. The 75-minute duration remains an authoring target. The smallest remaining delivery action is a representative human walkthrough against the prepared learner allocation, with an explicit Skillable image/identity prerequisite check. No further tenant provisioning is needed for this verified allocation.

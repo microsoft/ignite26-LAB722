@@ -68,6 +68,9 @@ class HostedClient:
             LOG.error("hosted invocation status=%s run=%s", response.status_code, binding["run_id"])
             raise HTTPException(502, "Hosted invocation failed. Inspect run status; reconcile before retry.")
         result = response.json()
+        if result.get("status") != "completed":
+            LOG.error("hosted workflow did not complete run=%s", binding["run_id"])
+            raise HTTPException(502, "Hosted workflow did not complete. Inspect owned status; reconcile before retry.")
         # Metadata (including the grant) is never returned to the browser.
         output = []
         for item in result.get("output", []):
@@ -82,9 +85,13 @@ class HostedClient:
         await self.http.aclose()
 
 
-def create_app(*, backend, hosted, session_key, secure_cookies=True, hosted_configured=True):
+def create_app(*, backend, hosted, session_key, secure_cookies=True, hosted_configured=True, public_origin=None):
     if len(session_key) < 32:
         raise ValueError("A strong boot-specific session signing key is required.")
+    if public_origin is not None:
+        parsed = urlparse(public_origin)
+        if not parsed.netloc or parsed.username or parsed.password or public_origin != f"https://{parsed.netloc}":
+            raise ValueError("The public origin must be an HTTPS origin without credentials or a path.")
     login_attempts = OrderedDict()
     active = {}
     outcomes = OrderedDict()
@@ -103,7 +110,8 @@ def create_app(*, backend, hosted, session_key, secure_cookies=True, hosted_conf
             raise HTTPException(403, "Request verification failed.")
         origin = request.headers.get("origin")
         base = urlparse(str(request.base_url))
-        if origin and origin != f"{base.scheme}://{base.netloc}":
+        expected_origin = public_origin or f"{base.scheme}://{base.netloc}"
+        if origin and origin != expected_origin:
             raise HTTPException(403, "Request origin is not permitted.")
 
     async def home(request):

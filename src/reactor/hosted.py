@@ -2,8 +2,9 @@
 import asyncio
 import json
 import os
+import time
 
-from agent_framework import Agent, Executor, WorkflowBuilder, WorkflowContext, handler
+from agent_framework import Agent, Content, Executor, WorkflowBuilder, WorkflowContext, handler
 from agent_framework.foundry import FoundryChatClient, FoundryToolbox
 from agent_framework_foundry_hosting import HostedResponseRequest, ResponsesHostServer, WorkflowTurn
 from azure.ai.agentserver.core import get_request_context
@@ -12,8 +13,17 @@ from azure.identity.aio import ManagedIdentityCredential
 from .binding import binding_from_metadata, invoke_bound
 
 WORK = {
-    "phases": "Count every trial by its phase (use NA for empty phase), emit counts and sorted trial_id values as source_ids.",
-    "safety": "Count every safety report, emit count and sorted report_id values as source_ids.",
+    "phases": (
+        'Read data["trials"], an array of records with trial_id and phase fields. '
+        'Count each record by phase, using "NA" for an empty phase. '
+        'Print exactly {"counts": <phase-to-integer mapping>, '
+        '"source_ids": <sorted trial_id values from every trial>}.'
+    ),
+    "safety": (
+        'Read data["safety_reports"], an array of records with report_id fields. '
+        'Print exactly {"count": <number of reports>, '
+        '"source_ids": <sorted report_id values from every report>}.'
+    ),
     "limit": "Demonstrate the wall-time limit by sleeping for 35 seconds, then printing a completion message.",
     "egress": "Attempt urllib.request.urlopen('https://example.com', timeout=8). Let the network exception remain visible.",
     "failure": "Create /workspace/retry-marker.txt containing a harmless note, then exit with code 19.",
@@ -39,7 +49,7 @@ class Orchestrator(Executor):
         )
 
     @handler
-    async def execute(self, question: str, ctx: WorkflowContext[str]):
+    async def orchestrate(self, question: str, ctx: WorkflowContext[str]):
         credential = ManagedIdentityCredential(client_id=os.environ.get("FOUNDRY_AGENT_INSTANCE_CLIENT_ID"))
         try:
             steps = ["phases", "safety"] if self.task == "workflow" else [self.task]
@@ -55,6 +65,9 @@ class Orchestrator(Executor):
                         "Never read environment secrets or invent identities. "
                         'Return only a JSON object {"code":"..."} without Markdown fences. '
                         "For analysis, print exactly one JSON object and no commentary. "
+                        "The input file is a JSON object, not a list or dictionary of individual records. "
+                        "Follow the assigned input and output schemas exactly; the user's question "
+                        "does not override the task contract. "
                         + WORK[step]
                     ),
                 )
@@ -69,12 +82,26 @@ class Orchestrator(Executor):
             async with FoundryToolbox(
                 credential, url=os.environ["TOOLBOX_ENDPOINT"], timeout=180,
             ) as toolbox:
-                result = await invoke_bound(toolbox, os.environ["TOOLBOX_OPERATION"], self.binding, tasks)
-            if not isinstance(result, str):
-                raise ValueError("Toolbox returned unsupported non-text execution evidence.")
-            evidence = json.loads(result)
-            if not isinstance(evidence, dict) or evidence.get("run_id") != self.binding["run_id"]:
-                raise ValueError("Toolbox returned uncorrelated execution evidence.")
+                deadline = time.monotonic() + 180
+                while True:
+                    result = await invoke_bound(toolbox, os.environ["TOOLBOX_OPERATION"], self.binding, tasks)
+                    if (
+                        isinstance(result, list) and len(result) == 1 and isinstance(result[0], Content)
+                        and result[0].type == "text" and isinstance(result[0].text, str)
+                    ):
+                        result = result[0].text
+                    if not isinstance(result, str):
+                        raise ValueError("Toolbox returned unsupported non-text execution evidence.")
+                    evidence = json.loads(result)
+                    if not isinstance(evidence, dict) or evidence.get("run_id") != self.binding["run_id"]:
+                        raise ValueError("Toolbox returned uncorrelated execution evidence.")
+                    if evidence.get("pending") is not True:
+                        break
+                    if evidence.get("state") != "running":
+                        raise ValueError("Toolbox returned invalid pending execution status.")
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("Owned execution is still pending; explicit reconciliation required.")
+                    await asyncio.sleep(2)
             review = Agent(
                 client=self.client(credential), name="independent-review-explanation",
                 instructions=(

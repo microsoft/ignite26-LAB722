@@ -26,11 +26,15 @@ Neither Express app exposes `/mcp`. The frontend has no Sandbox-management code.
 
 Alice (`user-alice`, `customer-alice`) and Bob (`user-bob`, `customer-bob`) are **application accounts**, not Entra users. User/customer values are **application-asserted**. A validated bearer caller is **service-authenticated**. The project's MI does not become Alice when Alice submits work.
 
-The hosted workflow reads a binding from request metadata before the model runs. It generates only `{step, code}` proposals, then programmatically supplies the declared OpenAPI identity/grant fields to `FoundryToolbox.call_tool`. Model-provided grants, URLs and identity keys are discarded. We do not assume arbitrary MCP headers pass through the managed gateway.
+The hosted workflow reads a binding from request metadata before the model runs. It generates only `{step, code}` proposals, then programmatically supplies four ownership IDs in `body` and the opaque grant in `X-Reactor-Run-Grant` to `FoundryToolbox.call_tool`. Model-provided grants, URLs and identity keys are discarded. Actual MCP discovery and a live denial probe verified this header mapping and value redaction; the gateway's error diagnostics echo the body, so the grant must not be put there.
 
-Optional `x-ms-user-identity` delegation is not enabled or proven. It would require explicit impersonation permission. Hosted platform user/call/session values are shown only when returned; a service-resolved platform user is not described as a delegated demo user.
+Foundry creates a managed agent blueprint and a native runtime **ServiceIdentity**, distinct from either UAMI and the project MI. The project MI has registry pull access; the runtime identity has project model/Toolbox access. The dedicated API registration is another separate tenant artifact; it has no client secret or delegated Graph grant.
+
+`x-ms-user-identity` delegation is not enabled: the current Foundry User role excludes impersonation. Live Alice/Bob runs returned separate sessions/call IDs but the same platform user, the frontend UAMI's object ID. That service-resolved user is not a delegated demo account. The execution evidence separately shows the different app owners and the unchanged project-MI bearer caller.
 
 ## State, enforcement and evidence
+
+Long work returns an owned pending response before the managed gateway's 30-second HTTP timeout. Runtime code polls the same operation with the original binding; it never re-executes generated code. The execution app retains only a bounded, expiring in-memory continuation containing a grant digest and the original task. Final delivery or owned cancellation removes it. Losing that continuation requires owned inspection/reconciliation, not a replay or reconstructed authority.
 
 The execution app alone owns SQLite account hashes, run/ownership/idempotency records, hashed grants and result artifacts. The frontend holds a boot-specific signed cookie and owned progress, not a copied authority or browser-held run grant. Exact memberships are selected after login. Reusing a run key returns the original record and never replays ambiguous execution.
 
@@ -38,11 +42,11 @@ Each task restores the approved frozen snapshot, gets its own private fictional 
 
 Receipts correlate run, task, Sandbox, snapshot, marker, code digest, frozen hashes, exit/status, stdout/stderr, elapsed time and deletion. The independent checker requires exact phase counts or safety count **and source IDs**. A model review explains the result but cannot change acceptance.
 
-There are at most two active task Sandboxes, one reserved run per customer, and at most two workers per run. Capacity is not released until verified cleanup. Available usage is actual receipt Sandbox seconds and returned hosted token usage; it is not a dollar-cost estimate.
+There are at most two active task Sandboxes, one reserved run per customer, and at most two workers per run. Capacity is not released until verified cleanup. Actual receipt Sandbox seconds are recorded. The live outer hosted response returned no usage; worker/reviewer token totals and dollar costs are unavailable, not zero.
 
 SQLite and frontend sessions are ephemeral in Express. On lost state, old runs/grants/results are not reconstructed or reassigned. New authority initialization refuses to proceed if reactor task resources remain. An existing ambiguous run needs owned cancellation and explicit reconciliation. There is no promised durable restart recovery.
 
-**Current gate:** service API audience unavailable; tenant creation declined. The real hosted/gateway token, argument mapping and end-to-end ownership remain unverified. Local test identities are not live service-token evidence.
+**Current gate:** the authorized November 7, 2026 allocation completed real Alice/Bob transactions and denied foreign reads/cancellation and forged execution. See [the report](reactor-walkthrough-report.md) for all outcome verdicts. Local fixtures remain distinct from live checks. Human pacing, Skillable delivery and policy-specific traffic diagnostics are not established by those transactions.
 
 ## Three teach-back prompts
 

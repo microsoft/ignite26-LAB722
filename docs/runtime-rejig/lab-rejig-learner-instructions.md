@@ -2,7 +2,7 @@
 
 ## Readiness and scope
 
-**Current delivery status: blocked before the learner start.** The facilitator has not supplied an approved dedicated execution API audience. The owner declined tenant resource creation. Do not use the old shared-key runtime as a substitute. The sequence below is the delivered reactor lesson to run after the facilitator completes and verifies preparation, not a record of a successful live run.
+**Current delivery status:** the November 7, 2026 rehearsal completed a real hosted-to-Sandbox transaction in the authorized allocation. The dedicated API and native identities are prepared; the earlier audience/creation blocker is resolved. Consult [the walkthrough report](reactor-walkthrough-report.md) for the complete live outcome verdicts. A fresh learner allocation still requires facilitator preparation; the 75-minute human walkthrough and Skillable delivery are not yet verified. Do not use the old shared-key runtime as a substitute.
 
 Use PowerShell 7.3+, Python with the supplied pinned packages, signed-in Azure CLI and the supplied allocated scope. Know basic Python/JSON, HTTP status codes and managed identities. Learners need the supplied **Foundry Project Manager** permission for hosted-agent creation, project inspection and read-only resource/log inspection. Learners do not assign roles or create tenant applications.
 
@@ -10,12 +10,12 @@ Before the timer, receive these values privately or in the prepared terminal:
 
 | Supplied setting | Meaning / independent observation |
 |---|---|
-| `$ProjectEndpoint`, `$HostedName`, `$HostedImage` | Your project, unique agent name, approved immutable hosted image |
+| `$ProjectEndpoint`, `$HostedName`, `$HostedImage` | Your project, prepared logical agent name with approved runtime grants, immutable hosted image |
 | `$Model`, `$ToolboxEndpoint`, `$ToolboxOperation` | Existing model deployment and registered execution tool |
 | `$FrontendUrl`, `$ExecutionUrl` | Distinct Express HTTPS endpoints; both resource names visible in the portal |
 | `$SubscriptionId`, `$ResourceGroupName`, `$SandboxGroupName`, `$Region` | Your allocated inspection scope |
 | `$FrontendObjectId`, `$ExecutionObjectId`, `$ProjectObjectId`, `$ExecutionApiAudience` | Expected service principal object IDs and dedicated API audience from the facilitator's deployment record |
-| `$ServiceImage`, `$ToolboxVersion`, `$PreviousHostedVersion`, `$PreviousToolboxVersion`, `$PreviousServiceImage` | Current immutable service digest and recorded version/revert references; mark absent previous versions unavailable |
+| `$ServiceImage`, `$ToolboxVersion`, `$PreviousHostedVersion`, `$PreviousHostedImage`, `$PreviousToolboxVersion`, `$PreviousServiceImage` | Current immutable service digest and known-good version/image revert references; mark absent references unavailable |
 | Alice and Bob passwords | Two different private demo credentials; neither is an Azure token |
 
 Stop if any required setting, permission, endpoint or prepared tool is absent. Previous-version references are optional for starting: record missing ones as **revert reference unavailable**, and do not perform a rollback without them. Record the first failing prerequisite, not a later workaround. Run repository commands from its root.
@@ -43,17 +43,17 @@ Stop if any required setting, permission, endpoint or prepared tool is absent. P
 
    Observe `container_configuration.image`, `protocol_versions`, model/toolbox environment settings and the configuration hash. This helper creates no tenant users or API registration.
 
-3. Run the same command **without `--describe`** to create the hosted agent version. Record `name`, `version` and creation `status`; a reused version is reported explicitly. Creation is not readiness.
+3. Run the same command **without `--describe` and with `--new-version`** to create a new version of the prepared logical agent. Its runtime identity/grants are already approved; do not choose an unprepared new agent name. Record `name`, `version` and creation `status`. Without this explicit flag, identical definitions can reuse an existing version rather than performing this learner creation step. Creation is not readiness.
 4. In Foundry's **Agents**, select the supplied agent name/version. Confirm it is hosted, inspect its container/version and wait for active readiness. Copy the displayed Responses endpoint into the supplied frontend configuration handoff; do not invent a URL from a remembered pattern. The facilitator applies that endpoint to `lab722-reactor-frontend`; no learner role change is required.
 
-**Feedback:** the recorded hosted agent/version is active, and the frontend configuration uses its exact endpoint. Before connection the frontend displays **Hosted orchestrator not connected** and disables **Run**, while sign-in and owned inspection remain available. After the facilitator updates the frontend revision, sign in again; **Hosted endpoint configured** enables submissions but does not establish a live pass. **Explain:** a model deployment alone is not a deployed hosted orchestrator. If readiness or permission fails, record this checkpoint as blocked.
+**Feedback:** the recorded hosted agent/version is active, and the frontend configuration uses its exact endpoint. Before connection the frontend displays **Hosted orchestrator not connected** and disables **Run**, while sign-in and owned inspection remain available. The facilitator applies an Express app Stop/Start if the saved configuration has not reached its running process; revision restart is unsupported. Sign in again; **Hosted endpoint configured** enables submissions but does not establish a live pass. **Explain:** a model deployment alone is not a deployed hosted orchestrator. If readiness or permission fails, record this checkpoint as blocked.
 
 ## 2. Identify and connect both Express services
 
 **Goal:** distinguish UI/session management from execution management. **Predict:** should the frontend have Sandbox Data Owner access?
 
 1. In the allocated resource group, find `lab722-reactor-frontend` and `lab722-reactor-execution`. Compare their ingress URLs and UAMIs with the supplied values.
-2. Inspect the frontend's `HOSTED_RESPONSES_ENDPOINT` and `EXECUTION_ENDPOINT` configuration. Inspect the execution app's `FRONTEND_OBJECT_ID`, `PROJECT_OBJECT_ID` and `EXECUTION_API_AUDIENCE`. Compare these with the supplied object-ID/audience values; compare each app's **Identity → User assigned** resource and its principal/object ID with the supplied values. Do not confuse an identity's client ID with its object ID. Do not open password secrets or copy bearer tokens.
+2. Inspect the frontend's `HOSTED_RESPONSES_ENDPOINT`, `EXECUTION_ENDPOINT` and `FRONTEND_PUBLIC_ORIGIN` configuration. Inspect the execution app's `FRONTEND_OBJECT_ID`, `PROJECT_OBJECT_ID` and `EXECUTION_API_AUDIENCE`. Compare these with the supplied object-ID/audience values; compare each app's **Identity → User assigned** resource and its principal/object ID with the supplied values. Do not confuse an identity's client ID with its object ID. Do not open password secrets or copy bearer tokens.
 3. Open `$FrontendUrl`. The page must say **Caldova research / LAB722 reactor**, provide demo sign-in and separate task controls, and show no endpoint-key field.
 4. Sign in as Alice. Observe `user-alice / customer-alice (application-asserted)`.
 
@@ -151,7 +151,7 @@ $Denied = Invoke-WebRequest -Uri "$ExecutionUrl/offload" -Method Post `
 $Denied.StatusCode
 ```
 
-Expect 401 with no task creation; confirm Alice's owned result remains accessible when she signs back in. Do not supply a project token or run grant to learners. A live valid-service/foreign-binding rejection still belongs to the facilitator identity gate and remains unverified until that gate runs.
+Expect 401 with no task creation; confirm Alice's owned result remains accessible when she signs back in. Do not supply a project token or run grant to learners. The facilitator's live rehearsal rejected forged owner/invalid-grant execution through the actual gateway after both users' legitimate executions passed. That does not expose or reuse a genuine foreign grant; exhaustive genuine-grant swap/replay combinations remain the offline fixture's evidence.
 
 ## 5. Expand, constrain, interrupt and evaluate (L2-L4)
 

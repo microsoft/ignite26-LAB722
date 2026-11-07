@@ -3,8 +3,10 @@ import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 import hashlib
+import hmac
 import json
 import logging
+import time
 from pathlib import Path
 
 from starlette.applications import Starlette
@@ -13,11 +15,13 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 from .evaluation import evaluate
+from .binding import GRANT_HEADER
 from .http import json_body
 from .ownership import ACCOUNTS, AccessDenied, CapacityExceeded, Conflict, StateUnavailable
 from ..runtime.frozen import PINS
 
 LOG = logging.getLogger("reactor.execution")
+HANDOFF_SECONDS = 20
 TASKS = {
     "phases": {"phases"}, "safety": {"safety"},
     "workflow": {"phases", "safety"}, "limit": {"limit"},
@@ -32,6 +36,7 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
     if source_sha256 != PINS["source-records.json"]:
         raise ValueError("Independent evaluation requires the approved frozen source bytes.")
     active = {}
+    deferred = {}
 
     async def caller(request, expected):
         try:
@@ -111,6 +116,7 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
         principal = await owner(request)
         run_id = request.path_params["run_id"]
         run = store.cancel_run(principal, run_id)
+        deferred.pop(run_id, None)
         task = active.get(run_id)
         if task is not None:
             task.cancel()
@@ -120,13 +126,42 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
         run = store.acknowledge_cleanup(principal, run_id, sandbox_id=run.sandbox_id)
         return JSONResponse(asdict(run))
 
+    async def execution_response(task, run, principal):
+        try:
+            done, _ = await asyncio.wait({task}, timeout=HANDOFF_SECONDS)
+            if not done:
+                return JSONResponse({"run_id": run.run_id, "state": "running", "pending": True}, status_code=202)
+            return JSONResponse(await task)
+        except asyncio.CancelledError:
+            if store.get_run(principal, run.run_id).state == "cancelled":
+                raise HTTPException(409, "Owned run was cancelled; inspect its cleanup status.") from None
+            raise
+        except (RuntimeError, ValueError, TimeoutError, Conflict):
+            LOG.exception("run=%s offload failed; explicit cancellation/reconciliation required", run.run_id)
+            raise HTTPException(502, "Offload failed. Inspect owned status; cancel/reconcile before retrying.") from None
+        finally:
+            if task.done():
+                active.pop(run.run_id, None)
+                deferred.pop(run.run_id, None)
+
     async def offload(request):
         identity = await caller(request, project_object_id)
         body = await json_body(request)
         binding = {name: body.get(name) for name in ("run_id", "user_id", "customer_id", "conversation_id")}
         if not all(isinstance(value, str) for value in binding.values()):
             raise HTTPException(400, "An execution binding is required.")
-        token = body.get("run_grant")
+        token = request.headers.get(GRANT_HEADER)
+        continuation = deferred.get(binding["run_id"])
+        if continuation is not None:
+            if (
+                not isinstance(token, str) or continuation["expires_at"] <= time.monotonic()
+                or binding != continuation["binding"]
+                or not hmac.compare_digest(hashlib.sha256(token.encode()).hexdigest(), continuation["digest"])
+            ):
+                raise AccessDenied("Execution authorization denied.")
+            run = continuation["run"]
+            principal = next(p for p in ACCOUNTS if p.user_id == run.user_id)
+            return await execution_response(continuation["task"], run, principal)
         store.verify_grant(token, **binding, permission="execute")
         work = body.get("tasks")
         if not isinstance(work, list) or not 1 <= len(work) <= 2:
@@ -192,17 +227,22 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
 
         task = asyncio.create_task(perform())
         active[run.run_id] = task
-        try:
-            return JSONResponse(await task)
-        except asyncio.CancelledError:
-            if store.get_run(principal, run.run_id).state == "cancelled":
-                raise HTTPException(409, "Owned run was cancelled; inspect its cleanup status.") from None
-            raise
-        except (RuntimeError, ValueError, TimeoutError, Conflict):
-            LOG.exception("run=%s offload failed; explicit cancellation/reconciliation required", run.run_id)
-            raise HTTPException(502, "Offload failed. Inspect owned status; cancel/reconcile before retrying.") from None
-        finally:
-            active.pop(run.run_id, None)
+        for key, entry in list(deferred.items()):
+            if entry["task"].done() and (entry["expires_at"] <= time.monotonic() or len(deferred) >= 16):
+                deferred.pop(key)
+                active.pop(key, None)
+        deferred[run.run_id] = {
+            "task": task, "run": run, "binding": binding,
+            "digest": hashlib.sha256(token.encode()).hexdigest(), "expires_at": time.monotonic() + 600,
+        }
+
+        def observe_failure(completed):
+            if not completed.cancelled() and completed.exception() is not None:
+                LOG.error("run=%s execution failed; owned reconciliation required type=%s",
+                          run.run_id, type(completed.exception()).__name__)
+
+        task.add_done_callback(observe_failure)
+        return await execution_response(task, run, principal)
 
     async def ownership_error(request, error):
         status = 403 if isinstance(error, AccessDenied) else 429 if isinstance(error, CapacityExceeded) else 503 if isinstance(error, StateUnavailable) else 409

@@ -5,7 +5,7 @@ from pathlib import Path
 import secrets
 import tempfile
 import unittest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import httpx
@@ -41,6 +41,9 @@ class ExecutionAPI(unittest.IsolatedAsyncioTestCase):
 
     def headers(self, user="user-alice", service="frontend"):
         return {"Authorization": f"Bearer {service}", "X-Reactor-User": user}
+
+    def offload_headers(self, binding, service="project"):
+        return {**self.headers(service=service), "X-Reactor-Run-Grant": binding["run_grant"]}
 
     async def new_run(self, user="user-alice", task="phases", key=None):
         response = await self.client.post("/runs", headers=self.headers(user),
@@ -105,20 +108,88 @@ class ExecutionAPI(unittest.IsolatedAsyncioTestCase):
                         "stdout": output, "cleanup": "deleted", "sandbox_seconds": 1.2, "customer_note": customer_note}
 
             self.sandboxes.execute.side_effect = execute
-            payload = {**grant, "tasks": [{"step": "phases", "code": "pass"}]}
-            denied = await self.client.post("/offload", headers=self.headers(service="project"),
+            payload = {name: grant[name] for name in ("run_id", "user_id", "customer_id", "conversation_id")}
+            payload["tasks"] = [{"step": "phases", "code": "pass"}]
+            denied = await self.client.post("/offload", headers=self.offload_headers(grant),
                                             json={**payload, "customer_id": "foreign-customer"})
             self.assertEqual(denied.status_code, 403)
             self.assertEqual(self.store.get_run(principal, run["run_id"]).state, "submitted")
-            denied = await self.client.post("/offload", headers=self.headers(), json=payload)
+            denied = await self.client.post(
+                "/offload", headers=self.offload_headers({**grant, "run_grant": "forged"}), json=payload,
+            )
             self.assertEqual(denied.status_code, 403)
-            result = await self.client.post("/offload", headers=self.headers(service="project"), json=payload)
+            denied = await self.client.post("/offload", headers=self.offload_headers(grant, service="frontend"), json=payload)
+            self.assertEqual(denied.status_code, 403)
+            result = await self.client.post("/offload", headers=self.offload_headers(grant), json=payload)
             self.assertEqual(result.status_code, 200, result.text)
             self.assertTrue(result.json()["accepted"], result.text)
             self.assertEqual(result.json()["demo_user"], principal.user_id)
             self.assertEqual(result.json()["service_caller"]["object_id"], "project")
-            replay = await self.client.post("/offload", headers=self.headers(service="project"), json=payload)
+            replay = await self.client.post("/offload", headers=self.offload_headers(grant), json=payload)
             self.assertIn(replay.status_code, {403, 409})
+
+    async def test_pending_execution_collects_once_without_replay_or_foreign_binding(self):
+        run = await self.new_run()
+        grant = (await self.client.post(f"/runs/{run['run_id']}/grant", headers=self.headers())).json()
+        payload = {name: grant[name] for name in ("run_id", "user_id", "customer_id", "conversation_id")}
+        payload["tasks"] = [{"step": "phases", "code": "pass"}]
+        release = asyncio.Event()
+        source = json.loads(self.source.read_text())
+        output = json.dumps({
+            "counts": dict(Counter(r["phase"] or "NA" for r in source["trials"])),
+            "source_ids": sorted(r["trial_id"] for r in source["trials"]),
+        })
+
+        async def execute(run_id, step, code, **kwargs):
+            await release.wait()
+            return {"run_id": run_id, "step": step, "status": "completed",
+                    "stdout": output, "cleanup": "deleted", "sandbox_seconds": 1}
+
+        self.sandboxes.execute.side_effect = execute
+        with patch("src.reactor.execution.HANDOFF_SECONDS", 0.01):
+            pending = await self.client.post("/offload", headers=self.offload_headers(grant), json=payload)
+            self.assertEqual(pending.status_code, 202)
+            self.assertTrue(pending.json()["pending"])
+            self.assertNotIn(grant["run_grant"], pending.text)
+            for headers, body in [
+                (self.offload_headers(grant), {**payload, "customer_id": "foreign"}),
+                (self.offload_headers({**grant, "run_grant": "forged"}), payload),
+                (self.offload_headers(grant, service="frontend"), payload),
+            ]:
+                denied = await self.client.post("/offload", headers=headers, json=body)
+                self.assertEqual(denied.status_code, 403)
+            release.set()
+            result = await self.client.post("/offload", headers=self.offload_headers(grant), json=payload)
+            self.assertEqual(result.status_code, 200, result.text)
+            self.assertTrue(result.json()["accepted"])
+            self.sandboxes.execute.assert_awaited_once()
+            self.assertEqual(len(self.store.list_artifacts(ACCOUNTS[0], run["run_id"])), 1)
+            replay = await self.client.post("/offload", headers=self.offload_headers(grant), json=payload)
+            self.assertIn(replay.status_code, {403, 409})
+
+    async def test_pending_execution_cancellation_revokes_continuation(self):
+        run = await self.new_run()
+        grant = (await self.client.post(f"/runs/{run['run_id']}/grant", headers=self.headers())).json()
+        payload = {name: grant[name] for name in ("run_id", "user_id", "customer_id", "conversation_id")}
+        payload["tasks"] = [{"step": "phases", "code": "pass"}]
+        deleted = asyncio.Event()
+
+        async def execute(*args, **kwargs):
+            try:
+                await asyncio.sleep(60)
+            finally:
+                deleted.set()
+
+        self.sandboxes.execute.side_effect = execute
+        with patch("src.reactor.execution.HANDOFF_SECONDS", 0.01):
+            response = await self.client.post("/offload", headers=self.offload_headers(grant), json=payload)
+            self.assertEqual(response.status_code, 202)
+            cancelled = await self.client.post(f"/runs/{run['run_id']}/cancel", headers=self.headers())
+            self.assertEqual(cancelled.status_code, 200)
+            self.assertTrue(cancelled.json()["cleaned"])
+            self.assertTrue(deleted.is_set())
+            replay = await self.client.post("/offload", headers=self.offload_headers(grant), json=payload)
+            self.assertEqual(replay.status_code, 403)
 
     async def test_concurrent_owned_cancel_returns_explicit_http_failure_after_cleanup(self):
         run = await self.new_run()
@@ -134,8 +205,9 @@ class ExecutionAPI(unittest.IsolatedAsyncioTestCase):
 
         self.sandboxes.execute.side_effect = execute
         request = asyncio.create_task(self.client.post(
-            "/offload", headers=self.headers(service="project"),
-            json={**binding, "tasks": [{"step": "phases", "code": "pass"}]},
+            "/offload", headers=self.offload_headers(binding),
+            json={name: value for name, value in {**binding, "tasks": [{"step": "phases", "code": "pass"}]}.items()
+                  if name not in {"run_grant", "expires_at"}},
         ))
         await entered.wait()
         response = await self.client.post(f"/runs/{run['run_id']}/cancel", headers=self.headers())
@@ -150,8 +222,11 @@ class ExecutionAPI(unittest.IsolatedAsyncioTestCase):
         binding = (await self.client.post(f"/runs/{run['run_id']}/grant", headers=self.headers())).json()
         self.sandboxes.execute.return_value = {"run_id": run["run_id"], "step": "phases",
                                                "status": "completed", "stdout": "not JSON"}
-        response = await self.client.post("/offload", headers=self.headers(service="project"),
-                                          json={**binding, "tasks": [{"step": "phases", "code": "pass"}]})
+        response = await self.client.post(
+            "/offload", headers=self.offload_headers(binding),
+            json={name: value for name, value in {**binding, "tasks": [{"step": "phases", "code": "pass"}]}.items()
+                  if name not in {"run_grant", "expires_at"}},
+        )
         self.assertEqual(response.status_code, 502)
         self.assertFalse(self.store.get_run(ACCOUNTS[0], run["run_id"]).cleaned)
         recovered = await self.client.post(f"/runs/{run['run_id']}/cancel", headers=self.headers())

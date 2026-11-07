@@ -43,6 +43,20 @@ class AsyncStartup(unittest.IsolatedAsyncioTestCase):
             hosted.close.assert_awaited_once()
             credential.close.assert_awaited_once()
 
+    async def test_real_managed_identity_transport_initializes_without_network(self):
+        config = self.config()
+        config.update(REACTOR_COMPONENT="frontend", EXECUTION_ENDPOINT="https://execution.test")
+        with patch.dict("os.environ", {
+            "IDENTITY_ENDPOINT": "http://127.0.0.1:40342/identity",
+            "IDENTITY_HEADER": "synthetic-identity-header",
+        }):
+            app = build_app(config)
+            async with app.router.lifespan_context(app):
+                async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="https://frontend.test") as client:
+                    result = await client.get("/api/session")
+                    self.assertEqual(result.status_code, 200)
+                    self.assertFalse(result.json()["hosted_configured"])
+
     async def test_fresh_startup_inside_asgi_loop_and_abandoned_state_fail_closed(self):
         source = Path(__file__).parents[1] / "data" / "lab-datasets" / "caldova-public-lab-use-v2" / "source-records.json"
         credential, sandboxes = AsyncMock(), AsyncMock()

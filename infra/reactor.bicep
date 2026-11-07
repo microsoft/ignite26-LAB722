@@ -163,6 +163,7 @@ resource frontend 'Microsoft.App/containerApps@2026-03-02-preview' = {
         resources: { cpu: json('0.5'), memory: '1Gi' }
         env: [
           { name: 'REACTOR_COMPONENT', value: 'frontend' }
+          { name: 'FRONTEND_PUBLIC_ORIGIN', value: 'https://${frontendName}.${environment.properties.defaultDomain}' }
           { name: 'AZURE_CLIENT_ID', value: frontendIdentity.properties.clientId }
           { name: 'EXECUTION_API_AUDIENCE', value: executionApiAudience }
           { name: 'EXECUTION_ENDPOINT', value: 'https://${execution.properties.configuration.ingress.fqdn}' }

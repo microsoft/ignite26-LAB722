@@ -101,12 +101,20 @@ class TaskSandboxes:
             sandbox_id = None
             cleanup = "not_created"
             try:
-                created = json.loads(await self.native([
+                await self.native([
                     "create", "--snapshot-id", self.snapshot,
                     "--label", "lab=LAB722", "--label", "purpose=reactor-task",
                     "--label", f"run={run_id}", "--label", f"step={step}",
                     "--egress-default", "Deny", "--traffic-inspection", "Full",
+                ])
+                created = json.loads(await self.native([
+                    "get", "--selector", f"lab=LAB722,purpose=reactor-task,run={run_id},step={step}",
                 ]))
+                labels = created.get("labels", {})
+                if any(labels.get(key) != value for key, value in {
+                    "lab": "LAB722", "purpose": "reactor-task", "run": run_id, "step": step,
+                }.items()):
+                    raise PermissionError("Created task Sandbox did not match the exact owned task.")
                 sandbox_id = str(UUID(created["id"]))
                 if created.get("sourcesRef", {}).get("snapshot", {}).get("id") != self.snapshot:
                     raise PermissionError("Created task Sandbox did not restore the approved snapshot.")

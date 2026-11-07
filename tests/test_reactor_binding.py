@@ -2,7 +2,7 @@ import json
 import unittest
 from unittest.mock import AsyncMock
 
-from src.reactor.binding import binding_from_metadata, invoke_bound
+from src.reactor.binding import GRANT_HEADER, binding_from_metadata, invoke_bound
 
 
 class RuntimeBinding(unittest.IsolatedAsyncioTestCase):
@@ -15,7 +15,9 @@ class RuntimeBinding(unittest.IsolatedAsyncioTestCase):
                         "run_grant": "forged", "user_id": "bob", "url": "https://attacker.example"}]
         await invoke_bound(toolbox, "offload", binding, model_tasks)
         self.assertEqual(toolbox.call_tool.call_args.kwargs, {
-            **binding, "tasks": [{"step": "phases", "code": "pass"}],
+            GRANT_HEADER: binding["run_grant"],
+            "body": {**{name: value for name, value in binding.items() if name != "run_grant"},
+                     "tasks": [{"step": "phases", "code": "pass"}]},
         })
         self.assertEqual(binding_from_metadata({"reactor_binding": json.dumps(binding)}), binding)
 

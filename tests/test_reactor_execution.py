@@ -31,15 +31,17 @@ class Lifecycle(unittest.IsolatedAsyncioTestCase):
 
     async def test_execution_failure_still_deletes_exact_task_sandbox(self):
         manager = self.manager()
-        sandbox = str(uuid4())
+        sandbox, run_id = str(uuid4()), str(uuid4())
         manager.native = AsyncMock(side_effect=[
+            f"Created sandbox: {sandbox}",
             json.dumps({"id": sandbox, "sourcesRef": {"snapshot": {"id": manager.snapshot}},
+                        "labels": {"lab": "LAB722", "purpose": "reactor-task", "run": run_id, "step": "failure"},
                         "egressPolicy": {"defaultAction": "Deny", "trafficInspection": "Full"}}),
             RuntimeError("interrupted execution"),
             "",
         ])
         with self.assertRaisesRegex(RuntimeError, "interrupted"):
-            await manager.execute(str(uuid4()), "failure", "raise SystemExit(19)")
+            await manager.execute(run_id, "failure", "raise SystemExit(19)")
         self.assertEqual(manager.native.call_args_list[-1].args[0], ["delete", "--id", sandbox, "--yes"])
         creation = manager.native.call_args_list[0].args[0]
         self.assertNotIn("--cpu", creation)
@@ -52,7 +54,10 @@ class Lifecycle(unittest.IsolatedAsyncioTestCase):
 
         async def native(arguments, **kwargs):
             if arguments[0] == "create":
+                return f"Created sandbox: {sandbox}"
+            if arguments[0] == "get":
                 return json.dumps({"id": sandbox, "sourcesRef": {"snapshot": {"id": manager.snapshot}},
+                                   "labels": {"lab": "LAB722", "purpose": "reactor-task", "run": run_id, "step": "phases"},
                                    "egressPolicy": {"defaultAction": "Deny", "trafficInspection": "Full"}})
             if arguments[0] == "exec":
                 import base64
@@ -75,16 +80,21 @@ class Lifecycle(unittest.IsolatedAsyncioTestCase):
         receipt = await manager.execute(run_id, "phases", 'print("{}")')
         self.assertEqual(receipt["sandbox_id"], sandbox)
         self.assertEqual(receipt["cleanup"], "deleted")
+        self.assertEqual(manager.native.call_args_list[1].args[0],
+                         ["get", "--selector", f"lab=LAB722,purpose=reactor-task,run={run_id},step=phases"])
 
     async def test_cancelled_execution_cleans_up_before_propagating(self):
         manager = self.manager()
-        sandbox = str(uuid4())
+        sandbox, run_id = str(uuid4()), str(uuid4())
         entered = asyncio.Event()
         deleted = asyncio.Event()
 
         async def native(arguments, **kwargs):
             if arguments[0] == "create":
+                return f"Created sandbox: {sandbox}"
+            if arguments[0] == "get":
                 return json.dumps({"id": sandbox, "sourcesRef": {"snapshot": {"id": manager.snapshot}},
+                                   "labels": {"lab": "LAB722", "purpose": "reactor-task", "run": run_id, "step": "phases"},
                                    "egressPolicy": {"defaultAction": "Deny", "trafficInspection": "Full"}})
             if arguments[0] == "exec":
                 entered.set()
@@ -93,7 +103,7 @@ class Lifecycle(unittest.IsolatedAsyncioTestCase):
             return ""
 
         manager.native = AsyncMock(side_effect=native)
-        task = asyncio.create_task(manager.execute(str(uuid4()), "phases", 'print("{}")'))
+        task = asyncio.create_task(manager.execute(run_id, "phases", 'print("{}")'))
         await entered.wait()
         task.cancel()
         with self.assertRaises(asyncio.CancelledError):
@@ -123,15 +133,17 @@ class Lifecycle(unittest.IsolatedAsyncioTestCase):
 
     async def test_wrong_created_egress_policy_stops_execution_and_deletes(self):
         manager = self.manager()
-        sandbox = str(uuid4())
+        sandbox, run_id = str(uuid4()), str(uuid4())
         manager.native = AsyncMock(side_effect=[
+            f"Created sandbox: {sandbox}",
             json.dumps({"id": sandbox, "sourcesRef": {"snapshot": {"id": manager.snapshot}},
+                        "labels": {"lab": "LAB722", "purpose": "reactor-task", "run": run_id, "step": "egress"},
                         "egressPolicy": {"defaultAction": "Allow", "trafficInspection": "Full"}}),
             "",
         ])
         with self.assertRaises(PermissionError):
-            await manager.execute(str(uuid4()), "egress", "pass")
-        self.assertEqual(manager.native.await_count, 2)
+            await manager.execute(run_id, "egress", "pass")
+        self.assertEqual(manager.native.await_count, 3)
         self.assertEqual(manager.native.call_args_list[-1].args[0], ["delete", "--id", sandbox, "--yes"])
 
     async def test_four_queued_tasks_never_create_more_than_two_active_sandboxes(self):
@@ -145,7 +157,11 @@ class Lifecycle(unittest.IsolatedAsyncioTestCase):
                 active += 1
                 peak = max(peak, active)
                 await asyncio.sleep(0)
+                return "Created sandbox"
+            if arguments[0] == "get":
+                labels = dict(part.split("=", 1) for part in arguments[-1].split(","))
                 return json.dumps({"id": str(uuid4()), "sourcesRef": {"snapshot": {"id": manager.snapshot}},
+                                   "labels": labels,
                                    "egressPolicy": {"defaultAction": "Deny", "trafficInspection": "Full"}})
             if arguments[0] == "exec":
                 if active == 2:
@@ -176,6 +192,24 @@ class Lifecycle(unittest.IsolatedAsyncioTestCase):
         await asyncio.gather(*tasks)
         self.assertEqual(peak, 2)
         self.assertEqual(active, 0)
+
+    async def test_create_readback_refuses_foreign_task_and_reconciles_only_own_run(self):
+        manager = self.manager()
+        run_id = str(uuid4())
+        foreign_id = str(uuid4())
+        manager.native = AsyncMock(side_effect=[
+            "Created sandbox",
+            json.dumps({"id": foreign_id, "labels": {
+                "lab": "LAB722", "purpose": "reactor-task", "run": str(uuid4()), "step": "phases",
+            }}),
+            "[]",
+        ])
+        with self.assertRaisesRegex(PermissionError, "exact owned task"):
+            await manager.execute(run_id, "phases", "pass")
+        self.assertEqual(manager.native.call_args_list[-1].args[0],
+                         ["list", "--selector", f"lab=LAB722,purpose=reactor-task,run={run_id}"])
+        self.assertFalse(any(call.args[0][0] in {"exec", "delete"}
+                             for call in manager.native.call_args_list))
 
 if __name__ == "__main__":
     unittest.main()

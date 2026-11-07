@@ -32,6 +32,7 @@ def build_app(config=None, *, state_path=None, source_file=None):
                     hosted=HostedClient(hosted_endpoint, credential),
                     session_key=secrets.token_urlsafe(48),
                     hosted_configured=bool(hosted_endpoint),
+                    public_origin=config.get("FRONTEND_PUBLIC_ORIGIN"),
                 )
             else:
                 sandboxes = TaskSandboxes(

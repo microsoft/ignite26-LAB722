@@ -7,6 +7,13 @@
       "post": {
         "operationId": "reactor_execute",
         "summary": "Execute a backend-authorized bounded workflow in task Sandboxes",
+        "parameters": [{
+          "name": "X-Reactor-Run-Grant",
+          "in": "header",
+          "required": true,
+          "schema": {"type": "string"},
+          "description": "Runtime-only backend-issued authorization; never supplied by the model"
+        }],
         "requestBody": {
           "required": true,
           "content": {
@@ -14,13 +21,12 @@
               "schema": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["run_id", "user_id", "customer_id", "conversation_id", "run_grant", "tasks"],
+                "required": ["run_id", "user_id", "customer_id", "conversation_id", "tasks"],
                 "properties": {
                   "run_id": {"type": "string"},
                   "user_id": {"type": "string"},
                   "customer_id": {"type": "string"},
                   "conversation_id": {"type": "string"},
-                  "run_grant": {"type": "string", "description": "Runtime-only backend-issued authorization; never supplied by the model"},
                   "tasks": {
                     "type": "array", "minItems": 1, "maxItems": 2,
                     "items": {
@@ -39,6 +45,7 @@
         },
         "responses": {
           "200": {"description": "Correlated execution receipts and independent acceptance"},
+          "202": {"description": "Owned execution pending; repeat the same runtime-bound call to collect its result without replay"},
           "401": {"description": "Service token invalid"},
           "403": {"description": "Caller or owned execution binding rejected"},
           "409": {"description": "Execution already claimed; inspect status instead of replay"},

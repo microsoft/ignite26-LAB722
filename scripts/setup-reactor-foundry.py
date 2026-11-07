@@ -42,9 +42,9 @@ def definitions(args):
     return HostedAgentDefinition(
         cpu="1", memory="2Gi",
         container_configuration=ContainerConfiguration(image=args.image),
-        protocol_versions=[ProtocolVersionRecord(protocol="responses", version="v1")],
+        protocol_versions=[ProtocolVersionRecord(protocol="responses", version="2.0.0")],
         environment_variables={
-            "FOUNDRY_PROJECT_ENDPOINT": args.project_endpoint,
+            "PYTHONNOUSERSITE": "1",
             "MODEL_DEPLOYMENT": args.model,
             "TOOLBOX_ENDPOINT": args.toolbox_endpoint,
             "TOOLBOX_OPERATION": args.operation,
@@ -60,7 +60,7 @@ async def run(args):
         print(json.dumps({"definition": serialized, "sha256": fingerprint}, indent=2))
         return
     async with AzureCliCredential() as credential, AIProjectClient(
-        endpoint=args.project_endpoint, credential=credential,
+        endpoint=args.project_endpoint, credential=credential, allow_preview=True,
     ) as project:
         operations = project.toolboxes if args.command == "toolbox" else project.agents
         try:
@@ -68,10 +68,16 @@ async def run(args):
             current = next(iter([version async for version in versions]), None)
         except ResourceNotFoundError:
             current = None
-        if current is not None and current.metadata.get("reactor_config_sha256") == fingerprint:
+        if current is not None and current.metadata.get("reactor_config_sha256") == fingerprint and not args.new_version:
+            if args.command == "hosted" and current.status == "failed":
+                raise RuntimeError(
+                    "The existing hosted version failed. Inspect its error, correct the prerequisite, "
+                    "then use --new-version for an explicit deployment retry."
+                )
             if args.command == "toolbox":
                 await operations.update(args.name, default_version=current.version)
-            print(json.dumps({"name": args.name, "version": current.version, "reused": True}))
+            print(json.dumps({"name": args.name, "version": current.version,
+                              "status": getattr(current, "status", "registration-created"), "reused": True}))
             return
         metadata = {"lab": "LAB722", "reactor_config_sha256": fingerprint}
         if args.command == "toolbox":
@@ -91,12 +97,14 @@ def main():
     parser.add_argument("--project-endpoint", required=True)
     parser.add_argument("--name", required=True)
     parser.add_argument("--describe", action="store_true")
+    parser.add_argument("--new-version", action="store_true",
+                        help="Create a new version explicitly, including after correcting a failed deployment.")
     parser.add_argument("--execution-endpoint")
     parser.add_argument("--connection-id")
     parser.add_argument("--image")
     parser.add_argument("--model", default="gpt-5.2")
     parser.add_argument("--toolbox-endpoint")
-    parser.add_argument("--operation", default="reactor_execute")
+    parser.add_argument("--operation", default="reactor___reactor_execute")
     args = parser.parse_args()
     required = ("execution_endpoint", "connection_id") if args.command == "toolbox" else ("image", "toolbox_endpoint")
     for field in required:
