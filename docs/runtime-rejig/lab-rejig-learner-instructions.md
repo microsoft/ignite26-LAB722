@@ -1,420 +1,199 @@
-# LAB722: Sandbox runtime analysis
+# LAB722: owned research through a hosted workflow
 
-## Before you begin
+## Readiness and scope
 
-This separate runtime guide follows the simplified November 6 design. It does not replace the published developer lab or change `lab-ready-1`.
+**Current delivery status: blocked before the learner start.** The facilitator has not supplied an approved dedicated execution API audience. The owner declined tenant resource creation. Do not use the old shared-key runtime as a substitute. The sequence below is the delivered reactor lesson to run after the facilitator completes and verifies preparation, not a record of a successful live run.
 
-For the new `ig2026-lab-learner` allocation outside Skillable, first complete `lab-rejig-own-sub-instructions.md`. The maintainer table below is not that new allocation.
+Use PowerShell 7.3+, Python with the supplied pinned packages, signed-in Azure CLI and the supplied allocated scope. Know basic Python/JSON, HTTP status codes and managed identities. Learners need the supplied **Foundry Project Manager** permission for hosted-agent creation, project inspection and read-only resource/log inspection. Learners do not assign roles or create tenant applications.
 
-The facilitator supplies a running application URL, an access key, the prepared PowerShell terminal and the allocated Azure scope. There is no learner application sign-in, partner exercise or tenant selector. The key protects the endpoint; it does not identify a learner.
+Before the timer, receive these values privately or in the prepared terminal:
 
-Foundry generates bounded Python and invokes `execute_python(run_id, code)` through a Toolbox. The trusted backend fixes the execution Sandbox. The UI shows the code, real stdout/stderr and execution receipt; it does not claim to validate arbitrary answers. Each request gets a new Foundry conversation, while writable files persist within the allocation.
-
-Use only your allocated scope. Do not change role assignments, reveal connection secrets or delete resources. The table below is the current **maintainer test allocation**, not a set of values to reuse in Skillable.
-
-| Setting | Rehearsal value |
+| Supplied setting | Meaning / independent observation |
 |---|---|
-| Subscription | Private Test Sub ACAPMS |
-| Subscription ID | `30501c6c-81f6-41ac-a388-d29cf43a020d` |
-| Resource group | `ig2026-lab-testing` |
-| Express app | `lab722-runtime-analysis` |
-| Application URL | `https://lab722-runtime-analysis.purpleground-bb4e10a0.westus3.azurecontainerapps.io` |
-| Foundry account / project | `lab722-4fpje6f4ykpcg-ai` / `caldova` |
-| Sandbox group | `lab722-4fpje6f4ykpcg-sandboxes` |
-| Clean seed | `8a99e834-979a-420f-886e-3391198559e9` |
-| Clean snapshot | `b871945e-2f69-4822-ae3f-a6fd310cb3ea` |
-| Application/exercise Sandbox A | `6c7ef700-0834-4037-bf57-92c532c82e26` |
-| Exercise Sandbox B | `8e6eae80-9b92-4c51-b10a-0f6ed42b7efe` |
+| `$ProjectEndpoint`, `$HostedName`, `$HostedImage` | Your project, unique agent name, approved immutable hosted image |
+| `$Model`, `$ToolboxEndpoint`, `$ToolboxOperation` | Existing model deployment and registered execution tool |
+| `$FrontendUrl`, `$ExecutionUrl` | Distinct Express HTTPS endpoints; both resource names visible in the portal |
+| `$SubscriptionId`, `$ResourceGroupName`, `$SandboxGroupName`, `$Region` | Your allocated inspection scope |
+| `$FrontendObjectId`, `$ExecutionObjectId`, `$ProjectObjectId`, `$ExecutionApiAudience` | Expected service principal object IDs and dedicated API audience from the facilitator's deployment record |
+| `$ServiceImage`, `$ToolboxVersion`, `$PreviousHostedVersion`, `$PreviousToolboxVersion`, `$PreviousServiceImage` | Current immutable service digest and recorded version/revert references; mark absent previous versions unavailable |
+| Alice and Bob passwords | Two different private demo credentials; neither is an Azure token |
 
-The facilitator supplies equivalent values for another allocation. A/B demonstrate separate execution workspaces, not different users or customer tenants.
+Stop if any required setting, permission, endpoint or prepared tool is absent. Previous-version references are optional for starting: record missing ones as **revert reference unavailable**, and do not perform a rollback without them. Record the first failing prerequisite, not a later workaround. Run repository commands from its root.
 
-### Facilitator readiness
+## 1. Create the hosted orchestrator
 
-Before starting the learner timer, prepare the clean snapshot and app-bound A, deploy the tested runtime image and service connections, and verify one actual Foundry request. Supply the endpoint key privately. The learner terminal must already have PowerShell 7.3+, the pinned native ACA CLI and normal Azure authentication with permission for the allocated Sandbox operations. Supply portal/project visibility as part of the allocation; learners do not create identities or assign roles.
+**Goal:** identify what runs in Foundry rather than either Express app. **Predict:** which service needs model access, and which needs Sandbox-management access?
 
-Provide B or leave one available slot for its creation. Do not allow simultaneous app runs and manual non-root probes in A. Leave deny-all egress, Full inspection, 900-second Memory suspension and auto-delete disabled after rehearsal. The retained test group is full, so its supplied A/B must be reused.
-
-The maintainer deployment sequence is in `ignite26-LAB722\infra\README.md`, under **Single-allocation generated analysis**. A fresh Skillable allocation, its key-delivery channel and the learner-VM/profile capture still require platform-specific verification.
-
-## Activity budget
-
-These are authoring targets, not a measured Skillable completion time. Provisioning, image publication, the clean seed and service grants happen before the learner timer.
-
-| Activity | Minutes |
-|---|---:|
-| Connect and identify the access boundary | 7.5 |
-| Inspect Express and service connections | 7.5 |
-| Inspect/create the snapshot-derived workspaces | 10 |
-| Ask Foundry and inspect its generated code/result | 15 |
-| Test filesystem, networking and an execution failure | 15 |
-| Operate and inspect Sandbox lifecycle | 12.5 |
-| Compare results and record enforced boundaries | 7.5 |
-| Total | 75 |
-
-## 1. Open and connect to the application
-
-1. Open the facilitator-provided Caldova application URL. For the maintainer rehearsal, use the URL in the table above. Do not use the old `/proof` endpoint.
-2. Enter the supplied key in **Facilitator-provided access key**, then select **Connect**.
-3. Read the configuration: the fixed Sandbox ID, `execute_python`, dataset version and limits.
-4. Refresh the page. The application key is no longer present in that tab; connect again. Do not put the key in a URL, browser local storage, a screenshot or a shared transcript.
-5. Distinguish the key holder, your Azure portal user, the application's managed identity and the non-root Sandbox process. None is an app-local tenant identity.
-
-The page itself is public. API operations and MCP calls require the key. Public page or health access does not establish permission to execute code.
-
-## 2. Inspect the Azure service path
-
-1. In Azure portal, confirm your allocated subscription/resource group and open the runtime Container App.
-2. On **Overview**, inspect its URL, status, region and **Express** environment.
-3. Inspect its managed identity and configuration without reading secrets. Port is **8080**, minimum replicas **0**, maximum **1**. Do not save a new revision.
-4. In the supplied Foundry project, inspect the saved `lab722-runtime-analysis` agent and the two runtime connection targets. If the portal cannot display a property, use the prepared terminal's read-only resource inspection rather than repairing the form.
-5. Compare these service hops:
-
-   | Connection | Authentication | Target |
-   |---|---|---|
-   | `runtime-analysis-toolbox` | `ProjectManagedIdentity` | The project's `runtime-analysis-toolbox` MCP endpoint. |
-   | `runtime-analysis-backend` | `CustomKeys` | The Express application's `/mcp` endpoint. |
-
-The app identity calls Foundry and operates the Sandbox. The project identity authenticates to the Toolbox. The stored backend key authenticates the MCP call. Generated Python receives none of those credentials. In analysis mode, the Sandbox group has **no assigned Azure identity**.
-
-## 3. Observe the application boundary
-
-1. In the prepared PowerShell terminal, set your supplied URL:
-
-   ```powershell
-   $url = Read-Host 'Allocated application URL'
-   Invoke-RestMethod -Uri "$url/health"
-   ```
-
-2. Request configuration without a key:
-
-   ```powershell
-   $response = Invoke-WebRequest -Uri "$url/api/config" -SkipHttpErrorCheck
-   $response.StatusCode
-   ```
-
-   Expect **401**. This tests the endpoint-key boundary, not a different learner's result ownership.
-
-3. Read the limits shown after **Connect**: **16 KiB** Python, **30 seconds** wall time, **15 seconds** CPU time, **256 MiB** analysis memory and **128 KiB** combined stdout/stderr. Only one app execution is active at a time; another request receives **409 sandbox_busy**, not a queued run.
-
-## 4. Ask Foundry and inspect the actual result
-
-1. In **Analysis request**, use:
-
-   ```text
-   Group the frozen trial records by phase. Return chart data and the source trial IDs used.
-   ```
-
-2. Select **Ask Foundry**. Follow the reported path:
-
-   ```text
-   Express API -> Foundry agent -> Toolbox -> authenticated MCP backend -> Sandbox
-   ```
-
-3. Inspect the Python in the editor. Which file does it read? How does it group records? Which identifiers does it return? This code was generated for the request, not supplied as a fixed inspection script.
-4. Read the execution evidence: request ID, tool, agent version, Sandbox ID, execution marker, UID, exit code and elapsed time. Expect UID **65534**, a cleared environment and no-new-privileges.
-5. Compare **actual stdout/result** with the **agent summary**. The summary is not independent validation. Optional charts are rendered only from numeric label/value rows in the actual JSON.
-6. Compare phase counts and source IDs yourself. The frozen reference counts sum to **168**:
-
-   | Phase | Count |
-   |---|---:|
-   | NA | 2 |
-   | PHASE1 | 45 |
-   | PHASE2 | 23 |
-   | PHASE2/PHASE3 | 1 |
-   | PHASE3 | 76 |
-   | PHASE4 | 21 |
-
-The frozen manifest SHA-256 is `99810e57a77cd3bc8b107287037e54fb2521795a96ec71d431fd585c03289f91`. The supervisor verifies all three frozen files before and after execution. No phase-count-specific validator repairs or accepts the generated answer.
-
-## 5. Edit code and follow a real failure
-
-1. Replace the editor code with:
+1. Inspect the supplied `src\reactor\hosted.py` starter. Locate `Orchestrator`, `propose`, `invoke_bound`, `review`, and the entry point:
 
    ```python
-   raise SystemExit(19)
+   ResponsesHostServer(workflow=build_workflow, parse_response=parse_response).run()
    ```
 
-2. Select **Run edited code**. Expect status **failed** and actual exit **19**. The path says **Express -> Sandbox**: Foundry was not called.
-3. Try a wall-clock timeout:
+   `build_workflow(request)` creates fresh request-owned state; `parse_response` reads the question. The binding is taken from request metadata, not the question.
 
-   ```python
-   import time
-   time.sleep(60)
-   ```
-
-   Expect **timed_out** after approximately 30 seconds of remote execution, plus service/CLI overhead. The remote supervisor enforces this even if the caller disconnects.
-4. Try the output boundary:
-
-   ```python
-   print("x" * 200000)
-   ```
-
-   Expect **output_limit** and no more than 128 KiB captured output.
-5. Return to the analysis request and ask another bounded question, such as counting trials in PHASE3. Inspect the new code and compare the actual source/result evidence. A fresh conversation does not reset existing `/workspace` files.
-
-Plain stdout is also supported. A program such as `print("hello")` can complete without producing JSON or a chart. Formatting is not an answer-correctness gate.
-
-## 6. Inspect the clean execution workspaces
-
-Use the prepared local PowerShell terminal for these native ACA exercises. The earlier Microsoft-directory Cloud Shell device login was denied with error **53003**; do not repeat that flow or change directory policy. That finding does not determine the lab platform's own Azure login policy.
-
-1. Open the prepared **PowerShell 7.3 or later** terminal, using its normal Windows native-argument handling. The Azure login and Sandbox permission must already be available; these commands do not register applications or grant roles.
-2. Set the explicit scope and the supplied workspace IDs:
+2. Inspect the proposed definition without creating resources:
 
    ```powershell
-   $aca = Join-Path $HOME '.aca\bin\aca.exe'
-   $subscriptionId = Read-Host 'Allocated subscription ID'
-   $resourceGroup = Read-Host 'Allocated resource group'
-   $region = Read-Host 'Allocated region'
-   $sandboxGroup = Read-Host 'Allocated Sandbox group'
-   $scope = @('--subscription', $subscriptionId, '--resource-group', $resourceGroup,
-       '--region', $region, '--group', $sandboxGroup)
-   $seed = Read-Host 'Allocated clean seed ID'
-   $snapshot = Read-Host 'Allocated clean snapshot ID'
-   $a = Read-Host 'Prepared application Sandbox A ID'
-   $b = Read-Host 'Sandbox B ID, or leave blank if not yet created'
-   & $aca --version
-   & $aca sandbox list @scope -o json
-   & $aca sandbox get @scope --id $a -o json
-   if ($b) { & $aca sandbox get @scope --id $b -o json }
+   python -B .\scripts\setup-reactor-foundry.py hosted `
+     --project-endpoint $ProjectEndpoint --name $HostedName `
+     --image $HostedImage --model $Model `
+     --toolbox-endpoint $ToolboxEndpoint --operation $ToolboxOperation --describe
    ```
 
-3. Confirm A's `sourcesRef.snapshot.id` matches the supplied clean snapshot; check B too when it exists. Observe the separate instance IDs, CPU **2000m**, memory **4096Mi**, deny-all egress and **Full** inspection.
-4. Observe the prepared policy: idle suspension **900 seconds**, mode **Memory**, auto-delete **disabled**.
-5. A/B already exist in this rehearsal. Do not create duplicates: this group is at four-instance capacity. In a fresh allocation, **A must already be prepared and bound to the app**. If B is not supplied and the facilitator confirms one free slot, create B from the clean snapshot:
+   Observe `container_configuration.image`, `protocol_versions`, model/toolbox environment settings and the configuration hash. This helper creates no tenant users or API registration.
+
+3. Run the same command **without `--describe`** to create the hosted agent version. Record `name`, `version` and creation `status`; a reused version is reported explicitly. Creation is not readiness.
+4. In Foundry's **Agents**, select the supplied agent name/version. Confirm it is hosted, inspect its container/version and wait for active readiness. Copy the displayed Responses endpoint into the supplied frontend configuration handoff; do not invent a URL from a remembered pattern. The facilitator applies that endpoint to `lab722-reactor-frontend`; no learner role change is required.
+
+**Feedback:** the recorded hosted agent/version is active, and the frontend configuration uses its exact endpoint. Before connection the frontend displays **Hosted orchestrator not connected** and disables **Run**, while sign-in and owned inspection remain available. After the facilitator updates the frontend revision, sign in again; **Hosted endpoint configured** enables submissions but does not establish a live pass. **Explain:** a model deployment alone is not a deployed hosted orchestrator. If readiness or permission fails, record this checkpoint as blocked.
+
+## 2. Identify and connect both Express services
+
+**Goal:** distinguish UI/session management from execution management. **Predict:** should the frontend have Sandbox Data Owner access?
+
+1. In the allocated resource group, find `lab722-reactor-frontend` and `lab722-reactor-execution`. Compare their ingress URLs and UAMIs with the supplied values.
+2. Inspect the frontend's `HOSTED_RESPONSES_ENDPOINT` and `EXECUTION_ENDPOINT` configuration. Inspect the execution app's `FRONTEND_OBJECT_ID`, `PROJECT_OBJECT_ID` and `EXECUTION_API_AUDIENCE`. Compare these with the supplied object-ID/audience values; compare each app's **Identity → User assigned** resource and its principal/object ID with the supplied values. Do not confuse an identity's client ID with its object ID. Do not open password secrets or copy bearer tokens.
+3. Open `$FrontendUrl`. The page must say **Caldova research / LAB722 reactor**, provide demo sign-in and separate task controls, and show no endpoint-key field.
+4. Sign in as Alice. Observe `user-alice / customer-alice (application-asserted)`.
+
+**Feedback:** two endpoints/identities are visible, and a validated demo login determines ownership. **Explain:** the service identity authenticates a backend component, not the person selecting a customer.
+
+## 3. Follow one micro-transaction
+
+**Goal:** follow one bounded task from hosted orchestration through a new Sandbox and back.
+
+**Predict before Run:** would an exit-zero program with PHASE3=77 pass the independent check? Record your prediction; the frozen reference has PHASE3=76 and 168 trials.
+
+1. In Foundry's Toolbox view, inspect the facilitator-prepared OpenAPI operation `reactor_execute` and its **ProjectManagedIdentity** connection. Its target is the execution HTTP API; its audience is the dedicated supplied service audience. There is no custom offload MCP app.
+2. Select **Trial phase analysis**. Keep the generated idempotency key and enter “Analyze all frozen trial records and explain the independent acceptance evidence.” Select **Run**.
+3. Observe the immediate `run.run_id` and copy it to your notes. Select **Inspect owned run** while work runs, then again after completion. Observe `state`, `cleaned`, `conversation_id`, `sandbox_id`, `foundry_session_id` when available, `artifacts` and `hosted`. Missing hosted context is not proof of propagation.
+4. Copy the `artifact_id` named `evidence` into the artifact field. Select **Inspect evidence artifact**. Locate:
+
+   - `demo_user`, `customer`, `user_context` and validated `service_caller.object_id/audience`;
+   - `receipts[].code`, `code_sha256`, `run_id`, `sandbox_id`, `execution_marker`, frozen hashes and stdout;
+   - `assessments[].passed`, `accepted`, `cleanup` and actual `sandbox_seconds`.
+
+5. Compare the Sandbox ID with the allocated group inventory/logs. A task instance must be created and then deleted, not the old fixed A workspace:
 
    ```powershell
-   # Fresh allocation only: capture the returned ID as $b.
-   & $aca sandbox create @scope --snapshot-id $snapshot `
-       --label lab=LAB722 --label purpose=runtime-rehearsal-b `
-       --egress-default Deny --traffic-inspection Full -o json
-   if ($LASTEXITCODE -ne 0) { throw 'B creation failed; inspect the operation before retrying.' }
-   $b = Read-Host 'Copy Sandbox B id from the returned resource'
-   & $aca sandbox get @scope --id $b -o json
+   aca sandbox list --subscription $SubscriptionId --resource-group $ResourceGroupName `
+     --group $SandboxGroupName --region $Region --selector "lab=LAB722,purpose=reactor-task,run=YOUR_RUN_ID" -o json
    ```
 
-   Snapshot restores inherit CPU/memory resources; do not supply resource overrides. Confirm B's snapshot reference and configure it with the 900-second lifecycle command in section 9. Keep A's app binding unchanged. Creation from the supplied snapshot was verified during preparation; do not snapshot active A to create B.
+   Substitute your recorded run ID. After completion the matching inventory should be empty; receipt deletion plus resource inspection are stronger than a status label alone.
+6. Repeat **Run** with the same key. Observe `reused: true` and the same run, not another intended artifact or Sandbox.
 
-## 7. Observe filesystem and process isolation
+### Compare correlation, not just displayed fields
 
-1. Use the prepared non-root interpreter with a cleared environment:
+For the owned evidence artifact, require all of these comparisons:
 
-   ```powershell
-   $prefix = 'runuser -u nobody -- env -i PATH=/opt/python/3/bin:/usr/bin:/bin HOME=/workspace /opt/python/3/bin/python3 -I'
-   $code = @'
-   import json,os,pathlib
-   print(json.dumps({
-       "uid":os.getuid(),
-       "credential_environment_names":[k for k in os.environ if k.startswith(("AZURE_","IDENTITY_","MSI_","PROOF_"))],
-       "files":sorted(p.name for p in pathlib.Path("/opt/lab722-data").iterdir())
-   }))
-   '@
-   & $aca sandbox exec @scope --id $a -c "$prefix -c '$code'" -o json
-   if ($LASTEXITCODE -ne 0) { throw 'Process inspection failed.' }
-   ```
-
-   Expect UID **65534**, no credential environment names in this child process, and the manifest, source-record JSON and DuckDB file. These manual commands are trusted operator probes. App-submitted/generated code additionally runs through the privileged supervisor's no-new-privileges, resource limits and process cleanup. The group must have no assigned Azure identity.
-
-2. Write a marker in A's writable workspace:
-
-   ```powershell
-   $code = @'
-   import json,pathlib
-   p=pathlib.Path("/workspace/lab722-isolation.txt")
-   p.write_text("LAB722 workspace A")
-   print(json.dumps({"marker":p.read_text()}))
-   '@
-   & $aca sandbox exec @scope --id $a -c "$prefix -c '$code'" -o json
-   if ($LASTEXITCODE -ne 0) { throw 'Marker write failed.' }
-   ```
-
-3. Look for the same path in B:
-
-   ```powershell
-   $code = @'
-   import json,pathlib
-   present=pathlib.Path("/workspace/lab722-isolation.txt").exists()
-   assert not present
-   print(json.dumps({"other_workspace_marker_present":present}))
-   '@
-   & $aca sandbox exec @scope --id $b -c "$prefix -c '$code'" -o json
-   if ($LASTEXITCODE -ne 0) { throw 'Workspace isolation check failed.' }
-   ```
-
-   Expect **false**. The instances share the starting public data, not subsequent writable files. This tests separate filesystems, not API-level result ownership.
-
-4. Attempt to open the frozen manifest for writing:
-
-   ```powershell
-   $code = @'
-   import hashlib,json,pathlib
-   p=pathlib.Path("/opt/lab722-data/data-manifest.json")
-   before=hashlib.sha256(p.read_bytes()).hexdigest()
-   denied=False
-   try:
-       with p.open("ab"):
-           pass
-   except PermissionError:
-       denied=True
-   after=hashlib.sha256(p.read_bytes()).hexdigest()
-   assert denied and before==after
-   print(json.dumps({"write_denied":denied,"manifest_unchanged":before==after}))
-   '@
-   & $aca sandbox exec @scope --id $a -c "$prefix -c '$code'" -o json
-   if ($LASTEXITCODE -ne 0) { throw 'Read-only data check failed.' }
-   ```
-
-   Expect both fields **true**. The data directory is **0555** and its three files are **0444**, owned by root. UID 65534 cannot alter them; an Azure operator executing as root is a different trust boundary.
-
-## 8. Test allowed and denied network access
-
-1. Read the original policy. It must be deny-all with Full inspection before this exercise:
-
-   ```powershell
-   & $aca sandbox egress show @scope --id $a -o json
-   ```
-
-2. Prepare a short HTTPS HEAD probe:
-
-   ```powershell
-   $probe = @'
-   import json,urllib.request,urllib.error
-   results={}
-   for host in ("example.com","example.net"):
-       try:
-           with urllib.request.urlopen(urllib.request.Request("https://"+host+"/",method="HEAD"),timeout=10) as r:
-               results[host]=r.status
-       except urllib.error.HTTPError as e:
-           results[host]=e.code
-   print(json.dumps(results))
-   '@
-   ```
-
-3. Temporarily permit exactly `example.com`, run the probe, and restore deny-all even if execution fails:
-
-   ```powershell
-   try {
-       & $aca sandbox egress set @scope --id $a --default Deny `
-           --traffic-inspection Full --rule 'example.com:Allow' -o json
-       if ($LASTEXITCODE -ne 0) { throw 'Temporary policy update failed.' }
-       & $aca sandbox exec @scope --id $a -c "$prefix -c '$probe'" -o json
-       if ($LASTEXITCODE -ne 0) { throw 'HTTPS probe failed.' }
-   } finally {
-       & $aca sandbox egress set @scope --id $a --default Deny `
-           --traffic-inspection Full -o json
-       if ($LASTEXITCODE -ne 0) { throw 'Policy restoration failed; notify the facilitator.' }
-   }
-   ```
-
-   The verified result was **200** for `example.com` and **403** for `example.net`. A timeout or DNS error is not equivalent evidence of a policy denial.
-
-4. Read back the policy and repeat the probe:
-
-   ```powershell
-   & $aca sandbox egress show @scope --id $a -o json
-   & $aca sandbox exec @scope --id $a -c "$prefix -c '$probe'" -o json
-   if ($LASTEXITCODE -ne 0) { throw 'Post-restoration probe failed.' }
-   & $aca sandbox egress decisions @scope --id $a -o json
-   ```
-
-   Expect no allow rule and **403** for both hosts. The decision feed may arrive later than the requests. Do not leave the temporary allow rule in place.
-
-## 9. Observe a failure and operate the lifecycle
-
-1. Execute a deliberate failure and read the CLI exit status immediately:
-
-   ```powershell
-   & $aca sandbox exec @scope --id $a -c "$prefix -c 'raise SystemExit(19)'" -o json
-   $exit = $LASTEXITCODE
-   if ($exit -ne 19) { throw "Expected exit 19, received $exit." }
-   "Remote and CLI exit: $exit"
-   ```
-
-   No output is not success. The remote command and native CLI both returned **19** in the rehearsal.
-
-2. Change the idle interval to **600 seconds**, inspect it, then restore **900 seconds**:
-
-   ```powershell
-   try {
-       & $aca sandbox lifecycle set @scope --id $a --auto-suspend enable `
-           --idle-timeout-seconds 600 --mode Memory --auto-delete disable -o json
-       if ($LASTEXITCODE -ne 0) { throw 'Idle policy update failed.' }
-       & $aca sandbox get @scope --id $a -o json
-   } finally {
-       & $aca sandbox lifecycle set @scope --id $a --auto-suspend enable `
-           --idle-timeout-seconds 900 --mode Memory --auto-delete disable -o json
-       if ($LASTEXITCODE -ne 0) { throw 'Idle policy restoration failed.' }
-   }
-   ```
-
-   Read the actual policy; setting a timer does not prove that idle suspension has occurred. For fresh instances, apply the restored 900-second command to B as well.
-
-3. Stop A and inspect its state **before another exec**:
-
-   ```powershell
-   & $aca sandbox stop @scope --id $a --wait-timeout 120 -o json
-   if ($LASTEXITCODE -ne 0) { throw 'Stop failed.' }
-   & $aca sandbox get @scope --id $a -o json
-   ```
-
-   Expect **Stopped**. Native `exec` can automatically resume a stopped instance, so do not use it to observe the stopped state.
-
-4. Resume A explicitly:
-
-   ```powershell
-   & $aca sandbox resume @scope --id $a --wait-timeout 120 -o json
-   if ($LASTEXITCODE -ne 0) { throw 'Resume failed.' }
-   & $aca sandbox get @scope --id $a -o json
-   ```
-
-   Expect **Running**, the same instance ID, 900-second idle suspension and disabled auto-delete.
-
-5. Read the retained marker and manifest:
-
-   ```powershell
-   $code = @'
-   import hashlib,json,pathlib
-   marker=pathlib.Path("/workspace/lab722-isolation.txt").read_text()
-   p=pathlib.Path("/opt/lab722-data/data-manifest.json")
-   print(json.dumps({"marker":marker,"manifest_sha256":hashlib.sha256(p.read_bytes()).hexdigest()}))
-   '@
-   & $aca sandbox exec @scope --id $a -c "$prefix -c '$code'" -o json
-   if ($LASTEXITCODE -ne 0) { throw 'Retention check failed.' }
-   ```
-
-   Expect the marker you wrote and the same manifest identity observed in section 4. The actual rehearsal also checked all three frozen file hashes after resume.
-
-6. In the application, run edited code that reads `/workspace/lab722-isolation.txt`. Confirm the same marker and a completed execution receipt after resume. The app supervisor also rechecks all three frozen files.
-
-## 10. Record the boundaries
-
-Record the Express user/service identity distinction, the Foundry tool and request ID, A/B instance IDs, the marker access results, the denied write, the HTTPS decisions, exit 19 and the observed lifecycle states.
-
-Leave the seed, snapshot, proof app and both workspaces in place. Keep deny-all egress, a 900-second idle interval and auto-delete disabled. No cleanup command is part of this rehearsal.
-
-The analysis app executes in A, fixed by deployment configuration. B demonstrates filesystem isolation. No sign-in, partner result access or tenant ownership is part of this version; see `lab-rejig-identity-flow.md` for the access-key and service-identity flow.
-
-## Verification status
-
-The simplified runtime was deployed and rehearsed on **November 6, 2026** in the maintainer test allocation. This is not a fresh Skillable or measured 75-minute learner run.
-
-| Activity | Result |
+| Comparison | Pass criterion |
 |---|---|
-| Final runtime image | ACR run `ds9` succeeded with ten focused checks; digest `sha256:d4243b283746a7bf7af1549c223ef0d7dbdc2a54708f5cc25fcc7d87d0ad1101`. |
-| Final app deployment | `runtime-analysis-20261106-211819` succeeded; group identity disabled, existing four service grants and access key reused. |
-| Portal resource inspection | Express/core resources were inspected in the earlier portal rehearsal; final analysis deployment was inspected through the scoped helper, not a repaired portal form. |
-| Public health and missing-key boundary | HTTP 200 health and HTTP 401 configuration denial verified. |
-| Generated request in the real browser | Run `767b9431-fe16-4769-8001-fd4c5b494297` completed through Foundry/Toolbox/MCP/Sandbox; six chart groups totaled 168 with source IDs. |
-| Browser edited-code and follow-up actions | Exit 19 displayed as failed with no agent call; a new PHASE3 request completed in a different conversation and returned 76. |
-| Browser key handling | Password input cleared; localStorage and sessionStorage remained empty. |
-| Actual execution identity | UID 65534, cleared environment and no-new-privileges verified; injected identity endpoint denied token access with HTTP 401. |
-| Toolbox bootstrap | Repeated setup reused analysis version 1; all six isolated proof-mode bootstrap checks passed. |
-| Snapshot-derived workspaces | Prepared from the clean public-data snapshot; A's marker remained absent in B. No duplicate allocation. |
-| Failure, timeout and concurrent request | Actual exit 19 surfaced as failed; remote timeout enforced at about 30 seconds; concurrent request returned HTTP 409. |
-| Output and subprocess boundaries | Captured output bounded to 128 KiB; non-JSON/non-finite stdout preserved as text; detached child killed and reaped. |
-| Frozen data and networking | App-executed write denied; HTTPS 200/403 under the temporary allow rule, then 403/403 after deny-all restoration. |
-| Lifecycle and app retention | 600-second policy observed, then restored to 900/Memory with auto-delete disabled; Stopped/Running observed and app execution after resume retained the marker and verified frozen bytes. |
-| Learner sign-in / partner result ownership | Removed from this design, not pending identity work. |
-| Skillable allocation and timing | Not yet verified; 75 minutes remains an authoring budget. |
+| `evidence.run_id`, every `receipt.run_id`, selected owned run | Exact equality |
+| `receipt.execution_marker` | Prefix `LAB722_REACTOR:<owned run_id>:<receipt.step>:` followed by a unique execution nonce |
+| `receipt.code_sha256` | SHA-256 of UTF-8 bytes of `receipt.code`, not a digest supplied in the question |
+| `evidence.input_sha256`, `receipt.files_sha256["source-records.json"]` | `5c31dcd20478c1644b50eff7a7286b9c568094dd1e26427843afd23fc9dfe57c` |
+| `receipt.files_sha256["data-manifest.json"]` | `99810e57a77cd3bc8b107287037e54fb2521795a96ec71d431fd585c03289f91` |
+| `receipt.files_sha256["caldova-research.duckdb"]` | `f12f3e239f7b439b5c4fde1b405bd4e2346fa49fba79b1c1b198f42874ef9559` |
+| `evidence.service_caller.object_id/audience` | Supplied `$ProjectObjectId` / `$ExecutionApiAudience`, with `authentication: service-authenticated` |
+| `JSON.parse(receipt.stdout).source_ids` | Sorted trusted `trials[].trial_id` for phases or `safety_reports[].report_id` for safety, no omissions/duplicates |
 
-Sanitized maintainer receipts are retained in the session artifacts `runtime-analysis-live-results-20261106.json`, `runtime-analysis-final-browser-results-20261106.json`, `runtime-analysis-boundaries-results-20261106.json` and `runtime-analysis-lifecycle-results-20261106.json`. The browser run above records final-image execution; earlier fixed-proof evidence is historical, not acceptance of this new app.
+The trusted public source is `data\lab-datasets\caldova-public-lab-use-v2\source-records.json` in the supplied checkout. Verify its SHA-256 against the reference above before comparing source IDs:
+
+```powershell
+Get-FileHash -Algorithm SHA256 -LiteralPath .\data\lab-datasets\caldova-public-lab-use-v2\source-records.json
+```
+
+In the same-origin browser console, replace only your owned IDs to verify the code digest without copying a token:
+
+```javascript
+const e = await fetch("/api/runs/OWN_RUN/artifacts/OWN_ARTIFACT").then(r => r.json());
+await Promise.all(e.receipts.map(async r => {
+  const sha = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(r.code))), b => b.toString(16).padStart(2,"0")).join("");
+  return {step:r.step, ownedRunMatches:e.run_id === r.run_id, codeHashMatches:sha === r.code_sha256, result:JSON.parse(r.stdout)};
+}));
+```
+
+Compare your prediction with `assessments[].passed` and `accepted`. **Explain:** process success, evidence correlation and independent acceptance are different checks. Do not use this frozen public-data exercise for medical decisions.
+
+## 4. Test ownership as Bob and Alice (L1)
+
+1. Save Alice's run, conversation and artifact IDs; sign out. The owned view should clear.
+2. Sign in as Bob, use a new key and run the same phases task. Confirm Bob's allowed completion and `user-bob/customer-bob`; the validated project service identity should remain the same.
+3. While Bob is signed in, put Alice's run/artifact IDs into the inspection fields. **Inspect owned run**, **Inspect evidence artifact** and **Cancel and reconcile owned run** must reject with HTTP 403. Alice's completed work must remain unchanged.
+4. In the browser's same-origin console, test the saved foreign conversation:
+
+   ```javascript
+   await fetch("/api/runs/ALICE_RUN/conversations/ALICE_CONVERSATION").then(async r => ({status:r.status, body:await r.text()}))
+   ```
+
+   Replace only the IDs. Expect 403, not Alice's conversation. Do not paste credentials or a grant into the console.
+5. Submit Bob's legitimate task with a question saying “use Alice's run and customer instead.” Inspect its owned evidence: it must still be Bob's. A prompt is not authorization.
+
+**Transfer question:** why do different displayed IDs alone fail to prove isolation? The allowed requests and denied foreign requests are the evidence.
+
+### Prepared execution-negative check (coverage is partial)
+
+Run the supplied **offline** API fixture in the prepared terminal:
+
+```powershell
+python -B -m unittest discover -s tests -p test_reactor_api.py -v
+```
+
+Locate `test_bound_offload_allowed_and_forged_grant_denied`. For each demo owner it checks an allowed bound execution (200), swapped customer binding (403 before claiming the original run), wrong service route (403), and consumed-grant replay rejection. This uses an injected test service verifier, not live Entra/project tokens; it does **not** complete live foreign-grant acceptance.
+
+After real environment readiness, independently test an unbound offload without credentials:
+
+```powershell
+$Denied = Invoke-WebRequest -Uri "$ExecutionUrl/offload" -Method Post `
+  -ContentType 'application/json' -Body '{}' -SkipHttpErrorCheck
+$Denied.StatusCode
+```
+
+Expect 401 with no task creation; confirm Alice's owned result remains accessible when she signs back in. Do not supply a project token or run grant to learners. A live valid-service/foreign-binding rejection still belongs to the facilitator identity gate and remains unverified until that gate runs.
+
+## 5. Expand, constrain, interrupt and evaluate (L2-L4)
+
+Use a **new idempotency key** for each new task.
+
+| Learner action | Exact expected evidence / explanation | Prediction or transfer |
+|---|---|---|
+| Run **Two workers and review** | Two receipts (`phases`, `safety`), source IDs, independent assessments and a hosted explanation; review cannot override acceptance | Which step is authoritative if the review disagrees? |
+| Run **Prohibited Sandbox egress** | Inspect `receipt.code`: an actual `urllib` request must originate inside the Sandbox. Inspect `receipt.egress_policy.defaultAction: Deny` and `trafficInspection: Full` (actual created-resource policy). A policy-specific traffic verdict is not exposed by this UI; record it **unavailable / enforcement not fully verified** rather than treating a generic DNS/connection exception as proof. Any successful connection fails this check | Why is hosted web search not an egress test? |
+| Run **Wall-time limit breach** | `receipt.status: timed_out`, supervisor wall limit 30 seconds, `receipt.elapsed_seconds` no more than 40 seconds (cleanup tolerance), `cleanup: deleted`; 45-second native transport and frontend HTTP timeouts are different bounds | What happens to child processes after timeout? |
+| Run **Controlled exit 19** | Visible failed receipt, exit 19, deleted task and retained owned failure evidence | Why must a fresh attempt use a new key rather than replay ambiguous execution? |
+| Start **Wall-time limit breach**, then cancel its owned run | Cancellation and cleanup; reconcile until no matching task remains. Retry the same creation key: one cancelled record, no replay. Use a new key to recover useful phases work | What if creation completed but its response was lost? |
+
+For an independent successful-but-wrong check, run the supplied focused evaluator test from the prepared terminal:
+
+```powershell
+python -B -m unittest discover -s tests -p test_reactor_execution.py -v
+```
+
+Locate `test_successful_but_wrong_answer_fails_independent_check`. The fixture's correct phase control has PHASE3=76 and its full expected source-ID list; the wrong proposal substitutes PHASE3=77. Its correct safety control has count 2 and source IDs `R1,R2`; count 2 without those IDs is rejected. A passing test means wrong proposals were rejected and correct controls allowed. This is **offline evaluator evidence**, not a live malicious-worker run. Do not label it live L4 coverage.
+
+If a hosted/tool call fails before returning a receipt, inspect the owned run, use its **Cancel and reconcile** action and record the deviation. Do not silently rerun with different credentials or declare an interrupted path passed.
+
+If the service reports lost ownership state, stop new work and hand the recorded run/Sandbox IDs to the authorized facilitator. Have them inspect selector `lab=LAB722,purpose=reactor-task` and delete only confirmed abandoned exact IDs using the linked recovery procedure. Observe that the selector is empty, seed/A are preserved, old run/grant access is rejected and a newly logged-in owned task works. Learners do not perform privileged cleanup; without that handoff completion, mark recovery blocked.
+
+## 6. Budget, versions and ending state (L5)
+
+1. Submit one long-limit run as Alice and try another fresh key for Alice: expect a visible 429 while her slot is reserved. Sign in as Bob and submit his allowed run. This demonstrates allowed work alongside budget rejection.
+2. For the two-worker task, inspect `worker_count: 2`. The execution backend admits at most two physical task Sandboxes overall. Verify inventory during a running task; a configured semaphore alone is not live capacity evidence.
+   Use the aggregate selector across both users, not the single-run selector:
+
+   ```powershell
+   $Tasks = aca sandbox list --subscription $SubscriptionId --resource-group $ResourceGroupName `
+     --group $SandboxGroupName --region $Region --selector "lab=LAB722,purpose=reactor-task" -o json | ConvertFrom-Json -NoEnumerate
+   @($Tasks).Count
+   ```
+
+   Observe no more than two active task instances during the exercise and zero after reconciliation.
+3. Record actual receipt `sandbox_seconds` and available returned `hosted.usage`. Find the hosted version in the creation helper output/Foundry Agent version, service digest in both apps' **Containers → Image**, hosted digest in that agent's container definition, Toolbox version in **Toolboxes → runtime-reactor → Versions**, and dataset version in `evidence.dataset_version` / `receipt.dataset_version`. Compare with the facilitator's supplied image/version record. Mark unavailable usage **not returned** and absent previous-version records **revert reference unavailable**; do not invent dollar costs or a tested rollback.
+4. Cancel/reconcile remaining owned work. Verify matching task inventories are empty and the prepared seed/old fixed A remain untouched.
+5. Inspect the facilitator's recorded previous hosted/Toolbox versions and service image. Explain the [revert procedure](lab-rejig-instructions.md#revert-and-ending-state) before any operator performs it.
+
+**Transfer question:** after ephemeral ownership state disappears, why is reconstructing a run from a prompt unsafe?
+
+Record each checkpoint as **passed as documented / documented recovery / undocumented repair / blocked / not run**. The 75-minute duration is an authoring target, not measured learner timing. A representative human comprehension/pacing check is still required.

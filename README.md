@@ -33,6 +33,8 @@ Fill in the sections below yourself, then:
 # [Microsoft Ignite 2026](https://ignite.microsoft.com)
 
 ## 🔥LAB722: Operate secure, multi-tenant agentic apps on Azure Container Apps
+**`lab-reactor` redesign:** start with the [current reactor learner guide](docs/runtime-rejig/lab-rejig-learner-instructions.md) and [validation report](docs/runtime-rejig/reactor-walkthrough-report.md). The new two-Express/hosted-workflow path is not live-ready: its dedicated execution API audience has not been supplied, and tenant resource creation was declined. The older delivery instructions below are historical for this branch; do not substitute the shared-key runtime.
+
 ### Session description
 
 Build a governed research workflow for Caldova, a fictional pharmaceutical company. Configure a Microsoft Foundry orchestrator, run specialist agents in isolated Azure Container Apps Sandboxes, prove outbound network controls, and publish a validated research application to Azure Container Apps Express. The materials support guided and self-paced study; narrated segment videos are still planned.
