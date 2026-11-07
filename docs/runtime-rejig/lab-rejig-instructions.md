@@ -12,14 +12,14 @@ Use only the owner's authorized `ig2026-lab-learner` allocation in westus3. The 
 
 Before learners arrive, supply:
 
-- Existing Foundry project/model, approved clean frozen-data snapshot, Express environment, ACR and at least two available task slots.
+- Existing Foundry project/model, approved clean frozen-data snapshot, Express environment, the public `acateam.azurecr.io/lab722` image namespace and at least two available task slots.
 - A **facilitator-provided existing dedicated service API registration/audience**, with the permitted frontend UAMI and Foundry project MI authorized to request service tokens. The backend separately validates tenant/audience/object IDs and routes by caller.
 - PowerShell 7.3+, Azure CLI, native ACA CLI and pinned Python packages.
 - Learner Foundry Project Manager permission and read-only Azure/resource/log inspection; no role-assignment or directory operation in the lesson.
 - Both Express services, project identity connection, Toolbox version and approved hosted starter image. Hosted-agent creation remains a learner action.
 - Two different secret demo passwords, delivered privately. Both must be 12-1024 characters. No passwords in parameter files, URLs, screenshots or logs.
 
-The new frontend has project Foundry User and ACR Pull; the execution UAMI has group SandboxGroup Data Owner and ACR Pull. The group itself must have no usable Azure identity. Preserve existing grants/old runtime; do not detach unrelated identities or delete seed/A.
+The new frontend has project Foundry User; the execution UAMI has group SandboxGroup Data Owner. The shared registry has anonymous pulls enabled, so neither app needs an ACR Pull grant for these public images. The group itself must have no usable Azure identity. Preserve existing grants/old runtime; do not detach unrelated identities or delete seed/A.
 
 ## Build and inspect
 
@@ -33,14 +33,19 @@ az bicep build --file .\infra\reactor.bicep --stdout
 
 Use a prepared isolated Python environment. The Windows run skips the Linux-root private-note check. Run the same reactor tests during the Linux service-image build; the Containerfile includes them. Existing supervisor regressions also require Linux. No new linter is introduced.
 
-Build from the repository root or a narrow staged context that preserves the referenced paths:
+The verified shared registry is `acateam` in resource group `prodish-stuff`, subscription `30501c6c-81f6-41ac-a388-d29cf43a020d`. `lab722` is a repository namespace, not the registry name or a standalone repository. Prepared images are `lab722/reactor-services` and `lab722/reactor-hosted`. Building/publishing is a facilitator operation; anonymous pull access does not grant write access.
+
+Build from the repository root or a narrow staged context that preserves the referenced paths. These variables identify the **registry allocation**, not the learner resource group:
 
 ```powershell
-az acr build --registry $RegistryName --resource-group $ResourceGroupName `
-  --subscription $SubscriptionId --image "reactor-services:$BuildVersion" `
+$RegistryName = 'acateam'
+$RegistryResourceGroupName = 'prodish-stuff'
+$RegistrySubscriptionId = '30501c6c-81f6-41ac-a388-d29cf43a020d'
+az acr build --registry $RegistryName --resource-group $RegistryResourceGroupName `
+  --subscription $RegistrySubscriptionId --image "lab722/reactor-services:$BuildVersion" `
   --file .\src\reactor\Containerfile .
-az acr build --registry $RegistryName --resource-group $ResourceGroupName `
-  --subscription $SubscriptionId --image "reactor-hosted:$BuildVersion" `
+az acr build --registry $RegistryName --resource-group $RegistryResourceGroupName `
+  --subscription $RegistrySubscriptionId --image "lab722/reactor-hosted:$BuildVersion" `
   --file .\src\reactor\HostedContainerfile .
 ```
 
@@ -50,7 +55,7 @@ Use immutable ACR digests for both images, not floating tags. Recipes pin Python
 
 ## Provision the two Express apps (blocked until audience supplied)
 
-`infra\reactor.bicep` creates only the two distinct Express apps, their UAMIs and scoped Azure roles. It takes the existing API audience as a required input; it creates no tenant applications, custom MCP server or old-runtime replacement.
+`infra\reactor.bicep` creates only the two distinct Express apps, their UAMIs and scoped Azure roles. It takes the existing API audience as a required input; it creates no tenant applications, custom MCP server or old-runtime replacement. Its public-registry default emits no registry credentials, resource lookup or image-pull role assignments, so `acateam` need not exist in the learner resource group. Set `-UsePrivateRegistry` only for an alternative private ACR in the learner allocation; that preserves the former UAMI/ACR Pull path.
 
 Omit `-HostedResponsesEndpoint` during preparation. The frontend then supports sign-in and owned inspection, displays **Hosted orchestrator not connected**, disables **Run**, and rejects direct submission with HTTP 503 before reserving a run or issuing a grant. This prepares both services without pre-creating the learner's agent. Do not supply a remembered or fabricated protocol URL.
 
@@ -68,7 +73,7 @@ $BobPassword = Read-Host 'Private Bob demo password' -AsSecureString
 
 At the learner connection checkpoint, copy the exact created agent's HTTPS Responses protocol endpoint and set the frontend's `HOSTED_RESPONSES_ENDPOINT` environment variable through the approved Azure portal configuration channel. Restart/activate the updated frontend revision and sign in again; its boot key invalidates old cookies. Alternatively rerun the same helper with `-HostedResponsesEndpoint $HostedResponsesEndpoint` and the same allocation inputs/private passwords. An incremental redeployment can replace ephemeral service state, so reconcile any existing task resources first. **Endpoint configured** means submissions are enabled, not that the live gate passed.
 
-The helper compiles ARM, submits an incremental deployment via an in-memory authenticated REST body and waits for the deployment result. It emits public endpoints/identity IDs, not passwords. It does not prove healthy apps, a valid service token or hosted gateway mapping. Independently inspect deployment operations, both `/health`/UI readiness, actual token-based login and one Toolbox offload.
+Supply `$ServiceImage` as `acateam.azurecr.io/lab722/reactor-services@sha256:<verified digest>` and the hosted helper's image as `acateam.azurecr.io/lab722/reactor-hosted@sha256:<verified digest>`. The helper checks that the service image belongs to the selected registry. It compiles ARM, submits an incremental deployment via an in-memory authenticated REST body and waits for the deployment result. It emits public endpoints/identity IDs, not passwords. It does not prove healthy apps, a valid service token or hosted gateway mapping. Independently inspect deployment operations, both `/health`/UI readiness, actual token-based login and one Toolbox offload.
 
 Initial execution authority is SQLite under `/app/state`. On a fresh replica it checks that no `lab=LAB722,purpose=reactor-task` resources remain before seeding hashed accounts. Old grants/results are never imported. Existing state opens without recreation. Each app is one replica, minimum one; this does not make its files durable.
 

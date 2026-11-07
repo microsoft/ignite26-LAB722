@@ -3,7 +3,8 @@
 param(
     [Parameter(Mandatory)][guid]$SubscriptionId,
     [Parameter(Mandatory)][string]$ResourceGroupName,
-    [Parameter(Mandatory)][string]$RegistryName,
+    [string]$RegistryName = 'acateam',
+    [switch]$UsePrivateRegistry,
     [Parameter(Mandatory)][string]$ExpressEnvironmentName,
     [Parameter(Mandatory)][string]$FoundryAccountName,
     [string]$FoundryProjectName = 'caldova',
@@ -19,14 +20,16 @@ $ErrorActionPreference = 'Stop'
 if ($ExecutionApiAudience -in @('https://ai.azure.com', 'https://management.azure.com', 'https://cognitiveservices.azure.com')) {
     throw 'Supply the dedicated service API audience. First-party-audience substitution is not supported.'
 }
-if ($ServiceImage -notmatch '@sha256:[a-f0-9]{64}$' -or
+if ($ServiceImage -notlike "$RegistryName.azurecr.io/*" -or
+    $ServiceImage -notmatch '@sha256:[a-f0-9]{64}$' -or
     ($null -ne $HostedResponsesEndpoint -and $HostedResponsesEndpoint.Scheme -ne 'https')) {
-    throw 'Use an immutable image digest and, when connecting the hosted agent, an HTTPS Responses endpoint.'
+    throw 'Use an immutable image from the selected registry and, when connecting the hosted agent, an HTTPS Responses endpoint.'
 }
 $templateText = & az bicep build --file (Join-Path $PSScriptRoot '..\infra\reactor.bicep') --stdout
 if ($LASTEXITCODE -ne 0) { throw 'Reactor ARM compilation failed.' }
 $values = @{
-    registryName = $RegistryName; expressEnvironmentName = $ExpressEnvironmentName
+    registryName = $RegistryName; anonymousImagePull = -not $UsePrivateRegistry
+    expressEnvironmentName = $ExpressEnvironmentName
     foundryAccountName = $FoundryAccountName; foundryProjectName = $FoundryProjectName
     sandboxGroupName = $SandboxGroupName; snapshotId = $SnapshotId.ToString()
     serviceImage = $ServiceImage; executionApiAudience = $ExecutionApiAudience

@@ -1,7 +1,9 @@
 targetScope = 'resourceGroup'
 
 param location string = resourceGroup().location
-param registryName string
+param registryName string = 'acateam'
+@description('Use the verified public registry without image-pull credentials or registry role assignments. Set false only for an allocation-local private registry.')
+param anonymousImagePull bool = true
 param expressEnvironmentName string
 param foundryAccountName string
 param foundryProjectName string = 'caldova'
@@ -56,7 +58,7 @@ resource executionIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@202
   location: location
   tags: tags
 }
-resource pullRoles 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for identityId in [frontendIdentity.id, executionIdentity.id]: {
+resource pullRoles 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for identityId in [frontendIdentity.id, executionIdentity.id]: if (!anonymousImagePull) {
   name: guid(registry.id, identityId, acrPullRole)
   scope: registry
   properties: {
@@ -107,7 +109,7 @@ resource execution 'Microsoft.App/containerApps@2026-03-02-preview' = {
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: { external: true, targetPort: 8080, transport: 'auto', allowInsecure: false }
-      registries: [{ server: registry.properties.loginServer, identity: executionIdentity.id }]
+      registries: anonymousImagePull ? [] : [{ server: registry.properties.loginServer, identity: executionIdentity.id }]
       secrets: [
         { name: 'alice-password', value: alicePassword }
         { name: 'bob-password', value: bobPassword }
@@ -152,7 +154,7 @@ resource frontend 'Microsoft.App/containerApps@2026-03-02-preview' = {
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: { external: true, targetPort: 8080, transport: 'auto', allowInsecure: false }
-      registries: [{ server: registry.properties.loginServer, identity: frontendIdentity.id }]
+      registries: anonymousImagePull ? [] : [{ server: registry.properties.loginServer, identity: frontendIdentity.id }]
     }
     template: {
       containers: [{

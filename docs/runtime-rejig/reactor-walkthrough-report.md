@@ -30,15 +30,16 @@ Each learner outcome has an action, observation, explanation and transfer questi
 | Genuine hosted image | ACR run `ds1` succeeded; pinned hosted module imported during Linux build |
 | ARM | `az bicep build --file .\infra\reactor.bicep --stdout` succeeds; missing-preview-types warnings mean cloud property validation is not established |
 | Deployment helper | PowerShell parser passed; three offline mocked cases verified omitted endpoint, retained HTTPS endpoint and HTTP rejection before deployment; no cloud write in these checks |
+| Shared-registry follow-up | Verified `acateam`/`prodish-stuff`, imported both exact manifests under `lab722`, and fetched both manifests using anonymous pull tokens without Azure credentials; digests unchanged. Compiled ARM defaults omit registry credentials and condition image-pull roles on private mode; five offline helper cases passed |
 | Native definitions | Both `setup-reactor-foundry.py hosted/toolbox --describe` serialize the supported SDK definitions offline; no cloud registration occurs |
 | Whitespace | `git diff --check` |
 
 Final component image candidates, not a live deployment:
 
-- Services `reactor-services:20261107-v3`, run `ds5`: `sha256:12edea1007a697b1adf902b7e69785799f398c8e7367d18307cb1c40d24b590e`.
-- Hosted `reactor-hosted:20261107-v1`: `sha256:29aecc979a793c5656a8272813c81f0e4f2f9e09d422f5272259a4cdccfc382d`.
+- Services `acateam.azurecr.io/lab722/reactor-services:20261107-v3`, built in run `ds5`: `sha256:12edea1007a697b1adf902b7e69785799f398c8e7367d18307cb1c40d24b590e`.
+- Hosted `acateam.azurecr.io/lab722/reactor-hosted:20261107-v1`: `sha256:29aecc979a793c5656a8272813c81f0e4f2f9e09d422f5272259a4cdccfc382d`.
 
-Both are in the existing authorized ACR `lab722hg4qnurp4clywacr.azurecr.io`. Earlier service candidates `ds2` (30 checks) and `ds4` (36 checks) are superseded by `ds5`; the hosted component source is unchanged since `ds1`. The Windows CLI initially failed path resolution, then failed streaming Unicode build logs; registry task status and authenticated log retrieval independently verified the build results. Later builds used `--no-logs`. Those repairs were facilitator validation, not a passing literal learner run.
+The owner selected `acateam.azurecr.io/lab722` after the initial local delivery. Both images were imported unchanged from the build registry `lab722hg4qnurp4clywacr.azurecr.io`; the shared registry already had anonymous pulls enabled, and those pulls were independently verified. No registry access policy, tenant resources or application deployment was changed. Earlier service candidates `ds2` (30 checks) and `ds4` (36 checks) are superseded by `ds5`; the hosted component source is unchanged since `ds1`. The Windows CLI initially failed path resolution, then failed streaming Unicode build logs; registry task status and authenticated log retrieval independently verified the build results. Later builds used `--no-logs`. Those repairs were facilitator validation, not a passing literal learner run.
 
 ## Findings and corrections
 
@@ -68,3 +69,11 @@ The representative human comprehension and pacing check has **not occurred**. Th
 ## Smallest remaining live action
 
 Supply an approved **existing dedicated service API audience and its permitted service grants**, without new tenant resource creation. Then deploy the prepared services/connection and run the documented one-task Alice/Bob identity gate. Verify actual tokens and gateway argument mapping before progressing to two workers, live boundaries, recovery and capacity.
+
+| Classification | Remaining boundary |
+|---|---|
+| Confirmed blocker | No dedicated execution API audience/app registration and permitted app-only grants have been supplied. Tenant resource creation was declined. |
+| Unverified platform gate | Supported Foundry connection must request that dedicated audience using the actual outbound service identity; live token audience/OID and hosted activation are not yet verified. |
+| Unverified gateway gate | Native Toolbox must advertise the operation and deliver all declared binding fields unchanged; metadata/grant privacy must hold across the actual hosted request. |
+| Not-run acceptance | Fresh allowed/denied Alice/Bob runs, Sandbox execution/egress/limits, interruption/recovery, acceptance correlation, fan-out/usage and revert still require live rehearsal. |
+| Resolved image delivery | Both reactor manifests are published under `acateam.azurecr.io/lab722` and anonymously readable; no private-registry grants are needed for their public-pull path. |
