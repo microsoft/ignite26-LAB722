@@ -78,6 +78,58 @@ class DedicatedApiPreparation(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which("pwsh"), "PowerShell 7 required")
 class LocalEndpointHandoff(unittest.TestCase):
+    def test_bodyless_arm_actions_send_json_content_type(self):
+        path = str(ROOT / "scripts" / "prepare-local-reactor.ps1").replace("'", "''")
+        program = f"""
+$ErrorActionPreference='Stop'
+$ast=[System.Management.Automation.Language.Parser]::ParseFile('{path}',[ref]$null,[ref]$null)
+$function=$ast.Find({{param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Invoke-ReactorArm'}},$true)
+. ([scriptblock]::Create($function.Extent.Text))
+$config=@{{AZURE_SUBSCRIPTION_ID='test'}}
+function Invoke-LocalNative {{ return '{{"accessToken":"synthetic"}}' }}
+function Invoke-RestMethod {{
+    param($Uri,$Method,$Headers,$ContentType,$Body)
+    @{{method=$Method;contentType=$ContentType;body=$Body}}
+}}
+Invoke-ReactorArm POST '/app/stop' '2026-03-02-preview' | ConvertTo-Json -Compress
+"""
+        result = subprocess.run(["pwsh", "-NoProfile", "-NonInteractive", "-Command", program],
+                                text=True, capture_output=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        request = json.loads(result.stdout)
+        self.assertEqual(request["contentType"], "application/json")
+        self.assertIsNone(request["body"])
+
+    def test_registry_creation_retains_identity_fields_omitted_by_get(self):
+        path = str(ROOT / "scripts" / "prepare-local-reactor.ps1").replace("'", "''")
+        program = f"""
+$ast=[System.Management.Automation.Language.Parser]::ParseFile('{path}',[ref]$null,[ref]$null)
+$function=$ast.Find({{param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'New-ReactorConnectionBody'}},$true)
+. ([scriptblock]::Create($function.Extent.Text))
+$body=New-ReactorConnectionBody 'acateam.azurecr.io' '' '/subscriptions/test/resourceGroups/registry/providers/Microsoft.ContainerRegistry/registries/acateam' 'project-principal'
+$body | ConvertTo-Json -Depth 10 -Compress
+"""
+        result = subprocess.run(["pwsh", "-NoProfile", "-NonInteractive", "-Command", program],
+                                text=True, capture_output=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        properties = json.loads(result.stdout)["properties"]
+        self.assertEqual(properties["credentials"]["clientId"], "project-principal")
+        self.assertEqual(properties["credentials"]["resourceId"], properties["metadata"]["ResourceId"])
+
+    def test_registry_creation_rejects_missing_project_identity(self):
+        path = str(ROOT / "scripts" / "prepare-local-reactor.ps1").replace("'", "''")
+        program = f"""
+$ErrorActionPreference='Stop'
+$ast=[System.Management.Automation.Language.Parser]::ParseFile('{path}',[ref]$null,[ref]$null)
+$function=$ast.Find({{param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'New-ReactorConnectionBody'}},$true)
+. ([scriptblock]::Create($function.Extent.Text))
+New-ReactorConnectionBody 'acateam.azurecr.io' '' '/registry' ''
+"""
+        result = subprocess.run(["pwsh", "-NoProfile", "-NonInteractive", "-Command", program],
+                                text=True, capture_output=True, timeout=30)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("requires the actual project principal", result.stderr)
+
     def run_handoff(self, active_tasks=False, stop_fails=False, other_project=False):
         path = str(ROOT / "scripts" / "prepare-local-reactor.ps1").replace("'", "''")
         program = r"""

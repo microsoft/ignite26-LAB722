@@ -8,6 +8,16 @@ It uses the existing immutable images in `acateam.azurecr.io/lab722`.
 No Skillable, new registry, image build/publish, shared-key runtime,
 release packaging or deferred live gap-testing is involved.
 
+**Current workstation status, November 8, 2026:** setup has now completed
+in `ig2026-lab-local` after repairing registry connection creation and
+ARM Stop/Start content type. Native starter 1 and both services passed
+independent Alice/Bob phases/ownership/cleanup preflight. No additional
+project was needed in this allocation. The frontend is restored to
+unconnected and the two finished preflight sessions are idle.
+**Continue at section 4**; sections 1-3 remain the reproducible setup path
+for a new workstation/allocation. This is not your completed personal
+learner walkthrough or a human timing measurement.
+
 Run commands in PowerShell 7.3+ from the repository root on branch
 `lab-reactor`. The separate `local-reactor\azure.yaml` is the azd entry.
 **Do not run the historical root `azd up`.**
@@ -113,11 +123,21 @@ azd service deployment.
 | Native setup | Creates/read-backs the verified ProjectManagedIdentity OpenAPI connection, registers Toolbox and a starter of `reactor-orchestrator`, grants the actual runtime identity and waits for that exact version |
 | Ending | Requires responsive services, saves public values locally and leaves learner **Run** disabled until your endpoint handoff |
 
-The connections use the specific non-secret ARM contract read back from
-the working allocation. Native preview support still needs the fresh
-cloud test: a successful syntax/mock check is not provisioning proof.
+The connections use the specific non-secret ARM contract verified in the
+working allocation. A connection GET omits the creation-only registry
+`credentials` object: the PUT must include its project principal identifier
+and registry resource ID. Those are identity selectors, not passwords or
+registry keys. The local helper supplies them explicitly. The fresh
+connection creation and native/owned runtime path were live-verified on
+November 8; syntax/mock checks alone still are not provisioning proof.
 Setup stops on failures, retains resources and does not retry ambiguous
 POSTs or silently change identity/registry policy.
+
+An authorized caller may also supply `ServiceManagementReference`,
+`AlicePassword` and `BobPassword` as existing in-memory SecureStrings to
+the preparation script. Do not replace them with plaintext arguments or
+persist them in azd settings. Interactive `azd up` still prompts when
+these private inputs are not supplied.
 
 If the hook was interrupted, inspect the retained stage before rerunning.
 The API is reconciled by exact allocation name/ownership marker; duplicate
@@ -180,6 +200,11 @@ Stop/Start, not revision restart or execution replacement. It checks the
 running frontend's `hosted_configured` flag without displaying the full
 session/CSRF response. Sign in again; this is connection readiness, not an
 accepted task.
+
+Bodyless ARM lifecycle actions explicitly send `Content-Type:
+application/json`; omitting it caused HTTP 415 in the first live handoff
+and is now covered by a regression. The live preparation used the existing
+private Alice/Bob rehearsal passwords, not newly invented credentials.
 
 Continue checkpoints 2-6. Check normal portal settings/identities and use
 the documented read-only CLI digest fallback if the generic image form is

@@ -1,5 +1,12 @@
 # Fresh allocation learner rehearsal
 
+**Newest status, November 8, 2026:** fresh local `ig2026-lab-local`
+preparation and independent Alice/Bob preflight passed after two follow-up
+code repairs. Its first `reactor` project worked; no sibling was needed.
+The frontend is unconnected for the personal learner handoff, with zero
+tasks and active native sessions. See the final section for this repair;
+the November 7 scope/timing below remains historical rehearsal evidence.
+
 ## Scope and timing
 
 Requested November 7, 2026, 17:51:14 UTC-06:00. Target resource group:
@@ -16,7 +23,7 @@ silently incorporated into this rehearsal. Checkpoints are classified as
 passed as documented, documented recovery, undocumented repair, blocked or
 not run. Tool execution time is not a measured human comprehension time.
 
-**Latest outcome, November 7, 2026, 21:57:23 UTC-06:00: recovered runtime;
+**November 7 outcome, 2026, 21:57:23 UTC-06:00: recovered runtime;
 live minimum L1-L5 technical exercises completed after recorded repairs.**
 The additional project in the requested allocation served a genuinely new
 learner hosted version. Allowed work, ownership denials, independent
@@ -694,3 +701,58 @@ Passwords/policy metadata are hidden input and never local azd settings.
 This is ready for the owner's commissioning walkthrough, not an additional
 completed cloud rehearsal. Live gap checks, push/release and packaging wait
 for that walkthrough.
+
+## November 8 fresh local deployment repair and live gate
+
+The owner's first `azd up` successfully provisioned the new account,
+project `reactor`, model, Express environment and research group, then
+failed in the postprovision hook while creating the registry connection.
+This was a code defect, not a registry anonymous-pull or model-capacity
+failure.
+
+**P19: registry connection GET is not a complete creation payload.**
+The normal GET omitted `credentials`. The verified managed-identity
+connection's creation data includes non-secret identity selectors:
+`credentials.clientId` (the actual project principal in this connection
+contract) and `credentials.resourceId` (the registry ARM ID). Missing them
+caused HTTP 400, `Credentials Property can't be empty for auth type
+RegistryIdentity`. The helper now supplies these fields explicitly and
+rejects a missing project identity. Only those non-secret selectors were
+read from the existing MI connection; no registry password/key was used.
+
+Preparation resumed on the existing core resources, retaining the original
+project, without reprovisioning or creating a sibling. It created the
+fresh allocation-owned dedicated API, verified the frozen data snapshot,
+stopped seed `8787d319-1718-4052-99c5-15673f94f963`, deployed both Express
+apps, created/read back the execution connection and Toolbox, and prepared
+actual native starter 1. Protected in-memory policy metadata and existing
+private demo SecureStrings were supplied through optional secure
+parameters; no private value was printed or written to azd settings.
+
+**P20: bodyless ARM lifecycle requests need JSON content type.**
+The first live frontend connection reached PATCH but its Stop/Start
+requests returned HTTP 415. `Invoke-ReactorArm` previously assigned content
+type only when a JSON body existed. It now explicitly sends
+`application/json` for non-GET operations, including empty lifecycle POSTs.
+The corrected actual frontend-only connection and subsequent restore both
+completed. No execution redeployment was used for these handoffs.
+
+| Independent live preflight | Result |
+|---|---|
+| Fresh native/project | `lab722-heledejwimj42-ai/reactor`, `reactor-orchestrator` 1 active; first project worked, no additional-project recovery required |
+| Alice | Run `7f7935dc-cb59-4668-8ee8-8bc0396ee854` accepted/cleaned; same key reused |
+| Bob | Run `37e1e74a-92a5-489d-baf1-7c69aeaf2dfa` accepted/cleaned; same key reused |
+| Independent evidence | Both owners: exact 168 trial IDs/PHASE3=76, UTF-8 code digest, all three frozen hashes, run/marker correlation, accepted assessment and authenticated project caller/dedicated audience |
+| Foreign ownership | Bob's Alice run/artifact/conversation reads and cancellation returned 403; Alice's completed work remained accessible |
+| Resource ending | Actual reactor task selector zero; exact seed stopped; only the two identified finished native sessions stopped, zero active/two retained |
+| Handoff ending | Original unconnected frontend template restored and refreshed; live `hosted_configured: false`; existing backend ownership/evidence retained |
+| Rerun | Actual `azd hooks run postprovision` passed with no new version, API, service deployment or private prompt |
+| Regression checks | 17 targeted helper tests passed, including registry create fields/missing-identity rejection and bodyless ARM JSON content type |
+
+The frontend is
+`https://lab722-reactor-frontend.redriver-ecf73c29.westus3.azurecontainerapps.io`.
+This API-assisted preflight proves fresh setup and the exercised owned
+path after repair. It does not count as the owner's personal learner
+version creation, representative human pacing, live rollback, exhaustive
+grant/egress coverage or Skillable delivery. The older allocation's
+original build binding remains unrepaired and unchanged.

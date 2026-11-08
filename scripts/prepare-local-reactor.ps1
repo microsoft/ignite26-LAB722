@@ -3,7 +3,10 @@
 param(
     [ValidateSet('Validate', 'Prepare', 'Connect', 'Values')]
     [string] $Mode = 'Prepare',
-    [uri] $HostedResponsesEndpoint
+    [uri] $HostedResponsesEndpoint,
+    [securestring] $ServiceManagementReference,
+    [securestring] $AlicePassword,
+    [securestring] $BobPassword
 )
 
 $ErrorActionPreference = 'Stop'
@@ -51,9 +54,9 @@ function Invoke-ReactorArm {
         Method = $Method
         Headers = @{ Authorization = 'Bearer ' + $auth.accessToken }
     }
+    if ($Method -ne 'GET') { $request.ContentType = 'application/json' }
     if ($null -ne $Body) {
         $request.Body = ConvertTo-Json -InputObject $Body -Depth 100 -Compress
-        $request.ContentType = 'application/json'
     }
     try { Invoke-RestMethod @request }
     finally { $auth = $null; $request = $null }
@@ -79,12 +82,15 @@ function Ensure-ReactorRole {
 }
 
 function New-ReactorConnectionBody {
-    param([string] $Target, [string] $Audience, [string] $RegistryResourceId)
+    param([string] $Target, [string] $Audience, [string] $RegistryResourceId, [string] $ProjectObjectId)
     if ($RegistryResourceId) {
+        if (-not $ProjectObjectId) { throw 'Registry identity connection requires the actual project principal.' }
         return @{ properties = @{
             category = 'ContainerRegistry'; authType = 'ManagedIdentity'
             target = $Target; isSharedToAll = $false
             metadata = @{ ResourceId = $RegistryResourceId }
+            # The verified registry connection contract names this principal-ID field clientId.
+            credentials = @{ clientId = $ProjectObjectId; resourceId = $RegistryResourceId }
         } }
     }
     return @{ properties = @{
@@ -270,11 +276,14 @@ if ($Mode -eq 'Connect') {
     Ensure-ReactorRole $projectId $config.LAB_USER_PRINCIPAL_ID 'eadc314b-1a2d-4efa-be10-5d325db5065e' 'User'
     Ensure-ReactorRole $config.REACTOR_REGISTRY_ID $project.identity.principalId '7f951dda-4ed3-4680-a7ca-43fe172d538d'
     Ensure-ReactorRole $accountId $project.identity.principalId '53ca6127-db72-4b80-b1b0-d745d6d5456d'
-    $body = New-ReactorConnectionBody 'acateam.azurecr.io' '' $config.REACTOR_REGISTRY_ID
+    $body = New-ReactorConnectionBody 'acateam.azurecr.io' '' $config.REACTOR_REGISTRY_ID $project.identity.principalId
     $connection = Invoke-ReactorArm PUT "$projectId/connections/reactor-acateam" '2025-06-01' $body
     if ($connection.properties.authType -cne 'ManagedIdentity') { throw 'Registry managed-identity connection was not established.' }
 
-    $private = Read-Host 'Private serviceManagementReference (Enter if your tenant does not require it)' -AsSecureString
+    $private = $ServiceManagementReference
+    if ($null -eq $private) {
+        $private = Read-Host 'Private serviceManagementReference (Enter if your tenant does not require it)' -AsSecureString
+    }
     $inputJson = @{ service_management_reference = [Net.NetworkCredential]::new('', $private).Password } |
         ConvertTo-Json -Compress
     try {
@@ -320,8 +329,10 @@ if ($Mode -eq 'Connect') {
         '--resource-group', $config.AZURE_RESOURCE_GROUP, '--region', $config.AZURE_LOCATION,
         '--group', $config.SANDBOX_GROUP_NAME, '--id', $descriptor.seed_id)
 
-    $alice = Read-Host 'Private Alice demo password (12-1024 characters)' -AsSecureString
-    $bob = Read-Host 'Private Bob demo password (different, 12-1024 characters)' -AsSecureString
+    $alice = $AlicePassword
+    $bob = $BobPassword
+    if ($null -eq $alice) { $alice = Read-Host 'Private Alice demo password (12-1024 characters)' -AsSecureString }
+    if ($null -eq $bob) { $bob = Read-Host 'Private Bob demo password (different, 12-1024 characters)' -AsSecureString }
     try {
         $outputs = & (Join-Path $PSScriptRoot 'deploy-reactor.ps1') `
             -SubscriptionId $config.AZURE_SUBSCRIPTION_ID -ResourceGroupName $config.AZURE_RESOURCE_GROUP `
