@@ -1,0 +1,25 @@
+name: lab722-reactor-local
+resourceGroup: ${AZURE_RESOURCE_GROUP}
+workflows:
+  up:
+    steps:
+      - azd: provision
+infra:
+  provider: bicep
+  path: infra
+  module: main
+hooks:
+  preprovision:
+    shell: pwsh
+    run: |
+      & ..\scripts\prepare-local-reactor.ps1 -Mode Validate
+    interactive: true
+    continueOnError: false
+  postprovision:
+    shell: pwsh
+    run: |
+      & ..\scripts\prepare-local-reactor.ps1 -Mode Prepare
+    interactive: true
+    continueOnError: false
+requiredVersions:
+  azd: ">= 1.35.1"

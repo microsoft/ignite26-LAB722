@@ -2,6 +2,8 @@
 
 ## Scope and result
 
+**Historical first-allocation report.** The subsequent fresh-allocation recovery and completed technical exercises are recorded in [the latest friction report](../../lab-pamela-friction.md). The personal workstation entry is [the local azd walkthrough](lab-rejig-local-walkthrough.md). Resource/version IDs below belong to the first allocation, not a fresh deployment.
+
 **November 7, 2026; branch `lab-reactor`; authorized allocation `ig2026-lab-learner`, westus3.** The owner authorized permanent provisioning after the Entra probes. The earlier no-audience/no-creation blocker is resolved.
 
 The real path now works: frontend Express -> native Foundry hosted workflow -> managed Toolbox OpenAPI -> execution Express -> new task Sandbox -> independent result check -> exact deletion. Both demo owners completed useful work. The final rehearsal used service image v8, hosted image v7/native version 6 and Toolbox version 3. These are locally committed reactor changes, not a push, merge or tag movement. The learner entry is [the maintained guide](lab-rejig-learner-instructions.md); the root implementation/walkthrough contracts are unchanged.

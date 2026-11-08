@@ -2,7 +2,7 @@
 
 ## Readiness and scope
 
-**Current delivery status:** the November 7, 2026 rehearsal completed a real hosted-to-Sandbox transaction in the authorized allocation. The dedicated API and native identities are prepared; the earlier audience/creation blocker is resolved. Consult [the walkthrough report](reactor-walkthrough-report.md) for the complete live outcome verdicts. A fresh learner allocation still requires facilitator preparation; the 75-minute human walkthrough and Skillable delivery are not yet verified. Do not use the old shared-key runtime as a substitute.
+**Current delivery status:** the November 7, 2026 fresh-allocation rehearsal completed the minimum technical exercises through a validated additional project after two helper repairs. The original project's build binding remains unrepaired. Consult [the latest rehearsal report](../../lab-pamela-friction.md) for measured results and limits, and [the local azd walkthrough](lab-rejig-local-walkthrough.md) to prepare a fresh workstation-driven allocation without Skillable. Budget **90-120 minutes provisionally** for the learner exercises; 75-minute human pacing, minimum learner RBAC and Skillable delivery remain unverified. Do not substitute the old shared-key runtime.
 
 Use PowerShell 7.3+, Python with the supplied pinned packages, signed-in Azure CLI and the supplied allocated scope. Know basic Python/JSON, HTTP status codes and managed identities. Learners need the supplied **Foundry Project Manager** permission for hosted-agent creation, project inspection and read-only resource/log inspection. Learners do not assign roles or create tenant applications.
 
@@ -43,8 +43,8 @@ Stop if any required setting, permission, endpoint or prepared tool is absent. P
 
    Observe `container_configuration.image`, `protocol_versions`, model/toolbox environment settings and the configuration hash. This helper creates no tenant users or API registration.
 
-3. Run the same command **without `--describe` and with `--new-version`** to create a new version of the prepared logical agent. Its runtime identity/grants are already approved; do not choose an unprepared new agent name. Record `name`, `version` and creation `status`. Without this explicit flag, identical definitions can reuse an existing version rather than performing this learner creation step. Creation is not readiness.
-4. In Foundry's **Agents**, select the supplied agent name/version. Confirm it is hosted, inspect its container/version and wait for active readiness. Copy the displayed Responses endpoint into the supplied frontend configuration handoff; do not invent a URL from a remembered pattern. The facilitator applies that endpoint to `lab722-reactor-frontend`; no learner role change is required.
+3. Run the same command **without `--describe` and with `--new-version`** to create a new version of the prepared logical agent. Its runtime identity/grants are already approved; do not choose an unprepared new agent name. Record `name`, `version` and creation `status`; verify the new version in Foundry's version inventory rather than crediting the prepared starter. Explicit creation now includes a unique metadata identifier to avoid service-side definition deduplication and rejects a returned existing version. Without the flag, identical definitions can reuse an existing version. Creation is not readiness.
+4. In Foundry's **Agents**, select the supplied agent name/version. Confirm it is hosted, inspect its container/version and wait for active readiness. Confirm the endpoint's latest-version selection points to that version. Copy the displayed Responses endpoint into the supplied frontend configuration handoff; do not invent a URL from a remembered pattern. The portal may omit the required protocol query `api-version=v1`: the approved deployment/local connection helper adds it when absent and preserves other query settings. A direct environment-variable edit must include it. This query is not the native agent version. The facilitator applies the endpoint to `lab722-reactor-frontend`; no learner role change is required. For your local walkthrough, use the connection command in the local guide.
 
 **Feedback:** the recorded hosted agent/version is active, and the frontend configuration uses its exact endpoint. Before connection the frontend displays **Hosted orchestrator not connected** and disables **Run**, while sign-in and owned inspection remain available. The facilitator applies an Express app Stop/Start if the saved configuration has not reached its running process; revision restart is unsupported. Sign in again; **Hosted endpoint configured** enables submissions but does not establish a live pass. **Explain:** a model deployment alone is not a deployed hosted orchestrator. If readiness or permission fails, record this checkpoint as blocked.
 
@@ -65,7 +65,7 @@ Stop if any required setting, permission, endpoint or prepared tool is absent. P
 
 **Predict before Run:** would an exit-zero program with PHASE3=77 pass the independent check? Record your prediction; the frozen reference has PHASE3=76 and 168 trials.
 
-1. In Foundry's Toolbox view, inspect the facilitator-prepared OpenAPI operation `reactor_execute` and its **ProjectManagedIdentity** connection. Its target is the execution HTTP API; its audience is the dedicated supplied service audience. There is no custom offload MCP app.
+1. In Foundry **Tools > Toolboxes**, inspect `runtime-reactor`, its version and included `reactor` OpenAPI tool. In the project's **Connections**, separately inspect the prepared **ProjectManagedIdentity** execution connection, its target and dedicated supplied audience. The native advertised operation is `reactor___reactor_execute`, corresponding to the declared `reactor_execute` HTTP operation. The generic Toolbox page may not expose the full operation schema; compare the supplied discovery record and `src\reactor\openapi.json`, and mark any unavailable UI details unavailable rather than inventing an editor. There is no custom offload MCP app.
 2. Select **Trial phase analysis**. Keep the generated idempotency key and enter “Analyze all frozen trial records and explain the independent acceptance evidence.” Select **Run**.
 3. Observe the immediate `run.run_id` and copy it to your notes. Select **Inspect owned run** while work runs, then again after completion. Observe `state`, `cleaned`, `conversation_id`, `sandbox_id`, `foundry_session_id` when available, `artifacts` and `hosted`. Missing hosted context is not proof of propagation.
 4. Copy the `artifact_id` named `evidence` into the artifact field. Select **Inspect evidence artifact**. Locate:
@@ -190,10 +190,29 @@ If the service reports lost ownership state, stop new work and hand the recorded
    ```
 
    Observe no more than two active task instances during the exercise and zero after reconciliation.
-3. Record actual receipt `sandbox_seconds` and available returned `hosted.usage`. Find the hosted version in the creation helper output/Foundry Agent version, service digest in both apps' **Containers → Image**, hosted digest in that agent's container definition, Toolbox version in **Toolboxes → runtime-reactor → Versions**, and dataset version in `evidence.dataset_version` / `receipt.dataset_version`. Compare with the facilitator's supplied image/version record. Mark unavailable usage **not returned** and absent previous-version records **revert reference unavailable**; do not invent dollar costs or a tested rollback.
+3. Record actual receipt `sandbox_seconds` and available returned `hosted.usage`. Find the hosted version in the helper output/Foundry Agent version, hosted digest in that agent's Code asset/container definition, Toolbox version in **Toolboxes > runtime-reactor > Versions**, and dataset version in `evidence.dataset_version` / `receipt.dataset_version`. Compare both apps' **Containers > Image** with the supplied service digest. If the generic portal image/tag fields are blank for the immutable image, do not save the form or substitute a tag; use the documented read-only fallback below and record **portal image unavailable; ARM/CLI verified**. Mark unavailable usage **not returned** and absent previous-version records **revert reference unavailable**; do not invent dollar costs or a tested rollback.
 4. Cancel/reconcile remaining owned work. Verify matching task inventories are empty and the prepared seed/old fixed A remain untouched.
 5. Inspect the facilitator's recorded previous hosted/Toolbox versions and service image. Explain the [revert procedure](lab-rejig-instructions.md#revert-and-ending-state) before any operator performs it.
 
 **Transfer question:** after ephemeral ownership state disappears, why is reconstructing a run from a prompt unsafe?
 
-Record each checkpoint as **passed as documented / documented recovery / undocumented repair / blocked / not run**. The 75-minute duration is an authoring target, not measured learner timing. A representative human comprehension/pacing check is still required.
+### Read-only service image fallback
+
+Use this only when the portal cannot display the immutable digest:
+
+```powershell
+foreach ($AppName in @('lab722-reactor-frontend', 'lab722-reactor-execution')) {
+    $Images = az resource show --subscription $SubscriptionId --resource-group $ResourceGroupName `
+      --resource-type Microsoft.App/containerApps --name $AppName `
+      --api-version 2026-03-02-preview --query 'properties.template.containers[].image' -o tsv
+    if ($LASTEXITCODE -ne 0) { throw "Image read failed for $AppName." }
+    if (@($Images).Count -ne 1 -or $Images -cne $ServiceImage) {
+        throw "Immutable image mismatch for $AppName."
+    }
+    "$AppName : $Images"
+}
+```
+
+A normal portal reload is appropriate for a stuck resource Overview. A browser automation snapshot omitting rendered iframe content is not by itself a learner portal failure. Keep the active cancellation window in view; if the task already timed out, record that attempt honestly and try a fresh key before claiming active cancellation.
+
+Record each checkpoint as **passed as documented / documented recovery / undocumented repair / blocked / not run**, with elapsed time and CLI/portal actions. The prior operator envelope was 39m 13s including repairs/automation; it is not a human pacing measurement. The provisional human budget is 90-120 minutes. Complete this personal walkthrough before additional live gap testing, release publishing or packaging.

@@ -9,6 +9,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import uuid
 
 from azure.ai.projects.aio import AIProjectClient
 from azure.ai.projects.models import (
@@ -69,22 +70,31 @@ async def run(args):
         except ResourceNotFoundError:
             current = None
         if current is not None and current.metadata.get("reactor_config_sha256") == fingerprint and not args.new_version:
-            if args.command == "hosted" and current.status == "failed":
-                raise RuntimeError(
-                    "The existing hosted version failed. Inspect its error, correct the prerequisite, "
-                    "then use --new-version for an explicit deployment retry."
-                )
+            if args.command == "hosted":
+                current = await operations.get_version(args.name, current.version)
+                if current.status == "failed":
+                    raise RuntimeError(
+                        "The existing hosted version failed. Inspect its error, correct the prerequisite, "
+                        "then use --new-version for an explicit deployment retry."
+                    )
             if args.command == "toolbox":
                 await operations.update(args.name, default_version=current.version)
             print(json.dumps({"name": args.name, "version": current.version,
                               "status": getattr(current, "status", "registration-created"), "reused": True}))
             return
         metadata = {"lab": "LAB722", "reactor_config_sha256": fingerprint}
+        if args.new_version:
+            metadata["reactor_creation_id"] = uuid.uuid4().hex
         if args.command == "toolbox":
             created = await operations.create_version(args.name, tools=definition, metadata=metadata)
             await operations.update(args.name, default_version=created.version)
         else:
             created = await operations.create_version(args.name, definition=definition, metadata=metadata)
+        if args.new_version and current is not None and created.version == current.version:
+            raise RuntimeError(
+                "Foundry returned the existing version despite explicit creation. "
+                "Inspect the exact version inventory before attempting another creation."
+            )
         print(json.dumps({"name": args.name, "version": created.version,
                           "status": getattr(created, "status", "registration-created"),
                           "reused": False}))

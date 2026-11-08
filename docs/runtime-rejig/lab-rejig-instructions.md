@@ -2,13 +2,15 @@
 
 ## Current live preparation
 
-The owner authorized real provisioning on November 7, 2026. A dedicated single-tenant service API, both Express apps, the project-managed-identity OpenAPI connection, Toolbox and native hosted agent now exist. Hosted version 6, service image v8 and Toolbox v3 completed the L1-L5 minimum technical rehearsal, including real Alice/Bob work and the longer limit/recovery path. See [the report](reactor-walkthrough-report.md) for evidence, limitations and remaining delivery checks.
+The owner authorized real provisioning on November 7, 2026. The first allocation completed a technical rehearsal; the later `ig2026-lab-learner-2` allocation recovered through a supported additional project and completed the minimum L1-L5 technical exercises on native version 2/Toolbox 1 after two helper repairs. The original `caldova` build binding remains unrepaired. See [the latest friction report](../../lab-pamela-friction.md) and [the earlier report](reactor-walkthrough-report.md); neither is a clean first-pass, human-pacing or cross-tenant claim.
+
+For the owner's next personal walkthrough, use [the separate local azd profile](lab-rejig-local-walkthrough.md). It provisions a fresh RG/project and prepares a new dedicated API without Skillable. It does not rebuild/publish images or conduct the deferred live validation gaps.
 
 Use the approved allocation values, not historical IDs or first-party audiences. `setup-reactor-foundry.py --describe` remains an offline definition check, not deployment validation. No old endpoint key or custom offload MCP server is used.
 
 ## Prepared allocation contract
 
-Use only the owner's authorized `ig2026-lab-learner` allocation in westus3. The old seed and fixed A are preserved. Obtain equivalent values for Skillable; a historical resource ID is not permission.
+Use only the explicitly authorized subscription/resource group. Earlier rehearsals used `ig2026-lab-learner` and `ig2026-lab-learner-2` in westus3; the next local allocation is `ig2026-lab-local`. Preserve every existing seed/fixed A and failed reproduction. Obtain equivalent values separately for Skillable; historical IDs are not permission.
 
 Before learners arrive, supply:
 
@@ -19,7 +21,7 @@ Before learners arrive, supply:
 - Both Express services, project identity connection, Toolbox version and approved hosted starter image. Hosted-agent creation remains a learner action.
 - Two different secret demo passwords, delivered privately. Both must be 12-1024 characters. No passwords in parameter files, URLs, screenshots or logs.
 
-The frontend has project Foundry User; the execution UAMI has group SandboxGroup Data Owner. Anonymous registry pulls suffice for both Express apps, but the native hosted image broker requires the **Foundry project MI's AcrPull grant on the registry**, even for these public images. The platform-created hosted runtime identity separately receives project Foundry User for model/Toolbox access. These identities are distinct. The group itself must have no usable Azure identity. Preserve existing grants/old runtime; do not detach unrelated identities or delete seed/A.
+The frontend has project Foundry User; the execution UAMI has group SandboxGroup Data Owner. Both Express apps use anonymous pulls. The validated native hosted path uses a non-shared **ManagedIdentity ContainerRegistry connection and project MI AcrPull grant** on `acateam`, even though anonymous image downloads work. This describes the verified path, not a universal requirement or proof that registry policy caused the original failure. The project MI also has account-scoped Foundry User for the prepared model; the distinct platform-created runtime identity receives project Foundry User for model/Toolbox access. The research group itself has no usable Azure identity. Preserve existing grants/old runtime; do not detach unrelated identities or delete seed/A.
 
 For the approved dedicated API, use token version 1 and `api://<application client ID>` consistently as the request resource and expected token audience. The verified API service principal has `appRoleAssignmentRequired=false`; backend authorization uses the allowed service object IDs, not an invented role claim. Corporate Microsoft application creation requires operator-supplied `serviceManagementReference`; keep its actual value out of source, images and parameter files. Do not repurpose a shared API or change its token version. No demo Entra users, client secrets or runtime Graph permissions are required. Foundry also creates its own managed blueprint/runtime service identity during hosted registration.
 
@@ -86,7 +88,7 @@ $BobPassword = Read-Host 'Private Bob demo password' -AsSecureString
   -AlicePassword $AlicePassword -BobPassword $BobPassword
 ```
 
-At the learner connection checkpoint, copy the exact created agent's HTTPS Responses protocol endpoint and set the frontend's `HOSTED_RESPONSES_ENDPOINT` environment variable through the approved Azure portal configuration channel. After reconciling existing work, apply the frontend refresh below. Verify that `GET /api/session` returns `hosted_configured: true`; a saved environment value alone did not update the running Express process in the live rehearsal. Sign in again; its boot key invalidates old cookies. Alternatively rerun the same helper with `-HostedResponsesEndpoint $HostedResponsesEndpoint` and the same allocation inputs/private passwords, then independently verify the running process. An incremental redeployment can replace ephemeral service state, so reconcile any existing task resources first. **Endpoint configured** means submissions are enabled, not that the live gate passed.
+At the learner connection checkpoint, copy the exact created agent's HTTPS Responses protocol endpoint. The displayed URL may omit `api-version=v1`; direct portal configuration must append it while preserving other query settings. `deploy-reactor.ps1` and the local connection helper normalize this missing protocol query. It is not a native-version selector. After reconciling existing work, apply the frontend refresh below and inspect only `hosted_configured` from `GET /api/session` (the full response includes CSRF material). Sign in again; its boot key invalidates old cookies. For the local profile, `prepare-local-reactor.ps1 -Mode Connect` patches and refreshes the frontend only, without redeploying execution or prompting for passwords. Alternatively rerun the existing deployment helper with `-HostedResponsesEndpoint` and the same private passwords; that incremental deployment can replace ephemeral execution state, so reconcile first. **Endpoint configured** enables submissions; it is not a live gate pass.
 
 ### Apply an Express configuration refresh
 
@@ -164,7 +166,7 @@ az role assignment create --assignee-object-id $HostedPrincipalId `
 
 Keep these operator role assignments scoped to the registry/project. The current registry uses legacy RBAC, so `AcrPull` is the applicable image role. Validate a separate Skillable tenant's registry authorization rather than assuming this Microsoft-tenant grant transfers.
 
-The helper opts into the native preview, declares Responses container protocol `2.0.0`, and disables Python user-site package loading. Do not set reserved `FOUNDRY_*` or `AGENT_*` environment variables; Foundry injects its project endpoint and runtime identity. A failed matching version now causes an explicit error, not a reused-success response. Correct the prerequisite before using `--new-version` for a deliberate retry.
+The helper opts into the native preview, declares Responses container protocol `2.0.0`, and disables Python user-site package loading. Do not set reserved `FOUNDRY_*` or `AGENT_*` environment variables; Foundry injects its project endpoint and runtime identity. Reuse reads the exact version status rather than trusting an aggregate active agent. Explicit `--new-version` adds unique creation metadata and rejects the existing version being returned; the configuration fingerprint/image definition stay unchanged. A failed matching version is an explicit error. Correct the prerequisite before a deliberate retry; record the actual new version independently.
 
 Derive the protocol URL from `AIProjectClient(..., allow_preview=True).get_openai_client(agent_name=...)` or copy the displayed endpoint. The SDK-derived base URL ends in `/agents/<name>/endpoint/protocols/openai`; append `/responses?api-version=v1`. This is distinct from the REST API version and the container protocol version.
 
@@ -175,6 +177,25 @@ The live long-limit probe exposed a separate **30-second managed gateway timeout
 Before timing the lesson, rehearse a service-authenticated call under the frontend MI, a native Toolbox call under the hosted runtime, and an actual project-MI call at the execution API. Validate the live token's exact audience and object ID without logging the token. Prove both users' allowed and swapped-run/result/conversation/execution-denied cases. Inspect metadata privacy: the grant must never enter model input/output or retained diagnostics.
 
 If that gate fails, classify delivery **blocked**. No historical November 6 runtime evidence substitutes for it.
+
+### Supported additional-project recovery
+
+In the fresh November 7 allocation, the original project's native build failed before ACR exchange because the platform-managed build group had no usable managed identity. Anonymous blob verification, local pulls and an identity-only project update did not repair that binding. A supported additional project in the same account/RG successfully built the same canonical hosted digest through project-MI registry authentication. The services were repointed using supplied deployment inputs, with new project/runtime grants and verified Connections/Toolbox. The URL, Express UAMIs, audience, snapshot and images stayed unchanged.
+
+If a new allocation exhibits the same failure, retain its exact failed version and normal build/identity logs. Confirm the actual error boundary before changing anything. Do not patch platform-owned build groups, add a research-group identity, change public registry policy or automatically create retry versions.
+
+After explicit owner authorization for an additional project, the local profile supports:
+
+```powershell
+# Choose a new project name in this account; do not overwrite a failed project.
+azd -C .\local-reactor env set FOUNDRY_PROJECT_NAME reactor-recovery-YOUR_SUFFIX
+azd -C .\local-reactor env set REACTOR_PREPARED false
+azd -C .\local-reactor provision
+```
+
+The updated infrastructure preserves the failed project and creates the named project; the hook requires zero reactor tasks before repointing the services. It reconciles the same allocation-owned API and clean snapshot, prepares the new identities/connections/starter, and leaves the frontend unconnected for a new learner handoff. Keep the old demo passwords when reapplying preparation. Verify a real Alice/Bob transaction and denied foreign request before declaring recovery.
+
+This is **additional-project recovery**, not original-binding repair or proof that every allocation needs a second project. A fresh profile may provision its first project successfully. Minimum learner permissions, actual Skillable/cross-tenant delivery, complete live grant/egress coverage and rollback remain separate work after the personal walkthrough.
 
 ## Recovery
 

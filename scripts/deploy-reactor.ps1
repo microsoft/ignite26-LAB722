@@ -25,6 +25,13 @@ if ($ServiceImage -notlike "$RegistryName.azurecr.io/*" -or
     ($null -ne $HostedResponsesEndpoint -and $HostedResponsesEndpoint.Scheme -ne 'https')) {
     throw 'Use an immutable image from the selected registry and, when connecting the hosted agent, an HTTPS Responses endpoint.'
 }
+if ($null -ne $HostedResponsesEndpoint -and
+    $HostedResponsesEndpoint.Query -notmatch '(^\?|&)api-version=') {
+    $endpointBuilder = [UriBuilder]::new($HostedResponsesEndpoint)
+    $query = $endpointBuilder.Query.TrimStart('?')
+    $endpointBuilder.Query = $(if ($query) { "$query&api-version=v1" } else { 'api-version=v1' })
+    $HostedResponsesEndpoint = $endpointBuilder.Uri
+}
 $templateText = & az bicep build --file (Join-Path $PSScriptRoot '..\infra\reactor.bicep') --stdout
 if ($LASTEXITCODE -ne 0) { throw 'Reactor ARM compilation failed.' }
 $values = @{

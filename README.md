@@ -33,7 +33,7 @@ Fill in the sections below yourself, then:
 # [Microsoft Ignite 2026](https://ignite.microsoft.com)
 
 ## 🔥LAB722: Operate secure, multi-tenant agentic apps on Azure Container Apps
-**`lab-reactor` redesign:** start with the [current reactor learner guide](docs/runtime-rejig/lab-rejig-learner-instructions.md) and [validation report](docs/runtime-rejig/reactor-walkthrough-report.md). The dedicated API and native identities are prepared, and real Alice/Bob transactions have traversed both Express apps, the hosted workflow, managed Toolbox and task Sandboxes. The report distinguishes live outcome checks from human pacing and Skillable delivery, which remain unverified. The older delivery instructions below are historical for this branch; do not substitute the shared-key runtime.
+**`lab-reactor` redesign:** for a fresh deployment from your workstation, start with the [local azd walkthrough](docs/runtime-rejig/lab-rejig-local-walkthrough.md), then the [reactor learner guide](docs/runtime-rejig/lab-rejig-learner-instructions.md). The latest [allocation rehearsal and friction report](lab-pamela-friction.md) records a working additional-project recovery and completed technical exercises after two helper repairs; the original project remains unrepaired. The [earlier validation report](docs/runtime-rejig/reactor-walkthrough-report.md) describes the first allocation. Human pacing and Skillable delivery remain unverified. The older delivery instructions below and the root `azure.yaml` are historical for this branch; use the separate `local-reactor` azd profile, not the shared-key runtime.
 
 ### Session description
 
