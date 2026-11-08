@@ -11,6 +11,7 @@ from starlette.applications import Starlette
 from .execution import create_app as execution_app
 from .frontend import ExecutionClient, HostedClient, create_app as frontend_app
 from .ownership import OwnershipStore
+from .models import ModelRelay
 from .sandboxes import TaskSandboxes
 from .service_auth import ServiceTokenVerifier
 
@@ -58,6 +59,8 @@ def build_app(config=None, *, state_path=None, source_file=None):
                     ),
                     frontend_object_id=config["FRONTEND_OBJECT_ID"], project_object_id=config["PROJECT_OBJECT_ID"],
                     source_file=Path(source_file or "/app/data/lab-datasets/caldova-public-lab-use-v2/source-records.json"),
+                    model_relay=ModelRelay(config["REACTOR_MODEL_ENDPOINT"], config["MODEL_DEPLOYMENT"], credential)
+                    if config.get("REACTOR_AGENT_SWARM_ENABLED") == "true" else None,
                 )
             app.mount("/", child)
             async with child.router.lifespan_context(child):

@@ -1,0 +1,9 @@
+FROM python:3.13-slim-trixie@sha256:09a17cad02668ae61ece136b4fd36ac3849e14f670ebedb637ea3e15580525bc
+WORKDIR /opt/lab722-agent
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+RUN mkdir -p /opt/python/3/bin /workspace /run/lab722-agent && ln -s /usr/local/bin/python3 /opt/python/3/bin/python3 && chmod 1777 /workspace && chmod 700 /run/lab722-agent
+COPY src/reactor/agent_runtime.py src/reactor/research.py /opt/lab722-agent/src/reactor/
+COPY src/runtime/remote_runner.py /opt/lab722-agent/src/runtime/
+COPY data/lab-datasets/caldova-public-lab-use-v2/source-records.json data/lab-datasets/caldova-public-lab-use-v2/data-manifest.json data/lab-datasets/caldova-public-lab-use-v2/caldova-research.duckdb /opt/lab722-data/
+RUN chmod -R a-w /opt/lab722-agent/src /opt/lab722-data && python -c "from src.runtime.remote_runner import frozen_files; from src.reactor.agent_runtime import tools_for; frozen_files(); assert len(tools_for('quality_assurance')) == 5"
+CMD ["sleep", "infinity"]

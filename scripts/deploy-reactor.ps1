@@ -12,6 +12,10 @@ param(
     [Parameter(Mandatory)][guid]$SnapshotId,
     [Parameter(Mandatory)][string]$ServiceImage,
     [Parameter(Mandatory)][string]$ExecutionApiAudience,
+    [string]$FrontendName = 'lab722-reactor-frontend',
+    [string]$ExecutionName = 'lab722-reactor-execution',
+    [switch]$EnableAgentSwarm,
+    [string]$ModelDeployment = 'gpt-5.2',
     [uri]$HostedResponsesEndpoint,
     [Parameter(Mandatory)][securestring]$AlicePassword,
     [Parameter(Mandatory)][securestring]$BobPassword
@@ -40,6 +44,8 @@ $values = @{
     foundryAccountName = $FoundryAccountName; foundryProjectName = $FoundryProjectName
     sandboxGroupName = $SandboxGroupName; snapshotId = $SnapshotId.ToString()
     serviceImage = $ServiceImage; executionApiAudience = $ExecutionApiAudience
+    frontendName = $FrontendName; executionName = $ExecutionName
+    enableAgentSwarm = [bool]$EnableAgentSwarm; modelDeployment = $ModelDeployment
     hostedResponsesEndpoint = $(if ($null -eq $HostedResponsesEndpoint) { '' } else { $HostedResponsesEndpoint.AbsoluteUri })
     alicePassword = [System.Net.NetworkCredential]::new('', $AlicePassword).Password
     bobPassword = [System.Net.NetworkCredential]::new('', $BobPassword).Password

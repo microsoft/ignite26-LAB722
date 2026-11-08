@@ -48,18 +48,21 @@ class ExecutionClient:
 class HostedClient:
     def __init__(self, endpoint, credential):
         self.endpoint, self.credential = endpoint, credential
-        self.http = httpx.AsyncClient(timeout=240)
+        self.http = httpx.AsyncClient(timeout=900)
 
-    async def invoke(self, *, question, task, binding):
+    async def invoke(self, *, question, task, binding, research=None):
         token = await self.credential.get_token("https://ai.azure.com/.default")
         metadata = json.dumps({name: binding[name] for name in FIELDS}, separators=(",", ":"))
         if len(metadata) > 512:
             raise ValueError("The run binding exceeds the hosted metadata budget.")
+        request_metadata = {"reactor_binding": metadata, "reactor_task": task}
+        if research is not None:
+            request_metadata["reactor_research"] = json.dumps(research, separators=(",", ":"))
         response = await self.http.post(
             self.endpoint,
             headers={"Authorization": "Bearer " + token.token},
             json={
-                "input": question, "metadata": {"reactor_binding": metadata, "reactor_task": task},
+                "input": question, "metadata": request_metadata,
                 # Grants must not be retained in the outer Responses transcript.
                 "store": False,
             },
@@ -159,10 +162,15 @@ def create_app(*, backend, hosted, session_key, secure_cookies=True, hosted_conf
             raise HTTPException(503, "The learner-created hosted orchestrator is not connected yet.")
         body = await json_body(request, maximum=8192)
         task, question = body.get("task"), body.get("question")
-        if task not in {"phases", "safety", "workflow", "limit", "egress", "failure"} or not isinstance(question, str) or not 1 <= len(question) <= 4000:
+        if task not in {"phases", "safety", "workflow", "limit", "egress", "failure", "research"} or not isinstance(question, str) or not 1 <= len(question) <= 4000:
             raise HTTPException(400, "Choose a task and a bounded question.")
+        input_data = {"task": task, "idempotency_key": body.get("idempotency_key")}
+        research = None
+        if task == "research":
+            research = {"candidate_id": body.get("candidate_id"), "condition": body.get("condition", "")}
+            input_data.update(**research, question=question)
         run = await backend.call("POST", "/runs", user_id=owner.user_id,
-                                 body={"task": task, "idempotency_key": body.get("idempotency_key")})
+                                 body=input_data)
         if run["state"] != "submitted":
             # A retried creation returns its original record, never replays execution.
             return JSONResponse({"run": run, "reused": True})
@@ -172,7 +180,10 @@ def create_app(*, backend, hosted, session_key, secure_cookies=True, hosted_conf
         async def invoke():
             try:
                 grant = await backend.call("POST", f"/runs/{key}/grant", user_id=owner.user_id, body={})
-                output = await hosted.invoke(question=question, task=task, binding=grant)
+                kwargs = {"question": question, "task": task, "binding": grant}
+                if research is not None:
+                    kwargs["research"] = research
+                output = await hosted.invoke(**kwargs)
                 session_id = output.get("agent_session_id")
                 if isinstance(session_id, str) and session_id:
                     await backend.call("POST", f"/runs/{key}/session", user_id=owner.user_id,
@@ -201,6 +212,11 @@ def create_app(*, backend, hosted, session_key, secure_cookies=True, hosted_conf
         return JSONResponse(result,
                             headers={"Cache-Control": "no-store"})
 
+    async def research_metadata(request):
+        owner = principal(request)
+        result = await backend.call("GET", "/research/metadata", user_id=owner.user_id)
+        return JSONResponse(result, headers={"Cache-Control": "no-store"})
+
     async def cancel(request):
         owner = principal(request)
         csrf(request)
@@ -224,6 +240,7 @@ def create_app(*, backend, hosted, session_key, secure_cookies=True, hosted_conf
     return Starlette(routes=[
         Route("/", home), Route("/api/session", session),
         Route("/api/login", login, methods=["POST"]), Route("/api/logout", logout, methods=["POST"]),
+        Route("/api/research/metadata", research_metadata),
         Route("/api/runs", submit, methods=["POST"]),
         Route("/api/runs/{run_id}", owned_get),
         Route("/api/runs/{run_id}/artifacts/{artifact_id}", owned_get),

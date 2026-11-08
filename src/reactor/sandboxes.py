@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shlex
 import time
 from pathlib import Path
@@ -12,6 +13,7 @@ from uuid import UUID, uuid4
 
 from ..runtime.frozen import PINS
 from ..sandbox_process import run_process
+from .agent_runtime import MAX_TURNS, ROLES, VERSION, WALL_SECONDS
 
 
 class TaskSandboxes:
@@ -29,6 +31,139 @@ class TaskSandboxes:
         self.slots = asyncio.Semaphore(maximum_active)
         self.maximum_active = maximum_active
         self.runner = (Path(__file__).parents[1] / "runtime" / "remote_runner.py").read_text()
+        self.agent_sha256 = hashlib.sha256((Path(__file__).parent / "agent_runtime.py").read_bytes()).hexdigest()
+
+    async def execute_agent(self, run_id, role, selection, question, *, binding, customer_note, specialists,
+                            model_relay, on_created, on_event):
+        run_id = str(UUID(run_id))
+        if role not in ROLES:
+            raise ValueError("Unknown Sandbox specialist role.")
+        if (set(binding) != {"run_id", "user_id", "customer_id", "conversation_id"}
+                or binding["run_id"] != run_id
+                or not all(isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9-]{1,128}", value)
+                           for value in binding.values())):
+            raise ValueError("Specialist Sandbox requires the validated application ownership context.")
+        async with self.slots:
+            sandbox_id = None
+            started = time.monotonic()
+            execution_task = None
+            try:
+                await self.native([
+                    "create", "--snapshot-id", self.snapshot, "--label", "lab=LAB722",
+                    "--label", "purpose=reactor-task", "--label", f"run={run_id}",
+                    "--label", f"step={role}", "--egress-default", "Deny", "--traffic-inspection", "Full",
+                    "--label", f"user={binding['user_id']}", "--label", f"customer={binding['customer_id']}",
+                    "--label", f"conversation={binding['conversation_id']}",
+                ])
+                created = json.loads(await self.native([
+                    "get", "--selector", f"lab=LAB722,purpose=reactor-task,run={run_id},step={role}",
+                ]))
+                if any(created.get("labels", {}).get(key) != value for key, value in {
+                    "lab": "LAB722", "purpose": "reactor-task", "run": run_id, "step": role,
+                    "user": binding["user_id"], "customer": binding["customer_id"],
+                    "conversation": binding["conversation_id"],
+                }.items()) or created.get("sourcesRef", {}).get("snapshot", {}).get("id") != self.snapshot:
+                    raise PermissionError("Specialist Sandbox did not match its owned snapshot contract.")
+                sandbox_id = str(UUID(created["id"]))
+                policy = created.get("egressPolicy", {})
+                if policy.get("defaultAction") != "Deny" or policy.get("trafficInspection") != "Full":
+                    raise PermissionError("Specialist Sandbox lacks the required network restrictions.")
+                on_created(sandbox_id)
+                on_event("sandbox_created", sandbox_id=sandbox_id)
+                payload = base64.b64encode(json.dumps({
+                    "run_id": run_id, "role": role, "selection": selection, "question": question,
+                    "ownership": binding,
+                    "customer_note": customer_note, "specialists": specialists,
+                }).encode()).decode()
+                command = (
+                    "env -i PATH=/opt/python/3/bin:/usr/bin:/bin PYTHONPATH=/opt/lab722-agent "
+                    "LAB722_AGENT_PAYLOAD=" + shlex.quote(payload)
+                    + " /opt/python/3/bin/python3 -B -m src.reactor.agent_runtime"
+                )
+                execution_task = asyncio.create_task(self.native(
+                    ["exec", "--id", sandbox_id, "-c", command], timeout=WALL_SECONDS + 30,
+                ))
+                seen = set()
+                deadline = time.monotonic() + WALL_SECONDS + 15
+                while not execution_task.done():
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("Specialist agent exceeded its model/tool budget.")
+                    await asyncio.sleep(1)
+                    request_text = await self.native([
+                        "exec", "--id", sandbox_id, "-c",
+                        "/opt/python/3/bin/python3 -I -c "
+                        + shlex.quote(
+                            "from pathlib import Path; p=Path('/run/lab722-agent/request.json'); "
+                            "print(p.read_text() if p.exists() else 'null')"
+                        ),
+                    ], timeout=30)
+                    request = json.loads(request_text)
+                    if request is None:
+                        continue
+                    request_id = request.get("request_id")
+                    if not isinstance(request_id, str) or len(request_id) != 32:
+                        raise ValueError("Invalid model relay request identifier.")
+                    if request_id in seen:
+                        continue
+                    if len(seen) >= MAX_TURNS:
+                        raise ValueError("Agent exceeded its model-call budget.")
+                    seen.add(request_id)
+                    on_event("model_requested", sandbox_id=sandbox_id, turn=request["turn"])
+                    response = await model_relay.complete(role, request)
+                    for call in response["message"].get("tool_calls", []):
+                        on_event("tool_selected", sandbox_id=sandbox_id, turn=request["turn"],
+                                 detail=call["function"]["name"])
+                    encoded = base64.b64encode(json.dumps(response, allow_nan=False).encode()).decode()
+                    await self.native([
+                        "exec", "--id", sandbox_id, "-c", "/opt/python/3/bin/python3 -I -c "
+                        + shlex.quote(
+                            "import base64,os; from pathlib import Path; "
+                            "p=Path('/run/lab722-agent/response.tmp'); "
+                            f"p.write_bytes(base64.b64decode({encoded!r})); "
+                            "p.chmod(0o600); p.replace('/run/lab722-agent/response.json'); print('null')"
+                        ),
+                    ], timeout=30)
+                    on_event("model_completed", sandbox_id=sandbox_id, turn=request["turn"],
+                             usage=response.get("usage", {}))
+                result = json.loads(await execution_task)
+                if (
+                    result.get("version") != VERSION or result.get("role") != role
+                    or result.get("run_id") != run_id or result.get("agent_sha256") != self.agent_sha256
+                    or result.get("ownership") != binding
+                    or result.get("files_sha256") != PINS
+                    or type(result.get("model_calls")) is not int or not 1 <= result["model_calls"] <= MAX_TURNS
+                    or result["model_calls"] != len(seen)
+                    or not isinstance(result.get("receipts"), list) or not result["receipts"]
+                    or not isinstance(result.get("output"), dict)
+                ):
+                    raise ValueError("Sandbox returned invalid specialist-agent evidence.")
+                for receipt in result["receipts"]:
+                    code = receipt["code"]
+                    marker = receipt["execution_marker"]
+                    if not marker.startswith(f"LAB722_REACTOR:{run_id}:{role}:"):
+                        raise ValueError("Specialist code receipt is not correlated to this role.")
+                    self.validate_receipt(receipt, run_id, marker, hashlib.sha256(code.encode()).hexdigest())
+                    receipt.update(sandbox_id=sandbox_id, snapshot_id=self.snapshot, egress_policy=policy)
+                result.update(sandbox_id=sandbox_id, snapshot_id=self.snapshot)
+            finally:
+                if execution_task is not None and not execution_task.done():
+                    execution_task.cancel()
+                    await asyncio.gather(execution_task, return_exceptions=True)
+                removal = asyncio.create_task(
+                    self.delete(sandbox_id) if sandbox_id else self.recover_abandoned(run_id)
+                )
+                cancellation = None
+                while not removal.done():
+                    try:
+                        await asyncio.shield(removal)
+                    except asyncio.CancelledError as error:
+                        cancellation = error
+                removal.result()
+                on_event("sandbox_deleted" if sandbox_id else "sandbox_reconciled", sandbox_id=sandbox_id)
+                if cancellation is not None:
+                    raise cancellation
+            result.update(cleanup="deleted", sandbox_seconds=round(time.monotonic() - started, 3))
+            return result
 
     async def native(self, arguments: list[str], *, timeout: int = 120):
         environment = {

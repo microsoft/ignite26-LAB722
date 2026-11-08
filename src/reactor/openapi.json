@@ -52,6 +52,54 @@
           "502": {"description": "Offload failed; explicit reconciliation required"}
         }
       }
+    },
+    "/agents/clinical-trials": {
+      "post": {
+        "operationId": "clinical_trials",
+        "summary": "Run a full clinical-trials agent in an owned temporary Sandbox",
+        "parameters": [{"name": "X-Reactor-Run-Grant", "in": "header", "required": true, "schema": {"type": "string"}, "description": "Backend-issued runtime-only grant; never model-controlled"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AgentBinding"}}}},
+        "responses": {"200": {"description": "Correlated specialist result"}, "202": {"description": "Owned agent pending; repeat the identical call without replay"}, "403": {"description": "Caller or owned binding rejected"}, "409": {"description": "Attempt or workflow order conflict"}, "502": {"description": "Agent failed; explicit reconciliation required"}}
+      }
+    },
+    "/agents/drug-specialist": {
+      "post": {
+        "operationId": "drug_specialist",
+        "summary": "Run a full drug-safety specialist in an owned temporary Sandbox",
+        "parameters": [{"name": "X-Reactor-Run-Grant", "in": "header", "required": true, "schema": {"type": "string"}, "description": "Backend-issued runtime-only grant; never model-controlled"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AgentBinding"}}}},
+        "responses": {"200": {"description": "Correlated specialist result"}, "202": {"description": "Owned agent pending; repeat the identical call without replay"}, "403": {"description": "Caller or owned binding rejected"}, "409": {"description": "Attempt or workflow order conflict"}, "502": {"description": "Agent failed; explicit reconciliation required"}}
+      }
+    },
+    "/agents/quality-assurance": {
+      "post": {
+        "operationId": "quality_assurance",
+        "summary": "Run an independent QA agent in its own Sandbox after both specialists",
+        "parameters": [{"name": "X-Reactor-Run-Grant", "in": "header", "required": true, "schema": {"type": "string"}, "description": "Backend-issued runtime-only grant; never model-controlled"}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AgentBinding"}}}},
+        "responses": {"200": {"description": "QA findings or finalized independently checked research evidence"}, "202": {"description": "Owned QA pending; repeat the identical call without replay"}, "403": {"description": "Caller or owned binding rejected"}, "409": {"description": "Both specialists must complete this attempt first"}, "502": {"description": "QA failed; explicit reconciliation required"}}
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "RunGrant": {
+        "name": "X-Reactor-Run-Grant", "in": "header", "required": true,
+        "schema": {"type": "string"},
+        "description": "Backend-issued runtime-only grant; never model-controlled or included in the JSON body"
+      }
+    },
+    "schemas": {
+      "AgentBinding": {
+        "type": "object", "additionalProperties": false,
+        "required": ["run_id", "user_id", "customer_id", "conversation_id", "attempt", "instruction"],
+        "properties": {
+          "run_id": {"type": "string"}, "user_id": {"type": "string"},
+          "customer_id": {"type": "string"}, "conversation_id": {"type": "string"},
+          "attempt": {"type": "integer", "enum": [1, 2]},
+          "instruction": {"type": "string", "maxLength": 2000}
+        }
+      }
     }
   }
 }

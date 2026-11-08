@@ -9,6 +9,7 @@ import logging
 import time
 from pathlib import Path
 
+import httpx
 from starlette.applications import Starlette
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
@@ -18,6 +19,8 @@ from .evaluation import evaluate
 from .binding import GRANT_HEADER
 from .http import json_body
 from .ownership import ACCOUNTS, AccessDenied, CapacityExceeded, Conflict, StateUnavailable
+from .research import ROLES, research_metadata, validate_selection
+from .swarm import ResearchSwarm
 from ..runtime.frozen import PINS
 
 LOG = logging.getLogger("reactor.execution")
@@ -25,11 +28,12 @@ HANDOFF_SECONDS = 20
 TASKS = {
     "phases": {"phases"}, "safety": {"safety"},
     "workflow": {"phases", "safety"}, "limit": {"limit"},
-    "egress": {"egress"}, "failure": {"failure"},
+    "egress": {"egress"}, "failure": {"failure"}, "research": set(ROLES),
 }
 
 
-def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_object_id: str, source_file: Path):
+def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_object_id: str, source_file: Path,
+               model_relay=None):
     source_bytes = source_file.read_bytes()
     source_records = json.loads(source_bytes)
     source_sha256 = hashlib.sha256(source_bytes).hexdigest()
@@ -37,6 +41,7 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
         raise ValueError("Independent evaluation requires the approved frozen source bytes.")
     active = {}
     deferred = {}
+    swarm = ResearchSwarm(store, sandboxes, model_relay, source_records, source_sha256) if model_relay else None
 
     async def caller(request, expected):
         try:
@@ -55,7 +60,12 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
         return principal
 
     async def health(request):
-        return JSONResponse({"status": "ready", "component": "execution", "maximum_active": 2})
+        return JSONResponse({"status": "ready", "component": "execution", "maximum_active": 2,
+                             "swarm_available": swarm is not None})
+
+    async def metadata(request):
+        await owner(request)
+        return JSONResponse({**research_metadata(source_records), "swarm_available": swarm is not None})
 
     async def login(request):
         await caller(request, frontend_object_id)
@@ -72,7 +82,19 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
         key = body.get("idempotency_key")
         if not isinstance(key, str):
             raise HTTPException(400, "An idempotency key is required.")
-        run = store.create_run(principal, key, {"task": task})
+        input_data = {"task": task}
+        if task == "research":
+            if swarm is None:
+                raise HTTPException(503, "Sandbox-agent swarm is not prepared; use the revised setup.")
+            try:
+                input_data.update(validate_selection(source_records, body))
+            except ValueError as error:
+                raise HTTPException(400, str(error)) from None
+            question = body.get("question")
+            if not isinstance(question, str) or not question.strip() or len(question) > 4000:
+                raise HTTPException(400, "A bounded research question is required.")
+            input_data["question"] = question
+        run = store.create_run(principal, key, input_data)
         return JSONResponse(asdict(run))
 
     async def register_grant(request):
@@ -89,10 +111,13 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
     async def get_run(request):
         principal = await owner(request)
         run_id = request.path_params["run_id"]
-        return JSONResponse({
+        result = {
             **asdict(store.get_run(principal, run_id)),
             "artifacts": [{"artifact_id": aid, "name": name} for aid, name in store.list_artifacts(principal, run_id)],
-        })
+        }
+        if swarm is not None and swarm.progress(run_id) is not None:
+            result["swarm"] = swarm.progress(run_id)
+        return JSONResponse(result)
 
     async def conversation(request):
         principal = await owner(request)
@@ -116,6 +141,8 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
         principal = await owner(request)
         run_id = request.path_params["run_id"]
         run = store.cancel_run(principal, run_id)
+        if swarm is not None:
+            await swarm.cancel(run_id)
         deferred.pop(run_id, None)
         task = active.get(run_id)
         if task is not None:
@@ -125,6 +152,26 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
         await sandboxes.recover_abandoned(run_id)
         run = store.acknowledge_cleanup(principal, run_id, sandbox_id=run.sandbox_id)
         return JSONResponse(asdict(run))
+
+    async def specialist(request):
+        identity = await caller(request, project_object_id)
+        if swarm is None:
+            raise HTTPException(503, "Sandbox-agent model relay is not prepared.")
+        role = request.url.path.rsplit("/", 1)[-1].replace("-", "_")
+        body = await json_body(request, maximum=16384)
+        try:
+            task = await swarm.invoke(role, body, request.headers.get(GRANT_HEADER), identity)
+        except ValueError as error:
+            raise HTTPException(400, str(error)) from None
+        done, _ = await asyncio.wait({task}, timeout=HANDOFF_SECONDS)
+        if not done:
+            return JSONResponse({"run_id": body["run_id"], "role": role, "state": "running", "pending": True},
+                                status_code=202)
+        try:
+            return JSONResponse(await task)
+        except (RuntimeError, ValueError, TimeoutError, Conflict, httpx.HTTPError):
+            LOG.error("run=%s role=%s agent failed; explicit reconciliation required", body["run_id"], role)
+            raise HTTPException(502, "Specialist failed; inspect owned events and cancel/reconcile.") from None
 
     async def execution_response(task, run, principal):
         try:
@@ -167,7 +214,7 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
         if not isinstance(work, list) or not 1 <= len(work) <= 2:
             raise HTTPException(400, "The workflow permits one or two tasks.")
         for item in work:
-            if not isinstance(item, dict) or item.get("step") not in TASKS or item.get("step") == "workflow":
+            if not isinstance(item, dict) or item.get("step") not in {"phases", "safety", "limit", "egress", "failure"}:
                 raise HTTPException(400, "Unknown execution step.")
             code = item.get("code")
             if not isinstance(code, str) or not code.strip() or len(code.encode()) > 16384 or "\0" in code:
@@ -257,9 +304,12 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
             for task in active.values():
                 task.cancel()
             await asyncio.gather(*active.values(), return_exceptions=True)
+            if swarm is not None:
+                await swarm.close()
 
     app = Starlette(routes=[
         Route("/health", health), Route("/login", login, methods=["POST"]),
+        Route("/research/metadata", metadata),
         Route("/runs", create_run, methods=["POST"]),
         Route("/runs/{run_id}/grant", register_grant, methods=["POST"]),
         Route("/runs/{run_id}", get_run),
@@ -268,6 +318,7 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
         Route("/runs/{run_id}/artifacts/{artifact_id}", artifact),
         Route("/runs/{run_id}/cancel", cancel, methods=["POST"]),
         Route("/offload", offload, methods=["POST"]),
+        *[Route("/agents/" + role.replace("_", "-"), specialist, methods=["POST"]) for role in ROLES],
     ], exception_handlers={error: ownership_error for error in (AccessDenied, Conflict, CapacityExceeded, StateUnavailable)},
         lifespan=lifespan)
     return app

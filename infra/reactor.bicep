@@ -9,6 +9,11 @@ param foundryAccountName string
 param foundryProjectName string = 'caldova'
 param sandboxGroupName string
 param snapshotId string
+param frontendName string = 'lab722-reactor-frontend'
+param executionName string = 'lab722-reactor-execution'
+@description('Enable the full Sandbox-agent model relay only with an agent-capable snapshot.')
+param enableAgentSwarm bool = false
+param modelDeployment string = 'gpt-5.2'
 @minLength(80)
 param serviceImage string
 @description('Dedicated audience from a facilitator-supplied existing service API registration. This template never creates tenant resources.')
@@ -25,8 +30,6 @@ param alicePassword string
 @maxLength(1024)
 param bobPassword string
 
-var frontendName = 'lab722-reactor-frontend'
-var executionName = 'lab722-reactor-execution'
 var foundryUserRole = '53ca6127-db72-4b80-b1b0-d745d6d5456d'
 var sandboxOwnerRole = 'c24cf47c-5077-412d-a19c-45202126392c'
 var acrPullRole = '7f951dda-4ed3-4680-a7ca-43fe172d538d'
@@ -85,6 +88,15 @@ resource executionSandboxOwner 'Microsoft.Authorization/roleAssignments@2022-04-
     principalType: 'ServicePrincipal'
   }
 }
+resource executionModelUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableAgentSwarm) {
+  name: guid(account.id, executionIdentity.id, foundryUserRole)
+  scope: account
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', foundryUserRole)
+    principalId: executionIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
 resource projectToolboxUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   // Reuse the existing assignment from the adopted runtime instead of duplicating it.
   name: guid(project.id, 'runtime-toolbox', foundryUserRole)
@@ -103,7 +115,7 @@ resource execution 'Microsoft.App/containerApps@2026-03-02-preview' = {
     type: 'UserAssigned'
     userAssignedIdentities: { '${executionIdentity.id}': {} }
   }
-  dependsOn: [pullRoles, executionSandboxOwner]
+  dependsOn: [pullRoles, executionSandboxOwner, executionModelUser]
   properties: {
     managedEnvironmentId: environment.id
     configuration: {
@@ -132,6 +144,9 @@ resource execution 'Microsoft.App/containerApps@2026-03-02-preview' = {
           { name: 'EXECUTION_API_AUDIENCE', value: executionApiAudience }
           { name: 'FRONTEND_OBJECT_ID', value: frontendIdentity.properties.principalId }
           { name: 'PROJECT_OBJECT_ID', value: project.identity.principalId }
+          { name: 'REACTOR_AGENT_SWARM_ENABLED', value: enableAgentSwarm ? 'true' : 'false' }
+          { name: 'REACTOR_MODEL_ENDPOINT', value: 'https://${foundryAccountName}.openai.azure.com/openai/v1/chat/completions' }
+          { name: 'MODEL_DEPLOYMENT', value: modelDeployment }
           { name: 'REACTOR_ALICE_PASSWORD', secretRef: 'alice-password' }
           { name: 'REACTOR_BOB_PASSWORD', secretRef: 'bob-password' }
         ]

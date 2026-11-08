@@ -30,3 +30,15 @@ async def invoke_bound(toolbox, operation: str, binding: dict, model_tasks: list
         GRANT_HEADER: binding["run_grant"],
         "body": {**{name: binding[name] for name in FIELDS if name != "run_grant"}, "tasks": tasks},
     })
+
+
+async def invoke_specialist(toolbox, role, binding, *, attempt=1, instruction=""):
+    if role not in {"clinical_trials", "drug_specialist", "quality_assurance"}:
+        raise ValueError("Unknown specialist capability.")
+    if type(attempt) is not int or attempt not in {1, 2} or not isinstance(instruction, str) or len(instruction) > 2000:
+        raise ValueError("Invalid bounded specialist delegation.")
+    return await toolbox.call_tool("reactor___" + role, **{
+        GRANT_HEADER: binding["run_grant"],
+        "body": {**{name: binding[name] for name in FIELDS if name != "run_grant"},
+                 "attempt": attempt, "instruction": instruction},
+    })

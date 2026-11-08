@@ -8,7 +8,7 @@ COPY src/reactor /app/src/reactor
 COPY src/runtime/remote_runner.py src/runtime/frozen.py /app/src/runtime/
 COPY src/sandbox_process.py /app/src/sandbox_process.py
 COPY data/lab-datasets/caldova-public-lab-use-v2/source-records.json /app/data/lab-datasets/caldova-public-lab-use-v2/source-records.json
-COPY tests/test_reactor_*.py /app/tests/
+COPY tests/test_reactor_api.py tests/test_reactor_binding.py tests/test_reactor_execution.py tests/test_reactor_frontend.py tests/test_reactor_ownership.py tests/test_reactor_service_auth.py tests/test_reactor_startup.py tests/test_reactor_supervisor.py tests/test_reactor_swarm.py /app/tests/
 RUN python -m unittest discover -s tests -p 'test_reactor_*.py' -v
 RUN useradd --uid 10001 --create-home reactor && mkdir /app/state && chown reactor /app/state
 USER reactor
