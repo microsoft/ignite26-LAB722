@@ -17,7 +17,7 @@ from src.reactor import agent_runtime
 from src.reactor.execution import create_app
 from src.reactor.models import ModelRelay
 from src.reactor.ownership import ACCOUNTS, OwnershipStore
-from src.reactor.research import assess_specialist, reference_results, selected_records
+from src.reactor.research import assess_specialist, reference_results, reviewed_source, selected_records
 from src.reactor.service_auth import ServiceCaller
 from src.runtime.frozen import PINS
 
@@ -65,8 +65,42 @@ class ModelRelayContracts(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ValueError, "no valid assistant choice"):
             await self.relay.complete("clinical_trials", self.request)
 
+    async def test_throttle_retries_the_same_turn_without_exposing_token(self):
+        def receive(request):
+            self.requests.append(request)
+            if len(self.requests) == 1:
+                return httpx.Response(429, headers={"retry-after": "0"})
+            return httpx.Response(200, json=self.reply)
+        await self.relay.http.aclose()
+        self.relay.http = httpx.AsyncClient(transport=httpx.MockTransport(receive))
+        result = await self.relay.complete("clinical_trials", self.request)
+        self.assertEqual(len(self.requests), 2)
+        self.assertEqual(self.requests[0].content, self.requests[1].content)
+        self.credential.get_token.assert_awaited_once()
+        self.assertEqual(result["request_id"], self.request["request_id"])
+
+    async def test_throttle_cannot_exceed_remaining_agent_budget(self):
+        await self.relay.http.aclose()
+        self.relay.http = httpx.AsyncClient(transport=httpx.MockTransport(
+            lambda request: httpx.Response(429, headers={"retry-after": "60"}),
+        ))
+        self.request["remaining_seconds"] = 1
+        with self.assertRaises(httpx.HTTPStatusError):
+            await self.relay.complete("clinical_trials", self.request)
+
 
 class ResearchContracts(unittest.TestCase):
+    def test_snapshot_metadata_uses_pinned_manifest_without_rewriting_source(self):
+        source = json.loads(SOURCE.read_text())
+        before = copy.deepcopy(source)
+        manifest = json.loads(SOURCE.with_name("data-manifest.json").read_text())
+        result = reviewed_source(source, manifest)
+        self.assertEqual(source, before)
+        self.assertEqual(result["dataset_version"], "caldova-public-lab-use-v2")
+        self.assertEqual(result["source_dataset_version"], source["dataset_version"])
+        self.assertFalse(result["attendee_release_approved"])
+        self.assertEqual(result["trials"], source["trials"])
+
     def test_research_operations_are_discoverable_paths_with_root_bound_schemas(self):
         spec = json.loads((SOURCE.parents[3] / "src" / "reactor" / "openapi.json").read_text())
         for path, role in (("/agents/clinical-trials", "clinical_trials"),
@@ -150,7 +184,30 @@ class ResearchContracts(unittest.TestCase):
             self.assertEqual(output["output"], expected)
             self.assertEqual(output["ownership"], payload["ownership"])
             self.assertEqual([item["tool"] for item in output["events"]], ["query_trials", "run_python", "finish"])
-            with self.assertRaisesRegex(ValueError, "without source inspection"):
+            qa = {"passed": True, "issues": [], "clinical_source_ids": expected["source_ids"],
+                  "safety_source_ids": reference_results(source, selection)["drug_specialist"]["source_ids"]}
+            payload["role"] = "quality_assurance"
+            payload["specialists"] = {"clinical_trials": {
+                "output": expected, "assessment": {"passed": True},
+                "receipts": [{"status": "completed", "stdout": "large-private-receipt" * 1000}],
+            }}
+            calls = [response("inspect_specialist_results", {}), response("run_python", {"code": "print('{}')"}),
+                     response("finish", qa), response("query_trials", {}), response("query_safety_reports", {}),
+                     response("finish", qa)]
+            observed = []
+            def model(*args):
+                observed.append(copy.deepcopy(args[0]))
+                return calls.pop(0)
+            output = agent_runtime.run_agent(
+                payload, model_exchange=model,
+                python_executor=lambda payload: {"status": "completed", "stdout": "{}", "stderr": ""},
+            )
+            self.assertEqual(output["model_calls"], 6)
+            self.assertEqual(output["output"], qa)
+            self.assertNotIn("large-private-receipt", json.dumps(observed))
+            self.assertIn("Finish rejected", json.dumps(observed))
+            self.assertEqual(output["ownership"], payload["ownership"])
+            with self.assertRaisesRegex(TimeoutError, "iteration budget"):
                 agent_runtime.run_agent(payload, model_exchange=lambda *args: response("finish", expected))
 
 
@@ -263,6 +320,21 @@ class SwarmAPI(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(result.status_code, 200, result.text)
         self.assertTrue(result.json()["evidence"]["accepted"])
         self.assertEqual(self.calls.count("clinical_trials"), 2)
+
+    async def test_fatal_agent_failure_finishes_owned_run_with_rejected_evidence(self):
+        run, grant = await self.new_research()
+        self.sandboxes.execute_agent.side_effect = RuntimeError("test model failure")
+        response = await self.tool("clinical_trials", grant)
+        self.assertEqual(response.status_code, 502)
+        current = await self.client.get(f"/runs/{run['run_id']}", headers=self.headers())
+        self.assertEqual(current.json()["state"], "failed")
+        self.assertTrue(current.json()["cleaned"])
+        self.assertEqual(current.json()["swarm"]["status"], "failed")
+        artifact = current.json()["artifacts"][0]["artifact_id"]
+        evidence = await self.client.get(f"/runs/{run['run_id']}/artifacts/{artifact}", headers=self.headers())
+        self.assertFalse(evidence.json()["accepted"])
+        self.assertIn("RuntimeError", evidence.json()["error"])
+        self.sandboxes.recover_abandoned.assert_awaited_once_with(run["run_id"])
 
     async def test_bad_role_context_and_changed_attempt_are_rejected(self):
         _, grant = await self.new_research()

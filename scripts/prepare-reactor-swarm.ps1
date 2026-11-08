@@ -6,7 +6,12 @@ param(
     [securestring]$BobPassword,
     [string]$PythonExecutable = 'python',
     [hashtable]$AllocationValues,
-    [string]$PreparedStatePath
+    [string]$PreparedStatePath,
+    [string]$FrontendName = 'lab722-research-frontend',
+    [string]$ExecutionName = 'lab722-research-execution',
+    [string]$ExecutionConnectionName = 'reactor-swarm-execution',
+    [string]$ToolboxName = 'runtime-research',
+    [string]$HostedName = 'reactor-research-orchestrator'
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -51,6 +56,10 @@ if ($null -ne $prepared) {
     if ($prepared.ServiceImage -cne $catalog.service_image -or $prepared.AgentImage -cne $catalog.agent_image) {
         throw 'Prepared images differ. Plan an explicit migration; do not redeploy an execution app with owned evidence.'
     }
+    if ($prepared.FrontendName -cne $FrontendName -or $prepared.ExecutionName -cne $ExecutionName -or
+            $prepared.HostedName -cne $HostedName) {
+        throw 'Prepared app/agent names differ; use a separate state path for an explicit side-by-side variant.'
+    }
     $prepared
     return
 }
@@ -65,12 +74,12 @@ $outputs = & (Join-Path $PSScriptRoot 'deploy-reactor.ps1') `
     -ExpressEnvironmentName $base.ExpressEnvironmentName -FoundryAccountName $base.FoundryAccountName `
     -FoundryProjectName $base.FoundryProjectName -SandboxGroupName $base.SandboxGroupName `
     -SnapshotId $seed.snapshot_id -ServiceImage $catalog.service_image `
-    -ExecutionApiAudience $base.ExecutionApiAudience -FrontendName 'lab722-research-frontend' `
-    -ExecutionName 'lab722-research-execution' -EnableAgentSwarm -ModelDeployment $base.Model `
+    -ExecutionApiAudience $base.ExecutionApiAudience -FrontendName $FrontendName `
+    -ExecutionName $ExecutionName -EnableAgentSwarm -ModelDeployment $base.Model `
     -AlicePassword $AlicePassword -BobPassword $BobPassword
 $AlicePassword = $null; $BobPassword = $null
 $projectId = "/subscriptions/$($base.SubscriptionId)/resourceGroups/$($base.ResourceGroupName)/providers/Microsoft.CognitiveServices/accounts/$($base.FoundryAccountName)/projects/$($base.FoundryProjectName)"
-$connectionId = "$projectId/connections/reactor-swarm-execution"
+$connectionId = "$projectId/connections/$ExecutionConnectionName"
 $auth = Invoke-ResearchCommand az @('account', 'get-access-token', '--subscription', $base.SubscriptionId,
     '--resource', 'https://management.azure.com/', '-o', 'json') | ConvertFrom-Json
 $headers = @{ Authorization = 'Bearer ' + $auth.accessToken }
@@ -88,27 +97,27 @@ try {
     }
 } finally { $auth = $null; $headers = $null; $body = $null }
 $setup = Join-Path $PSScriptRoot 'setup-reactor-foundry.py'
-$toolboxEndpoint = "$($base.ProjectEndpoint)/toolboxes/runtime-research/mcp?api-version=v1"
+$toolboxEndpoint = "$($base.ProjectEndpoint)/toolboxes/$ToolboxName/mcp?api-version=v1"
 $toolbox = Invoke-ResearchCommand $PythonExecutable @('-B', $setup, 'toolbox', '--project-endpoint',
-    $base.ProjectEndpoint, '--name', 'runtime-research', '--execution-endpoint', $outputs.executionEndpoint.value,
+    $base.ProjectEndpoint, '--name', $ToolboxName, '--execution-endpoint', $outputs.executionEndpoint.value,
     '--connection-id', $connectionId) | ConvertFrom-Json
 $null = Invoke-ResearchCommand $PythonExecutable @('-B', (Join-Path $PSScriptRoot 'inspect-reactor-toolbox.py'),
     '--endpoint', $toolboxEndpoint)
 $hosted = Invoke-ResearchCommand $PythonExecutable @('-B', $setup, 'hosted', '--project-endpoint',
-    $base.ProjectEndpoint, '--name', 'reactor-research-orchestrator', '--image', $catalog.hosted_image,
+    $base.ProjectEndpoint, '--name', $HostedName, '--image', $catalog.hosted_image,
     '--model', $base.Model, '--toolbox-endpoint', $toolboxEndpoint) | ConvertFrom-Json
 $values = [ordered]@{
     SubscriptionId = $base.SubscriptionId; ResourceGroupName = $base.ResourceGroupName; Region = $base.Region
     SandboxGroupName = $base.SandboxGroupName; ProjectEndpoint = $base.ProjectEndpoint
     FoundryAccountName = $base.FoundryAccountName; FoundryProjectName = $base.FoundryProjectName
     FrontendUrl = $outputs.frontendEndpoint.value; ExecutionUrl = $outputs.executionEndpoint.value
-    FrontendName = 'lab722-research-frontend'; ExecutionName = 'lab722-research-execution'
+    FrontendName = $FrontendName; ExecutionName = $ExecutionName
     FrontendObjectId = $outputs.frontendObjectId.value; ExecutionObjectId = $outputs.executionObjectId.value
     ProjectObjectId = $outputs.projectObjectId.value; ExecutionApiAudience = $base.ExecutionApiAudience
     AgentImage = $catalog.agent_image; ServiceImage = $catalog.service_image; HostedImage = $catalog.hosted_image
     AgentDiskId = $seed.disk_id; SeedId = $seed.seed_id; SnapshotId = $seed.snapshot_id
-    HostedName = 'reactor-research-orchestrator'; HostedVersion = $hosted.version
-    HostedEndpoint = "$($base.ProjectEndpoint)/agents/reactor-research-orchestrator/endpoint/protocols/openai/responses?api-version=v1"
+    HostedName = $HostedName; HostedVersion = $hosted.version
+    HostedEndpoint = "$($base.ProjectEndpoint)/agents/$HostedName/endpoint/protocols/openai/responses?api-version=v1"
     ToolboxEndpoint = $toolboxEndpoint; ToolboxVersion = $toolbox.version; ExecutionConnectionId = $connectionId
     Model = $base.Model; HostedConnected = $false
 }

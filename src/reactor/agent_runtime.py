@@ -14,7 +14,7 @@ from uuid import uuid4
 from .research import ROLES, selected_records, validate_selection
 
 
-VERSION = "research-agent-v2"
+VERSION = "research-agent-v3"
 MAX_TURNS = 12
 WALL_SECONDS = 180
 BRIDGE = Path("/run/lab722-agent")
@@ -90,6 +90,7 @@ def exchange(messages, tools, turn, deadline):
     response_path.unlink(missing_ok=True)
     write_json(BRIDGE / "request.json", {
         "request_id": request_id, "turn": turn, "messages": messages, "tools": tools,
+        "remaining_seconds": max(0, deadline - time.monotonic()),
     })
     while time.monotonic() < deadline:
         if response_path.exists():
@@ -140,7 +141,7 @@ def run_agent(payload, *, model_exchange=exchange, python_executor=None):
     permitted = {tool["function"]["name"] for tool in tools}
     deadline = time.monotonic() + WALL_SECONDS
     receipts, events, usage = [], [], []
-    inspected, computed = False, False
+    inspected, computed = set(), False
     for turn in range(1, MAX_TURNS + 1):
         response = model_exchange(messages, tools, turn, deadline)
         message = response["message"]
@@ -158,18 +159,26 @@ def run_agent(payload, *, model_exchange=exchange, python_executor=None):
                 raise ValueError("Agent requested a tool outside its role.")
             events.append({"turn": turn, "tool": name})
             if name == "finish":
-                if not inspected or not computed:
-                    raise ValueError("Agent cannot finish without source inspection and bounded execution.")
-                if frozen_files() != pins:
-                    raise RuntimeError("Frozen source changed during the agent loop.")
-                return {
-                    "version": VERSION, "role": role, "run_id": payload["run_id"],
-                    "ownership": ownership,
-                    "agent_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                    "output": arguments, "model_calls": turn, "tool_calls": len(events),
-                    "events": events, "usage": usage, "receipts": receipts, "files_sha256": pins,
-                }
-            if name in {"query_trials", "query_safety_reports"}:
+                required = (
+                    {"query_trials", "query_safety_reports", "inspect_specialist_results"}
+                    if role == "quality_assurance" else
+                    {"query_trials" if role == "clinical_trials" else "query_safety_reports"}
+                )
+                missing = sorted(required - inspected)
+                if missing or not computed:
+                    result = {"error": "Finish rejected: complete the missing inspections and successful bounded Python first.",
+                              "missing_tools": missing + ([] if computed else ["run_python"])}
+                else:
+                    if frozen_files() != pins:
+                        raise RuntimeError("Frozen source changed during the agent loop.")
+                    return {
+                        "version": VERSION, "role": role, "run_id": payload["run_id"],
+                        "ownership": ownership,
+                        "agent_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                        "output": arguments, "model_calls": turn, "tool_calls": len(events),
+                        "events": events, "usage": usage, "receipts": receipts, "files_sha256": pins,
+                    }
+            elif name in {"query_trials", "query_safety_reports"}:
                 if set(arguments) - {"offset", "limit"}:
                     raise ValueError("Source queries cannot override the server-owned selection.")
                 offset, limit = arguments.get("offset", 0), arguments.get("limit", 10)
@@ -178,11 +187,21 @@ def run_agent(payload, *, model_exchange=exchange, python_executor=None):
                 trials, reports = selected_records(source, selection)
                 rows = trials if name == "query_trials" else reports
                 result = {"records": rows[offset:offset + limit], "total": len(rows)}
-                inspected = True
+                inspected.add(name)
             elif name == "inspect_specialist_results":
                 if arguments:
                     raise ValueError("Specialist inspection takes no owner or run selector.")
-                result = payload["specialists"]
+                result = {
+                    specialist: {
+                        "output": value["output"], "assessment": value["assessment"],
+                        "receipts": [
+                            {key: receipt[key] for key in ("status", "exit_code", "code_sha256", "execution_uid")
+                             if key in receipt}
+                            for receipt in value["receipts"]
+                        ],
+                    } for specialist, value in payload["specialists"].items()
+                }
+                inspected.add(name)
             elif name == "run_python":
                 if set(arguments) != {"code"}:
                     raise ValueError("Python tool requires only a bounded code proposal.")

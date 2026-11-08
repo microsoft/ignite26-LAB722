@@ -6,6 +6,19 @@ ROLES = ("clinical_trials", "drug_specialist", "quality_assurance")
 CONDITIONS = ("", "obesity", "type-2-diabetes")
 
 
+def reviewed_source(source, manifest):
+    result = dict(source)
+    result["source_dataset_version"] = source["dataset_version"]
+    for key in ("dataset_version", "sources", "limitations"):
+        result[key] = manifest[key]
+    result["attendee_release_approved"] = manifest["public_extract"]["source_use"]["attendee_release_approved"]
+    result["coverage_notes"] = [
+        "Snapshot provenance comes from the pinned lab-use manifest; original collection JSON retains its historical draft metadata.",
+        *manifest["public_extract"]["coverage_notes"],
+    ]
+    return result
+
+
 def validate_selection(source, selection):
     if not isinstance(selection, dict) or selection.get("condition", "") not in CONDITIONS:
         raise ValueError("Choose a supported research condition.")
@@ -73,7 +86,8 @@ def assess_specialist(role, output, source, selection):
 
 def research_metadata(source):
     return {
-        key: source[key] for key in ("dataset_version", "candidates", "sources", "limitations", "coverage_notes")
+        key: source[key] for key in ("dataset_version", "source_dataset_version", "attendee_release_approved",
+                                     "candidates", "sources", "limitations", "coverage_notes")
     }
 
 

@@ -1,12 +1,12 @@
 {
   "schema_version": "1.0",
   "dataset_version": "caldova-public-lab-use-v2",
-  "agent_version": "research-agent-v2",
-  "agent_source_sha256": "37d7b77920615384ed9add0dbe12e118292a6d4065a0da08b016a9025a263b16",
-  "agent_image": "acateam.azurecr.io/lab722/reactor-swarm-agents@sha256:c77b711fc0f1a31b6f4b22d6fb51c593058a3fe1f9e957f55120a6ba57d13379",
-  "service_image": "acateam.azurecr.io/lab722/reactor-swarm-services@sha256:98dd19f2692d6b6c2e49dca33c0b15519359d403a09a3468ecfa1387f4e9a277",
+  "agent_version": "research-agent-v3",
+  "agent_source_sha256": "f5b88c096cf4a8a5f847e3b838ad48b21ead8eb103bae749b9052f10d1c76283",
+  "agent_image": "acateam.azurecr.io/lab722/reactor-swarm-agents@sha256:24cbfa697b4544b374c26d254374a11aef9af51d83b5b0e3127c029cae6547b5",
+  "service_image": "acateam.azurecr.io/lab722/reactor-swarm-services@sha256:2175a907db056b709eef26a1ad94e57c2bbf7b6e99c8730289f88a292d3fc197",
   "hosted_image": "acateam.azurecr.io/lab722/reactor-swarm-hosted@sha256:95d224f281b6be59ee2baef824e2c2dcfa46eecdb2f57668bf70d3106dd14cf3",
-  "build_runs": {"agents": "cj29", "services": "cj2c", "hosted": "cj28"},
+  "build_runs": {"agents": "cj2d", "services": "cj2f", "hosted": "cj28"},
   "development_flow": {
     "run_id": "c2584503-3f2a-4ac7-afe5-75dc91011396",
     "service_image": "acateam.azurecr.io/lab722/reactor-swarm-services@sha256:55f98caac52fecf44f25216f022e3e78b01b34359beb9eafff63f1b1e4fd5eff",
@@ -17,8 +17,8 @@
   },
   "verification": {
     "images_built": true,
-    "preloaded_agent_and_frozen_hashes_verified": true,
-    "native_three_operation_discovery_verified": true,
+    "preloaded_agent_and_frozen_hashes_verified": false,
+    "native_three_operation_discovery_verified": false,
     "full_managed_identity_research_run_verified": false,
     "attendee_ready": false
   }

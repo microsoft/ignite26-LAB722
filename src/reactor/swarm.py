@@ -122,6 +122,36 @@ class ResearchSwarm:
         ):
             raise Conflict("QA requires both completed specialist results for this attempt.")
 
+        async def fail(error):
+            if session["status"] != "running":
+                return
+            session["status"] = "failing"
+            current = asyncio.current_task()
+            others = [job["task"] for job in session["jobs"].values()
+                      if job["task"] is not current and not job["task"].done()]
+            for task in others:
+                task.cancel()
+            await asyncio.gather(*others, return_exceptions=True)
+            run = self.store.get_run(session["principal"], run_id)
+            if run.state == "cancelled":
+                session["status"] = "cancelled"
+                return
+            evidence = {
+                "run_id": run_id, "conversation_id": run.conversation_id,
+                "demo_user": binding["user_id"], "customer": binding["customer_id"],
+                "user_context": "application-asserted", "service_caller": session["service_caller"],
+                "dataset_version": self.source["dataset_version"], "input_sha256": self.source_sha256,
+                "accepted": False, "agents": list(session["results"].values()),
+                "assessments": [result["assessment"] for result in session["results"].values()],
+                "error": f"Specialist failed ({type(error).__name__}); inspect owned events before new work.",
+                "events": list(session["events"]),
+            }
+            self.store.finish_execution(token, session["run"], success=False, artifacts={"evidence": evidence})
+            session["status"] = "failed"
+            self.event(session, "orchestrator", "swarm_failed")
+            await self.sandboxes.recover_abandoned(run_id)
+            self.store.acknowledge_cleanup(session["principal"], run_id, sandbox_id=run.sandbox_id)
+
         async def perform():
             session["agents"][role] = {"status": "starting", "attempt": attempt}
             self.event(session, role, "agent_started", attempt=attempt)
@@ -190,9 +220,11 @@ class ResearchSwarm:
                     else:
                         self.event(session, "orchestrator", "revision_required")
                 return {"run_id": run_id, "role": role, "attempt": attempt, **result}
-            except BaseException:
+            except BaseException as error:
                 session["agents"][role]["status"] = "cancelled" if asyncio.current_task().cancelling() else "failed"
                 self.event(session, role, "agent_failed")
+                if not isinstance(error, asyncio.CancelledError):
+                    await fail(error)
                 raise
 
         task = asyncio.create_task(perform())

@@ -19,7 +19,7 @@ from .evaluation import evaluate
 from .binding import GRANT_HEADER
 from .http import json_body
 from .ownership import ACCOUNTS, AccessDenied, CapacityExceeded, Conflict, StateUnavailable
-from .research import ROLES, research_metadata, validate_selection
+from .research import ROLES, research_metadata, reviewed_source, validate_selection
 from .swarm import ResearchSwarm
 from ..runtime.frozen import PINS
 
@@ -39,6 +39,10 @@ def create_app(*, store, sandboxes, verifier, frontend_object_id: str, project_o
     source_sha256 = hashlib.sha256(source_bytes).hexdigest()
     if source_sha256 != PINS["source-records.json"]:
         raise ValueError("Independent evaluation requires the approved frozen source bytes.")
+    manifest_bytes = source_file.with_name("data-manifest.json").read_bytes()
+    if hashlib.sha256(manifest_bytes).hexdigest() != PINS["data-manifest.json"]:
+        raise ValueError("Research provenance requires the pinned lab-use manifest.")
+    source_records = reviewed_source(source_records, json.loads(manifest_bytes))
     active = {}
     deferred = {}
     swarm = ResearchSwarm(store, sandboxes, model_relay, source_records, source_sha256) if model_relay else None
