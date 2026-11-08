@@ -15,6 +15,9 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
+if ($PreparedStatePath) {
+    $PreparedStatePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PreparedStatePath)
+}
 $profile = Join-Path $root 'local-reactor'
 $base = if ($null -ne $AllocationValues) { $AllocationValues } else {
     & (Join-Path $PSScriptRoot 'prepare-local-reactor.ps1') -Mode Values

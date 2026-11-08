@@ -46,7 +46,6 @@ class TaskSandboxes:
         async with self.slots:
             sandbox_id = None
             started = time.monotonic()
-            execution_task = None
             try:
                 await self.native([
                     "create", "--snapshot-id", self.snapshot, "--label", "lab=LAB722",
@@ -78,26 +77,31 @@ class TaskSandboxes:
                 command = (
                     "env -i PATH=/opt/python/3/bin:/usr/bin:/bin PYTHONPATH=/opt/lab722-agent "
                     "LAB722_AGENT_PAYLOAD=" + shlex.quote(payload)
-                    + " /opt/python/3/bin/python3 -B -m src.reactor.agent_runtime"
+                    + " /opt/python/3/bin/python3 -B -m src.reactor.agent_runtime --start"
                 )
-                execution_task = asyncio.create_task(self.native(
-                    ["exec", "--id", sandbox_id, "-c", command], timeout=WALL_SECONDS + 30,
-                ))
+                await self.native(["exec", "--id", sandbox_id, "-c", command], timeout=30)
                 seen = set()
                 deadline = time.monotonic() + WALL_SECONDS + 15
-                while not execution_task.done():
+                while True:
                     if time.monotonic() >= deadline:
                         raise TimeoutError("Specialist agent exceeded its model/tool budget.")
                     await asyncio.sleep(1)
-                    request_text = await self.native([
+                    state_text = await self.native([
                         "exec", "--id", sandbox_id, "-c",
                         "/opt/python/3/bin/python3 -I -c "
                         + shlex.quote(
-                            "from pathlib import Path; p=Path('/run/lab722-agent/request.json'); "
-                            "print(p.read_text() if p.exists() else 'null')"
+                            "import json; from pathlib import Path; root=Path('/run/lab722-agent'); "
+                            "print(json.dumps({name:json.loads((root/(name+'.json')).read_text()) "
+                            "if (root/(name+'.json')).exists() else None for name in ('request','result','error')}))"
                         ),
                     ], timeout=30)
-                    request = json.loads(request_text)
+                    state = json.loads(state_text)
+                    if state["error"] is not None:
+                        raise RuntimeError("Sandbox agent failed: " + state["error"]["type"] + ": " + state["error"]["message"])
+                    if state["result"] is not None:
+                        result = state["result"]
+                        break
+                    request = state["request"]
                     if request is None:
                         continue
                     request_id = request.get("request_id")
@@ -125,7 +129,6 @@ class TaskSandboxes:
                     ], timeout=30)
                     on_event("model_completed", sandbox_id=sandbox_id, turn=request["turn"],
                              usage=response.get("usage", {}))
-                result = json.loads(await execution_task)
                 if (
                     result.get("version") != VERSION or result.get("role") != role
                     or result.get("run_id") != run_id or result.get("agent_sha256") != self.agent_sha256
@@ -146,9 +149,6 @@ class TaskSandboxes:
                     receipt.update(sandbox_id=sandbox_id, snapshot_id=self.snapshot, egress_policy=policy)
                 result.update(sandbox_id=sandbox_id, snapshot_id=self.snapshot)
             finally:
-                if execution_task is not None and not execution_task.done():
-                    execution_task.cancel()
-                    await asyncio.gather(execution_task, return_exceptions=True)
                 removal = asyncio.create_task(
                     self.delete(sandbox_id) if sandbox_id else self.recover_abandoned(run_id)
                 )

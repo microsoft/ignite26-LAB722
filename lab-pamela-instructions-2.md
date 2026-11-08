@@ -133,3 +133,13 @@ Protocol v3 bounds and logs retry of the same throttled model turn within the re
 Snapshot metadata comes from that immutable manifest, while original collection JSON and all three frozen hashes remain unchanged. Project-owner-selected lab use is not expert audit or blanket attendee approval. The learner creation step uses a unique label and a separate supported JSON lookup rather than parsing mixed progress output.
 
 Deploy the correction side-by-side using explicitly named `*-v3` apps, a separate execution connection/Toolbox and hosted registration in `ig2026-lab-local2`. Retain the unsuffixed failed-review services, their state and teaching resources. Preparation accepts explicit names and a separate state path, refusing silent image/state adoption. A corrected-path learner revalidation and actual accepted full run are still required before the human start signal.
+
+### Focused v3 failure and resident execution correction
+
+The v3 revalidation remained blocked. Owned evidence showed Alice's QA turns restart from 1 in the same Sandbox after an observed throttled request successfully retried. The long interactive native execution was replayed, restarting the agent; the manager correctly rejected the inconsistent model-call count. This is observed replay evidence, not proof of a specific documented platform timeout. Do not relax receipt validation or increase the budget to accept it.
+
+Protocol v4 launches the resident agent once using an atomic root-only launch lock and payload fingerprint. It redirects process output to protected files and returns immediately; short native calls relay requests and poll atomic result/error files. Model waits no longer depend on a long interactive connection. Exact Sandbox deletion terminates the resident worker. Regression tests cover duplicate launch and changed payload, bounded file polling, correlated results and cleanup. All 78 reactor tests (one skip) and two hosted tests passed.
+
+The Windows read-only environment fallback now queries the array and filters allowlisted fields in PowerShell, rather than passing JMESPath `||` through the Windows Azure CLI shim. Both actual v3 app queries passed. The provider-relative preparation path was also corrected and its read-only state reuse verified.
+
+The owner explicitly approved a separate `*-v4` stack after the scheduled no-redeployment constraint was clarified. Reuse the existing local2 foundation and unchanged hosted image; a new registration targets the distinct corrected Toolbox. Preserve both previous failed stacks, their artifacts, and all teaching resources. A successful corrected live flow and focused learner revalidation are still required; tests and image builds alone do not authorize the start signal.

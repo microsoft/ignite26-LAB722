@@ -90,6 +90,21 @@ class ModelRelayContracts(unittest.IsolatedAsyncioTestCase):
 
 
 class ResearchContracts(unittest.TestCase):
+    def test_duplicate_short_launch_does_not_restart_resident_agent(self):
+        payload = {"role": "clinical_trials", "run_id": str(uuid4()), "question": "Inspect this owned run."}
+        with tempfile.TemporaryDirectory() as temporary, patch.object(
+            agent_runtime, "BRIDGE", Path(temporary) / "bridge",
+        ), patch.object(os, "getuid", return_value=0, create=True), patch.object(
+            agent_runtime.subprocess, "Popen", return_value=SimpleNamespace(pid=123),
+        ) as spawn:
+            self.assertTrue(agent_runtime.start_agent(payload)["started"])
+            self.assertFalse(agent_runtime.start_agent(payload)["started"])
+            spawn.assert_called_once()
+            self.assertTrue(spawn.call_args.kwargs["start_new_session"])
+            self.assertNotIn("IDENTITY_ENDPOINT", spawn.call_args.kwargs["env"])
+            with self.assertRaisesRegex(ValueError, "changed agent payload"):
+                agent_runtime.start_agent({**payload, "question": "Changed work"})
+
     def test_snapshot_metadata_uses_pinned_manifest_without_rewriting_source(self):
         source = json.loads(SOURCE.read_text())
         before = copy.deepcopy(source)

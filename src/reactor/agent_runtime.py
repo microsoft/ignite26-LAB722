@@ -8,13 +8,15 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import subprocess
+import sys
 import time
 from uuid import uuid4
 
 from .research import ROLES, selected_records, validate_selection
 
 
-VERSION = "research-agent-v3"
+VERSION = "research-agent-v4"
 MAX_TURNS = 12
 WALL_SECONDS = 180
 BRIDGE = Path("/run/lab722-agent")
@@ -82,6 +84,40 @@ def write_json(path, value):
     temporary.write_text(json.dumps(value, allow_nan=False), encoding="utf-8")
     temporary.chmod(0o600)
     temporary.replace(path)
+
+
+def start_agent(payload):
+    if os.getuid() != 0 or payload["role"] not in ROLES:
+        raise ValueError("Agent launch requires a trusted root runtime and known role.")
+    if BRIDGE.exists() and (BRIDGE.is_symlink() or BRIDGE.stat().st_uid != 0):
+        raise PermissionError("Model relay directory must be root-owned.")
+    BRIDGE.mkdir(mode=0o700, parents=True, exist_ok=True)
+    BRIDGE.chmod(0o700)
+    fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+    try:
+        (BRIDGE / "launch.lock").mkdir(mode=0o700)
+    except FileExistsError:
+        launched = BRIDGE / "launch.json"
+        if launched.exists() and json.loads(launched.read_text())["fingerprint"] != fingerprint:
+            raise ValueError("A Sandbox cannot launch a changed agent payload.")
+        return {"started": False}
+    write_json(BRIDGE / "launch.json", {"fingerprint": fingerprint})
+    environment = {
+        "PATH": "/opt/python/3/bin:/usr/bin:/bin", "PYTHONPATH": "/opt/lab722-agent",
+        "LAB722_AGENT_PAYLOAD": base64.b64encode(json.dumps(payload).encode()).decode(),
+    }
+    try:
+        with (BRIDGE / "stdout.log").open("wb") as stdout, (BRIDGE / "stderr.log").open("wb") as stderr:
+            process = subprocess.Popen(
+                [sys.executable, "-B", "-m", "src.reactor.agent_runtime"],
+                env=environment, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
+                start_new_session=True,
+            )
+    except OSError as error:
+        write_json(BRIDGE / "error.json", {"type": type(error).__name__, "message": "Agent process launch failed."})
+        raise
+    write_json(BRIDGE / "launch.json", {"fingerprint": fingerprint, "pid": process.pid})
+    return {"started": True, "pid": process.pid}
 
 
 def exchange(messages, tools, turn, deadline):
@@ -220,4 +256,11 @@ def run_agent(payload, *, model_exchange=exchange, python_executor=None):
 
 if __name__ == "__main__":
     payload = json.loads(base64.b64decode(os.environ["LAB722_AGENT_PAYLOAD"]))
-    print(json.dumps(run_agent(payload), allow_nan=False))
+    if sys.argv[1:] == ["--start"]:
+        print(json.dumps(start_agent(payload)))
+    else:
+        try:
+            write_json(BRIDGE / "result.json", run_agent(payload))
+        except (ValueError, RuntimeError, TimeoutError, PermissionError, OSError) as error:
+            write_json(BRIDGE / "error.json", {"type": type(error).__name__, "message": str(error)})
+            raise

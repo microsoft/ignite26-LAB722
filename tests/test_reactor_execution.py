@@ -2,11 +2,12 @@ import asyncio
 import hashlib
 import json
 import unittest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
 
 from src.reactor.evaluation import PHASE_COUNTS, evaluate
 from src.reactor.sandboxes import TaskSandboxes
+from src.reactor.agent_runtime import VERSION, tools_for
 from src.runtime.frozen import PINS
 
 
@@ -28,6 +29,58 @@ class Lifecycle(unittest.IsolatedAsyncioTestCase):
             subscription=str(uuid4()), resource_group="test-rg", region="westus3",
             group="test-group", snapshot=str(uuid4()), identity_client_id=str(uuid4()),
         )
+
+    async def test_resident_agent_uses_only_short_exec_and_collects_correlated_file_result(self):
+        manager = self.manager()
+        sandbox, run_id = str(uuid4()), str(uuid4())
+        binding = {"run_id": run_id, "user_id": "user-alice", "customer_id": "customer-alice",
+                   "conversation_id": "conversation-alice"}
+        code = "print('{}')"
+        receipt = {
+            "schema_version": "1.0", "dataset_version": "caldova-public-lab-use-v2",
+            "identity_endpoint_status": "not_exposed", "run_id": run_id,
+            "execution_marker": f"LAB722_REACTOR:{run_id}:clinical_trials:{uuid4()}",
+            "code": code, "code_sha256": hashlib.sha256(code.encode()).hexdigest(),
+            "files_sha256": PINS, "execution_uid": 65534, "environment_cleared": True,
+            "no_new_privileges": True, "status": "completed", "stdout": "{}", "stderr": "",
+            "captured_bytes": 2, "elapsed_seconds": 0.1, "exit_code": 0,
+        }
+        result = {"version": VERSION, "role": "clinical_trials", "run_id": run_id, "ownership": binding,
+                  "agent_sha256": manager.agent_sha256, "files_sha256": PINS,
+                  "model_calls": 1, "tool_calls": 1, "receipts": [receipt], "output": {}}
+        request = {"request_id": uuid4().hex, "turn": 1, "tools": tools_for("clinical_trials"),
+                   "messages": [{"role": "user", "content": "Inspect selected records."}]}
+        polls = 0
+        async def native(arguments, **kwargs):
+            nonlocal polls
+            if arguments[0] == "get":
+                return json.dumps({"id": sandbox, "sourcesRef": {"snapshot": {"id": manager.snapshot}},
+                                   "labels": {"lab": "LAB722", "purpose": "reactor-task", "run": run_id,
+                                              "step": "clinical_trials", "user": binding["user_id"],
+                                              "customer": binding["customer_id"], "conversation": binding["conversation_id"]},
+                                   "egressPolicy": {"defaultAction": "Deny", "trafficInspection": "Full"}})
+            if arguments[0] == "exec":
+                self.assertLessEqual(kwargs["timeout"], 30)
+                if arguments[-1].endswith("--start"):
+                    return '{"started":true,"pid":123}'
+                if "for name in" in arguments[-1]:
+                    polls += 1
+                    return json.dumps({"request": request if polls == 1 else None,
+                                       "result": result if polls == 2 else None, "error": None})
+                return "null"
+            return ""
+        manager.native = AsyncMock(side_effect=native)
+        relay = Mock(complete=AsyncMock(return_value={
+            "request_id": request["request_id"], "message": {"role": "assistant", "tool_calls": []},
+        }))
+        with patch("src.reactor.sandboxes.asyncio.sleep", new=AsyncMock()):
+            collected = await manager.execute_agent(
+                run_id, "clinical_trials", {}, "Inspect", binding=binding, customer_note="owned",
+                specialists={}, model_relay=relay, on_created=Mock(), on_event=Mock(),
+            )
+        self.assertEqual(collected["cleanup"], "deleted")
+        self.assertEqual(polls, 2)
+        relay.complete.assert_awaited_once_with("clinical_trials", request)
 
     async def test_execution_failure_still_deletes_exact_task_sandbox(self):
         manager = self.manager()
