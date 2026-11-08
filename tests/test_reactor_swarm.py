@@ -178,8 +178,13 @@ class ResearchContracts(unittest.TestCase):
                  "function": {"name": name, "arguments": json.dumps(args)}},
             ]}, "usage": {"total_tokens": 10}}
 
+        wrong_category = {**expected, "source_ids": reference_results(source, selection)["drug_specialist"]["source_ids"]}
         calls = [response("query_trials", {}), response("run_python", {"code": "print('{}')"}),
-                 response("finish", expected)]
+                 response("finish", wrong_category), response("finish", expected)]
+        clinical_messages = []
+        def clinical_model(messages, *args):
+            clinical_messages.append(copy.deepcopy(messages))
+            return calls.pop(0)
         mocked_runner = SimpleNamespace(frozen_files=lambda: PINS, run=lambda payload: None)
         original_read = Path.read_text
 
@@ -192,13 +197,16 @@ class ResearchContracts(unittest.TestCase):
             agent_runtime, "BRIDGE", Path(temporary) / "bridge",
         ), patch.object(Path, "read_text", read):
             output = agent_runtime.run_agent(
-                payload, model_exchange=lambda *args: calls.pop(0),
+                payload, model_exchange=clinical_model,
                 python_executor=lambda payload: {"status": "completed", "stdout": "{}", "stderr": ""},
             )
-            self.assertEqual(output["model_calls"], 3)
+            self.assertEqual(output["model_calls"], 4)
             self.assertEqual(output["output"], expected)
             self.assertEqual(output["ownership"], payload["ownership"])
-            self.assertEqual([item["tool"] for item in output["events"]], ["query_trials", "run_python", "finish"])
+            self.assertEqual([item["tool"] for item in output["events"]],
+                             ["query_trials", "run_python", "finish", "finish"])
+            self.assertIn("required_id_field", json.dumps(clinical_messages[-1]))
+            self.assertIn("trial_id", clinical_messages[-1][-1]["content"])
             qa = {"passed": True, "issues": [], "clinical_source_ids": expected["source_ids"],
                   "safety_source_ids": reference_results(source, selection)["drug_specialist"]["source_ids"]}
             payload["role"] = "quality_assurance"

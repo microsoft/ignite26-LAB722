@@ -24,11 +24,13 @@ ROLE_INSTRUCTIONS = {
     "clinical_trials": (
         "Analyze the selected drug's trials, applying only the selected trial condition. "
         "Use query_trials to inspect records and run_python to compute exact phase_counts and sorted trial source_ids. "
+        "source_ids contains trial_id values from selected trials, never report_id values from safety reports. "
         'Finish with {"source_ids":[...],"phase_counts":{...}}.'
     ),
     "drug_specialist": (
         "Analyze the selected drug's safety reports; do not apply the trial condition to safety reports. "
-        "Use query_safety_reports and run_python. Count each distinct reaction term once per report. "
+        "Use query_safety_reports and run_python. source_ids contains report_id values from selected safety reports, "
+        "never trial_id values. Count each distinct reaction term once per report. "
         'Finish with {"source_ids":[...],"reaction_counts":{...}}. Do not infer causality or comparative safety.'
     ),
     "quality_assurance": (
@@ -155,6 +157,11 @@ def run_agent(payload, *, model_exchange=exchange, python_executor=None):
         raise ValueError("Specialist agent requires the server-bound ownership context, not a run token.")
     source = json.loads(Path("/opt/lab722-data/source-records.json").read_text(encoding="utf-8"))
     selection = validate_selection(source, payload["selection"])
+    trials, reports = selected_records(source, selection)
+    source_id_field = "trial_id" if role == "clinical_trials" else "report_id"
+    allowed_source_ids = {
+        row[source_id_field] for row in (trials if role == "clinical_trials" else reports)
+    }
     pins = frozen_files()
     if BRIDGE.exists() and (BRIDGE.is_symlink() or BRIDGE.stat().st_uid != 0):
         raise PermissionError("Model relay directory must be root-owned.")
@@ -204,6 +211,16 @@ def run_agent(payload, *, model_exchange=exchange, python_executor=None):
                 if missing or not computed:
                     result = {"error": "Finish rejected: complete the missing inspections and successful bounded Python first.",
                               "missing_tools": missing + ([] if computed else ["run_python"])}
+                elif role != "quality_assurance" and (
+                    not isinstance(arguments.get("source_ids"), list)
+                    or any(not isinstance(value, str) or value not in allowed_source_ids
+                           for value in arguments["source_ids"])
+                ):
+                    result = {
+                        "error": "Finish rejected: source_ids must refer to this role's selected records. "
+                                 "Inspect the correct source and recompute; do not use the other specialist's IDs.",
+                        "required_id_field": source_id_field,
+                    }
                 else:
                     if frozen_files() != pins:
                         raise RuntimeError("Frozen source changed during the agent loop.")
