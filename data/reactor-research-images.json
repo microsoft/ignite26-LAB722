@@ -2,11 +2,11 @@
   "schema_version": "1.0",
   "dataset_version": "caldova-public-lab-use-v2",
   "agent_version": "research-agent-v4",
-  "agent_source_sha256": "32f05c5590b77beeea6d76cd5594d74debc47febdac35de004e4fa0ba866b60d",
-  "agent_image": "acateam.azurecr.io/lab722/reactor-swarm-agents@sha256:94f266ae8dd4f72964380c5628e730df32447f39d517e8e70d0146b7b15fb2c7",
-  "service_image": "acateam.azurecr.io/lab722/reactor-swarm-services@sha256:b3a5c131173dc1b998bcba24a7f880edbe860676206f9bbc7a990f3408eb7488",
+  "agent_source_sha256": "eeb946c38ae1bcc2fee8344e15a5acf2c033618b99f908e77d30f549e2320614",
+  "agent_image": "acateam.azurecr.io/lab722/reactor-swarm-agents@sha256:1067d51922ec4b9b931c03c2f049df6a10ff1f132a8bf01bc070db8cf909429d",
+  "service_image": "acateam.azurecr.io/lab722/reactor-swarm-services@sha256:049971aacd2814d4711b0ca1e28aaedabc725b2423c81404e702c927dbbfcb58",
   "hosted_image": "acateam.azurecr.io/lab722/reactor-swarm-hosted@sha256:95d224f281b6be59ee2baef824e2c2dcfa46eecdb2f57668bf70d3106dd14cf3",
-  "build_runs": {"agents": "cj2h", "services": "cj2g", "hosted": "cj28"},
+  "build_runs": {"agents": "cj2j", "services": "cj2k", "hosted": "cj28"},
   "development_flow": {
     "run_id": "c2584503-3f2a-4ac7-afe5-75dc91011396",
     "service_image": "acateam.azurecr.io/lab722/reactor-swarm-services@sha256:55f98caac52fecf44f25216f022e3e78b01b34359beb9eafff63f1b1e4fd5eff",
@@ -17,9 +17,29 @@
   },
   "verification": {
     "images_built": true,
-    "preloaded_agent_and_frozen_hashes_verified": false,
-    "native_three_operation_discovery_verified": false,
-    "full_managed_identity_research_run_verified": false,
-    "attendee_ready": false
+    "preloaded_agent_and_frozen_hashes_verified": true,
+    "native_three_operation_discovery_verified": true,
+    "full_managed_identity_research_run_verified": true,
+    "attendee_ready": false,
+    "representative_human_walkthrough_ready": true,
+    "human_validation": "not_run"
+  },
+  "corrected_allocation_review": {
+    "resource_group": "ig2026-lab-local2",
+    "variant": "v4r2",
+    "source_commit": "2ce1af9",
+    "guide_sha256": "5dcb31f979145eca5e2627074bbffb59821f0f0780e02da4283d74b5d6edfc9b",
+    "mode": "Focused corrected-path technical review; prior failures preserved, not an uninterrupted or human pass.",
+    "accepted_runs": ["99811a38-390e-4587-bd8c-04edce551f32", "f7b21c40-a7b4-4506-bfad-9cf9f84e3abd"],
+    "foreign_probes": [403, 403, 403, 403],
+    "successful_artifacts_unchanged": true,
+    "idempotency_and_running_cancellation_verified": true,
+    "final_task_inventory": [],
+    "limitations": [
+      "Human comprehension, discoverability and pacing are unmeasured.",
+      "Operator access does not establish minimum-permission learner access; the documented CLI fallback was tested, not portal navigation.",
+      "Forced runtime-budget exhaustion was not exercised live.",
+      "Technical readiness for a representative human walkthrough is not blanket attendee release, expert audit or production approval."
+    ]
   }
 }
