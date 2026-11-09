@@ -97,6 +97,8 @@ class TaskSandboxes:
                     ], timeout=30)
                     state = json.loads(state_text)
                     if state["error"] is not None:
+                        on_event("agent_error", sandbox_id=sandbox_id,
+                                 detail=f"{state['error']['type']}: {state['error']['message']}"[:500])
                         raise RuntimeError("Sandbox agent failed: " + state["error"]["type"] + ": " + state["error"]["message"])
                     if state["result"] is not None:
                         result = state["result"]

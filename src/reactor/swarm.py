@@ -233,7 +233,8 @@ class ResearchSwarm:
         def observed(completed):
             if not completed.cancelled() and completed.exception() is not None:
                 LOG.error("run=%s role=%s specialist failed type=%s",
-                          run_id, role, type(completed.exception()).__name__)
+                          run_id, role, type(completed.exception()).__name__,
+                          exc_info=completed.exception())
 
         task.add_done_callback(observed)
         return task

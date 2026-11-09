@@ -7,6 +7,8 @@ param(
     [string]$PythonExecutable = 'python',
     [hashtable]$AllocationValues,
     [string]$PreparedStatePath,
+    [string]$ImageCatalogPath,
+    [switch]$SkipRoleAssignments,
     [string]$FrontendName = 'lab722-research-frontend',
     [string]$ExecutionName = 'lab722-research-execution',
     [string]$ExecutionConnectionName = 'reactor-swarm-execution',
@@ -26,7 +28,10 @@ foreach ($key in @('SubscriptionId', 'ResourceGroupName', 'Region', 'SandboxGrou
     'FoundryAccountName', 'FoundryProjectName', 'ExpressEnvironmentName', 'ExecutionApiAudience', 'Model')) {
     if (-not $base[$key]) { throw "Explicit research allocation is missing $key." }
 }
-$catalog = Get-Content -LiteralPath (Join-Path $root 'data\reactor-research-images.json') -Raw | ConvertFrom-Json
+$catalogPath = if ($ImageCatalogPath) {
+    $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ImageCatalogPath)
+} else { Join-Path $root 'data\reactor-research-images.json' }
+$catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
 function Invoke-ResearchCommand {
     param([string]$Executable, [string[]]$Arguments)
     $text = & $Executable @Arguments
@@ -79,6 +84,7 @@ $outputs = & (Join-Path $PSScriptRoot 'deploy-reactor.ps1') `
     -SnapshotId $seed.snapshot_id -ServiceImage $catalog.service_image `
     -ExecutionApiAudience $base.ExecutionApiAudience -FrontendName $FrontendName `
     -ExecutionName $ExecutionName -EnableAgentSwarm -ModelDeployment $base.Model `
+    -SkipRoleAssignments:$SkipRoleAssignments `
     -AlicePassword $AlicePassword -BobPassword $BobPassword
 $AlicePassword = $null; $BobPassword = $null
 $projectId = "/subscriptions/$($base.SubscriptionId)/resourceGroups/$($base.ResourceGroupName)/providers/Microsoft.CognitiveServices/accounts/$($base.FoundryAccountName)/projects/$($base.FoundryProjectName)"

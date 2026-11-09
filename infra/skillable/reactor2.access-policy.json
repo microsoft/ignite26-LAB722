@@ -1,0 +1,126 @@
+{
+  "if": {
+    "not": {
+      "anyOf": [
+        {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.CognitiveServices/accounts" },
+            {
+              "anyOf": [
+                { "field": "name", "like": "lab722-*" },
+                { "field": "name", "like": "*-ai" }
+              ]
+            },
+            { "field": "id", "contains": "/resourceGroups/LAB722/" },
+            { "field": "Microsoft.CognitiveServices/accounts/sku.name", "equals": "S0" },
+            { "field": "location", "notEquals": "global" }
+          ]
+        },
+        {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.CognitiveServices/accounts/deployments" },
+            { "field": "Microsoft.CognitiveServices/accounts/deployments/model.name", "equals": "gpt-5.2" },
+            { "field": "Microsoft.CognitiveServices/accounts/deployments/sku.name", "equals": "GlobalStandard" },
+            { "field": "Microsoft.CognitiveServices/accounts/deployments/sku.capacity", "lessOrEquals": 300 }
+          ]
+        },
+        {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.App/managedEnvironments" },
+            {
+              "anyOf": [
+                { "field": "name", "like": "lab722-*" },
+                { "field": "name", "like": "*-express" }
+              ]
+            },
+            { "field": "id", "contains": "/resourceGroups/LAB722/" },
+            { "field": "location", "notEquals": "global" }
+          ]
+        },
+        {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.ContainerRegistry/registries" },
+            {
+              "anyOf": [
+                { "field": "name", "like": "lab722*" },
+                { "field": "name", "like": "*acr" }
+              ]
+            },
+            { "field": "id", "contains": "/resourceGroups/LAB722/" },
+            { "field": "Microsoft.ContainerRegistry/registries/sku.name", "equals": "Basic" },
+            { "field": "location", "notEquals": "global" }
+          ]
+        },
+        {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.OperationalInsights/workspaces" },
+            {
+              "anyOf": [
+                { "field": "name", "like": "lab722-*" },
+                { "field": "name", "like": "*-logs" }
+              ]
+            },
+            { "field": "id", "contains": "/resourceGroups/LAB722/" },
+            { "field": "location", "notEquals": "global" }
+          ]
+        },
+        {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.App/containerApps" },
+            { "field": "name", "equals": "caldova-research" },
+            { "field": "id", "contains": "/resourceGroups/LAB722/" },
+            { "field": "location", "notEquals": "global" }
+          ]
+        },
+        { "field": "type", "like": "Microsoft.Insights*" },
+        {
+          "field": "type",
+          "in": [
+            "Microsoft.Authorization/roleAssignments",
+            "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "Microsoft.CognitiveServices/accounts/projects",
+            "Microsoft.Insights/components",
+            "Microsoft.App/sandboxGroups",
+            "microsoft.alertsmanagement/smartDetectorAlertRules",
+            "Microsoft.Compute/disks",
+            "Microsoft.Compute/virtualMachines/extensions",
+            "Microsoft.Storage/storageAccounts",
+            "microsoft.insights/workbooks",
+            "Microsoft.Insights/dataCollectionEndpoints",
+            "Microsoft.Insights/dataCollectionRules",
+            "Microsoft.Compute/virtualMachines/runCommands",
+            "Microsoft.ContainerRegistry/registries/scopeMaps",
+            "Microsoft.ContainerRegistry/registries/tokens",
+            "Microsoft.ContainerRegistry/registries/generateCredentials/action"
+          ]
+        },
+        {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.App/containerApps" },
+            {
+              "anyOf": [
+                { "field": "name", "like": "r2-front-*" },
+                { "field": "name", "like": "r2-exec-*" }
+              ]
+            },
+            { "field": "id", "contains": "/resourceGroups/LAB722/" },
+            { "field": "location", "notEquals": "global" }
+          ]
+        },
+        {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.CognitiveServices/accounts/projects/connections" },
+            { "field": "id", "contains": "/resourceGroups/LAB722/" },
+            {
+              "anyOf": [
+                { "field": "fullName", "like": "lab722-*/reactor/reactor-allocated-registry" },
+                { "field": "fullName", "like": "lab722-*/reactor/reactor-swarm-execution" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "then": { "effect": "Deny" }
+}

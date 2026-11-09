@@ -1,5 +1,8 @@
 import asyncio
+from pathlib import Path
 import secrets
+import shutil
+import subprocess
 import unittest
 from unittest.mock import AsyncMock
 
@@ -7,6 +10,62 @@ import httpx
 from starlette.exceptions import HTTPException
 
 from src.reactor.frontend import HostedClient, create_app
+
+
+@unittest.skipUnless(shutil.which("node"), "Node.js is required for the browser sign-in regression")
+class FrontendSignInRecovery(unittest.TestCase):
+    def test_sign_in_recovers_csrf_after_denial_and_preserves_bootstrap_errors(self):
+        page = Path(__file__).resolve().parents[1] / "src" / "reactor" / "web" / "index.html"
+        result = subprocess.run(["node", "-e", r"""
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const html = fs.readFileSync(process.argv[1], "utf8");
+const handler = html.slice(html.indexOf('el("login-form").onsubmit='),
+                           html.indexOf('el("logout").onclick='));
+(async () => {
+  for (const mode of ["missing", "retained", "bootstrap-error"]) {
+    const calls = [], elements = {};
+    const el = id => elements[id] ||= {value: "", textContent: ""};
+    el("username").value = "alice";
+    el("password").value = "fixture";
+    const context = {
+      el, user: null, authBusy: false, epoch: 0,
+      csrf: mode === "retained" ? "current-csrf" : "",
+      resetAccount() { context.user = null; context.epoch++; },
+      updateControls() {},
+      fail(error) { el("status").textContent = error.message; },
+      async session() { context.user = {user_id: "user-alice"}; },
+      async api(path, body, version) {
+        assert.equal(version, context.epoch);
+        calls.push(path);
+        if (path === "/api/session") {
+          if (mode === "bootstrap-error") throw new Error("session bootstrap unavailable");
+          return {csrf: "current-csrf"};
+        }
+        assert.equal(path, "/api/login");
+        assert.equal(context.csrf, "current-csrf");
+        assert.deepEqual(JSON.parse(JSON.stringify(body)), {username: "alice", password: "fixture"});
+        return {};
+      }
+    };
+    vm.runInNewContext(handler, context);
+    await el("login-form").onsubmit({preventDefault() {}});
+    assert.equal(context.authBusy, false);
+    assert.equal(el("password").value, "");
+    if (mode === "bootstrap-error") {
+      assert.deepEqual(calls, ["/api/session"]);
+      assert.equal(context.user, null);
+      assert.equal(el("status").textContent, "session bootstrap unavailable");
+    } else {
+      assert.deepEqual(calls, mode === "retained" ? ["/api/login"] : ["/api/session", "/api/login"]);
+      assert.equal(context.user.user_id, "user-alice");
+      assert.equal(el("status").textContent, "Signed in. Select a candidate and ask research.");
+    }
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });
+""", str(page)], capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 class FrontendSessions(unittest.IsolatedAsyncioTestCase):

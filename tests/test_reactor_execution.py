@@ -82,6 +82,37 @@ class Lifecycle(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(polls, 2)
         relay.complete.assert_awaited_once_with("clinical_trials", request)
 
+    async def test_resident_agent_failure_retains_bounded_diagnostic_before_cleanup(self):
+        manager = self.manager()
+        sandbox, run_id = str(uuid4()), str(uuid4())
+        binding = {"run_id": run_id, "user_id": "user-alice", "customer_id": "customer-alice",
+                   "conversation_id": "conversation-alice"}
+        message = "Invalid source page. " + "x" * 600
+        manager.native = AsyncMock(side_effect=[
+            "",
+            json.dumps({"id": sandbox, "sourcesRef": {"snapshot": {"id": manager.snapshot}},
+                        "labels": {"lab": "LAB722", "purpose": "reactor-task", "run": run_id,
+                                   "step": "quality_assurance", "user": binding["user_id"],
+                                   "customer": binding["customer_id"], "conversation": binding["conversation_id"]},
+                        "egressPolicy": {"defaultAction": "Deny", "trafficInspection": "Full"}}),
+            '{"started":true}',
+            json.dumps({"request": None, "result": None,
+                        "error": {"type": "ValueError", "message": message}}),
+            "",
+        ])
+        event = Mock()
+        relay = Mock(complete=AsyncMock())
+        with patch("src.reactor.sandboxes.asyncio.sleep", new=AsyncMock()):
+            with self.assertRaisesRegex(RuntimeError, "ValueError: Invalid source page"):
+                await manager.execute_agent(
+                    run_id, "quality_assurance", {}, "Inspect", binding=binding, customer_note="owned",
+                    specialists={}, model_relay=relay, on_created=Mock(), on_event=event,
+                )
+        event.assert_any_call("agent_error", sandbox_id=sandbox, detail=f"ValueError: {message}"[:500])
+        self.assertEqual(event.call_args.args[0], "sandbox_deleted")
+        self.assertEqual(manager.native.call_args.args[0], ["delete", "--id", sandbox, "--yes"])
+        relay.complete.assert_not_awaited()
+
     async def test_execution_failure_still_deletes_exact_task_sandbox(self):
         manager = self.manager()
         sandbox, run_id = str(uuid4()), str(uuid4())

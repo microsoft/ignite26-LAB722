@@ -467,7 +467,10 @@ el("login-form").onsubmit=async event=>{
  event.preventDefault();if(authBusy)return;
  const username=el("username").value,password=el("password").value;
  resetAccount();authBusy=true;updateControls();el("password").value="";const version=epoch;
- try{await api("/api/login",{username,password},version);await session(version);if(version===epoch)el("status").textContent="Signed in. Select a candidate and ask research."}
+ try{
+  if(!csrf){const value=await api("/api/session",undefined,version);csrf=value.csrf||""}
+  await api("/api/login",{username,password},version);await session(version);if(version===epoch)el("status").textContent="Signed in. Select a candidate and ask research."
+ }
  catch(error){fail(error,version)}finally{authBusy=false;updateControls()}
 };
 el("logout").onclick=async()=>{

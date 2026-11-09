@@ -15,6 +15,7 @@ param(
     [string]$FrontendName = 'lab722-reactor-frontend',
     [string]$ExecutionName = 'lab722-reactor-execution',
     [switch]$EnableAgentSwarm,
+    [switch]$SkipRoleAssignments,
     [string]$ModelDeployment = 'gpt-5.2',
     [uri]$HostedResponsesEndpoint,
     [Parameter(Mandatory)][securestring]$AlicePassword,
@@ -46,6 +47,7 @@ $values = @{
     serviceImage = $ServiceImage; executionApiAudience = $ExecutionApiAudience
     frontendName = $FrontendName; executionName = $ExecutionName
     enableAgentSwarm = [bool]$EnableAgentSwarm; modelDeployment = $ModelDeployment
+    createRoleAssignments = -not $SkipRoleAssignments
     hostedResponsesEndpoint = $(if ($null -eq $HostedResponsesEndpoint) { '' } else { $HostedResponsesEndpoint.AbsoluteUri })
     alicePassword = [System.Net.NetworkCredential]::new('', $AlicePassword).Password
     bobPassword = [System.Net.NetworkCredential]::new('', $BobPassword).Password

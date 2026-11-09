@@ -180,7 +180,12 @@ class ResearchContracts(unittest.TestCase):
 
         wrong_category = {**expected, "source_ids": reference_results(source, selection)["drug_specialist"]["source_ids"]}
         calls = [response("query_trials", {}), response("run_python", {"code": "print('{}')"}),
-                 response("finish", wrong_category), response("finish", expected)]
+                 response("finish", {"python_receipt": 0}), response("run_python", {"code": "print('{}')"}),
+                 response("finish", {"python_receipt": 1})]
+        python_receipts = iter([
+            {"status": "completed", "exit_code": 0, "stdout": json.dumps(value), "stderr": ""}
+            for value in (wrong_category, expected)
+        ])
         clinical_messages = []
         def clinical_model(messages, *args):
             clinical_messages.append(copy.deepcopy(messages))
@@ -198,15 +203,31 @@ class ResearchContracts(unittest.TestCase):
         ), patch.object(Path, "read_text", read):
             output = agent_runtime.run_agent(
                 payload, model_exchange=clinical_model,
-                python_executor=lambda payload: {"status": "completed", "stdout": "{}", "stderr": ""},
+                python_executor=lambda payload: next(python_receipts),
             )
-            self.assertEqual(output["model_calls"], 4)
+            self.assertEqual(output["model_calls"], 5)
             self.assertEqual(output["output"], expected)
             self.assertEqual(output["ownership"], payload["ownership"])
             self.assertEqual([item["tool"] for item in output["events"]],
-                             ["query_trials", "run_python", "finish", "finish"])
+                             ["query_trials", "run_python", "finish", "run_python", "finish"])
             self.assertIn("required_id_field", json.dumps(clinical_messages[-1]))
-            self.assertIn("trial_id", clinical_messages[-1][-1]["content"])
+            self.assertIn("trial_id", clinical_messages[3][-1]["content"])
+            self.assertEqual(json.loads(clinical_messages[-1][-1]["content"])["receipt_index"], 1)
+            drug = reference_results(source, selection)["drug_specialist"]
+            payload["role"] = "drug_specialist"
+            calls = [response("query_safety_reports", {}), response("run_python", {"code": "print('{}')"}),
+                     response("finish", {"python_receipt": 0})]
+            output = agent_runtime.run_agent(
+                payload, model_exchange=clinical_model,
+                python_executor=lambda payload: {
+                    "status": "completed", "exit_code": 0,
+                    "stdout": json.dumps({**drug, "extra_analysis": "Not part of the structured result."}), "stderr": "",
+                },
+            )
+            self.assertEqual(output["output"], drug)
+            self.assertEqual(output["output"]["reaction_counts"]["MOOD ALTERED"], 1)
+            self.assertEqual(len(output["output"]["reaction_counts"]), 47)
+            self.assertTrue(assess_specialist("drug_specialist", output["output"], source, selection)["passed"])
             qa = {"passed": True, "issues": [], "clinical_source_ids": expected["source_ids"],
                   "safety_source_ids": reference_results(source, selection)["drug_specialist"]["source_ids"]}
             payload["role"] = "quality_assurance"
@@ -216,6 +237,7 @@ class ResearchContracts(unittest.TestCase):
             }}
             calls = [response("inspect_specialist_results", {}), response("run_python", {"code": "print('{}')"}),
                      response("finish", qa), response("query_trials", {}), response("query_safety_reports", {}),
+                     response("finish", {**qa, "issues": ["Cannot verify a field absent from the frozen sample."]}),
                      response("finish", qa)]
             observed = []
             def model(*args):
@@ -225,13 +247,42 @@ class ResearchContracts(unittest.TestCase):
                 payload, model_exchange=model,
                 python_executor=lambda payload: {"status": "completed", "stdout": "{}", "stderr": ""},
             )
-            self.assertEqual(output["model_calls"], 6)
+            self.assertEqual(output["model_calls"], 7)
             self.assertEqual(output["output"], qa)
             self.assertNotIn("large-private-receipt", json.dumps(observed))
             self.assertIn("Finish rejected", json.dumps(observed))
+            self.assertIn("QA approval requires issues=[]", observed[-1][-1]["content"])
             self.assertEqual(output["ownership"], payload["ownership"])
+            rejected = {**qa, "passed": False, "issues": ["Specialist phase counts are incorrect."]}
+            calls = [response("inspect_specialist_results", {}), response("run_python", {"code": "print('{}')"}),
+                     response("query_trials", {}), response("query_safety_reports", {}), response("finish", rejected)]
+            self.assertEqual(agent_runtime.run_agent(
+                payload, model_exchange=model,
+                python_executor=lambda payload: {"status": "completed", "stdout": "{}", "stderr": ""},
+            )["output"], rejected)
+            self.assertFalse(assess_specialist(
+                "quality_assurance", {**qa, "issues": ["Unresolved discrepancy."]}, source, selection,
+            )["passed"])
             with self.assertRaisesRegex(TimeoutError, "iteration budget"):
                 agent_runtime.run_agent(payload, model_exchange=lambda *args: response("finish", expected))
+
+    def test_finish_rejects_missing_failed_or_malformed_python_receipts(self):
+        completed = {"status": "completed", "exit_code": 0, "stdout": "{}"}
+        invalid = [
+            ({}, []),
+            ({"python_receipt": True}, [completed]),
+            ({"python_receipt": -1}, [completed]),
+            ({"python_receipt": 1}, [completed]),
+            ({"python_receipt": 0}, [{**completed, "status": "failed", "exit_code": 1}]),
+            ({"python_receipt": 0}, [{**completed, "stdout": "not JSON"}]),
+            ({"python_receipt": 0}, [completed]),
+            ({"python_receipt": 0}, [{**completed, "stdout": json.dumps({
+                "source_ids": ["one"], "reaction_counts": {"term": True},
+            })}]),
+        ]
+        for arguments, receipts in invalid:
+            with self.subTest(arguments=arguments, receipts=receipts), self.assertRaises(ValueError):
+                agent_runtime.finish_python_result("drug_specialist", arguments, receipts)
 
 
 class TestServiceVerifier:
@@ -347,8 +398,10 @@ class SwarmAPI(unittest.IsolatedAsyncioTestCase):
     async def test_fatal_agent_failure_finishes_owned_run_with_rejected_evidence(self):
         run, grant = await self.new_research()
         self.sandboxes.execute_agent.side_effect = RuntimeError("test model failure")
-        response = await self.tool("clinical_trials", grant)
+        with self.assertLogs("reactor.swarm", level="ERROR") as logs:
+            response = await self.tool("clinical_trials", grant)
         self.assertEqual(response.status_code, 502)
+        self.assertIn("RuntimeError: test model failure", "\n".join(logs.output))
         current = await self.client.get(f"/runs/{run['run_id']}", headers=self.headers())
         self.assertEqual(current.json()["state"], "failed")
         self.assertTrue(current.json()["cleaned"])

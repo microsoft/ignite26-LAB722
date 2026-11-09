@@ -25,19 +25,24 @@ ROLE_INSTRUCTIONS = {
         "Analyze the selected drug's trials, applying only the selected trial condition. "
         "Use query_trials to inspect records and run_python to compute exact phase_counts and sorted trial source_ids. "
         "source_ids contains trial_id values from selected trials, never report_id values from safety reports. "
-        'Finish with {"source_ids":[...],"phase_counts":{...}}.'
+        'Print {"source_ids":[...],"phase_counts":{...}} as one JSON object from run_python. '
+        "Finish by passing its receipt_index as python_receipt; do not transcribe the computed result."
     ),
     "drug_specialist": (
         "Analyze the selected drug's safety reports; do not apply the trial condition to safety reports. "
         "Use query_safety_reports and run_python. source_ids contains report_id values from selected safety reports, "
         "never trial_id values. Count each distinct reaction term once per report. "
-        'Finish with {"source_ids":[...],"reaction_counts":{...}}. Do not infer causality or comparative safety.'
+        'Print {"source_ids":[...],"reaction_counts":{...}} as one JSON object from run_python. '
+        "Finish by passing its receipt_index as python_receipt; do not transcribe or abbreviate the computed result. "
+        "Do not infer causality or comparative safety."
     ),
     "quality_assurance": (
         "Independently check the two specialists against the frozen source. Inspect their results, query both sources, "
         "and use run_python for independent calculations. Reject wrong IDs, counts, filters, or unsupported claims. "
         'Finish with {"passed":true|false,"issues":[...],"clinical_source_ids":[...],"safety_source_ids":[...]}. '
-        "Approve only when the specialist counts and exact sorted source IDs match. Empty source sets are valid."
+        "Approve only when the specialist counts and exact sorted source IDs match. Empty source sets are valid. "
+        "issues contains blocking discrepancies, not frozen-sample limitations or additional selection criteria. "
+        "Approval requires passed=true and issues=[]. Report genuine discrepancies with passed=false."
     ),
 }
 
@@ -72,13 +77,40 @@ def tools_for(role):
          "clinical_source_ids": {"type": "array", "items": {"type": "string"}},
          "safety_source_ids": {"type": "array", "items": {"type": "string"}}}
         if role == "quality_assurance" else
-        {"source_ids": {"type": "array", "items": {"type": "string"}},
-         "phase_counts" if role == "clinical_trials" else "reaction_counts":
-             {"type": "object", "additionalProperties": {"type": "integer"}}}
+        {"python_receipt": {"type": "integer", "minimum": 0}}
     )
-    tools.append(function("finish", "Return the structured final result after inspecting and computing.",
+    description = (
+        "Return the structured QA decision after inspecting and independently computing."
+        if role == "quality_assurance" else
+        "Finish using the receipt_index of your successful run_python call. Its complete source_ids and "
+        "count mapping are copied directly from the JSON stdout, without model transcription."
+    )
+    tools.append(function("finish", description,
                           finish, list(finish)))
     return tools
+
+
+def finish_python_result(role, arguments, receipts):
+    index = arguments.get("python_receipt")
+    if set(arguments) != {"python_receipt"} or type(index) is not int or not 0 <= index < len(receipts):
+        raise ValueError("Reference a run_python receipt_index from this agent using python_receipt.")
+    receipt = receipts[index]
+    if receipt["status"] != "completed" or receipt.get("exit_code") != 0:
+        raise ValueError("The referenced Python receipt must have completed successfully with exit code zero.")
+    try:
+        value = json.loads(receipt["stdout"])
+    except json.JSONDecodeError as error:
+        raise ValueError("The referenced Python stdout must contain one JSON object; recompute it.") from error
+    counts_field = "phase_counts" if role == "clinical_trials" else "reaction_counts"
+    if not isinstance(value, dict) or not {"source_ids", counts_field} <= value.keys():
+        raise ValueError(f"Print one JSON object with source_ids and {counts_field} from run_python.")
+    if (not isinstance(value["source_ids"], list)
+            or any(not isinstance(item, str) for item in value["source_ids"])
+            or not isinstance(value[counts_field], dict)
+            or any(not isinstance(key, str) or type(count) is not int
+                   for key, count in value[counts_field].items())):
+        raise ValueError("The computed JSON requires string source_ids and an integer count mapping.")
+    return {"source_ids": value["source_ids"], counts_field: value[counts_field]}
 
 
 def write_json(path, value):
@@ -208,9 +240,23 @@ def run_agent(payload, *, model_exchange=exchange, python_executor=None):
                     {"query_trials" if role == "clinical_trials" else "query_safety_reports"}
                 )
                 missing = sorted(required - inspected)
+                finish_error = None
+                if role != "quality_assurance" and not missing and computed:
+                    try:
+                        arguments = finish_python_result(role, arguments, receipts)
+                    except ValueError as error:
+                        finish_error = str(error)
                 if missing or not computed:
                     result = {"error": "Finish rejected: complete the missing inspections and successful bounded Python first.",
                               "missing_tools": missing + ([] if computed else ["run_python"])}
+                elif finish_error:
+                    result = {"error": f"Finish rejected: {finish_error}"}
+                elif role == "quality_assurance" and arguments.get("passed") is True and arguments.get("issues") != []:
+                    result = {
+                        "error": "Finish rejected: QA approval requires issues=[]. Reconcile the decision and findings. "
+                                 "Use passed=false for blocking discrepancies; do not remove real discrepancies to approve. "
+                                 "Frozen-sample limitations and additional selection criteria are not source mismatches.",
+                    }
                 elif role != "quality_assurance" and (
                     not isinstance(arguments.get("source_ids"), list)
                     or any(not isinstance(value, str) or value not in allowed_source_ids
@@ -265,7 +311,8 @@ def run_agent(payload, *, model_exchange=exchange, python_executor=None):
                 })
                 receipt.update(code=arguments["code"], step=role)
                 receipts.append(receipt)
-                result = {"status": receipt["status"], "stdout": receipt["stdout"], "stderr": receipt["stderr"]}
+                result = {"receipt_index": len(receipts) - 1, "status": receipt["status"],
+                          "stdout": receipt["stdout"], "stderr": receipt["stderr"]}
                 computed = receipt["status"] == "completed"
             messages.append({"role": "tool", "tool_call_id": call["id"], "content": json.dumps(result)})
     raise TimeoutError("Sandbox agent exhausted its model/tool iteration budget.")

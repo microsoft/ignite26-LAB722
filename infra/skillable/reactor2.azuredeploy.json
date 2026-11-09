@@ -1,0 +1,942 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.40.2.10011",
+      "templateHash": "9372070027890358331"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "modelCapacity": {
+      "type": "int",
+      "defaultValue": 40,
+      "minValue": 1
+    }
+  },
+  "variables": {
+    "suffix": "[uniqueString(subscription().id, resourceGroup().id)]",
+    "baseName": "[format('lab722-{0}', variables('suffix'))]",
+    "frontendName": "[format('r2-front-{0}', variables('suffix'))]",
+    "executionName": "[format('r2-exec-{0}', variables('suffix'))]",
+    "tags": {
+      "lab": "LAB722",
+      "purpose": "reactor2-skillable",
+      "azd-env-name": "[format('reactor2-{0}', variables('suffix'))]"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "reactor2-core",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[variables('baseName')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.40.2.10011",
+              "templateHash": "9406154403983430794"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for all core resources."
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Deterministic LAB722 resource name prefix."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags."
+              }
+            }
+          },
+          "variables": {
+            "registryName": "[replace(format('{0}acr', parameters('baseName')), '-', '')]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}-logs', parameters('baseName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "retentionInDays": 30,
+                "features": {
+                  "enableLogAccessUsingOnlyResourcePermissions": true
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "[format('{0}-appi', parameters('baseName'))]",
+              "location": "[parameters('location')]",
+              "kind": "web",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('baseName')))]",
+                "DisableLocalAuth": true
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('baseName')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2023-07-01",
+              "name": "[variables('registryName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Basic"
+              },
+              "properties": {
+                "adminUserEnabled": false,
+                "publicNetworkAccess": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[format('{0}-sandbox-mi', parameters('baseName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            }
+          ],
+          "outputs": {
+            "containerRegistryName": {
+              "type": "string",
+              "value": "[variables('registryName')]"
+            },
+            "containerRegistryId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ContainerRegistry/registries', variables('registryName'))]"
+            },
+            "applicationInsightsConnectionString": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Insights/components', format('{0}-appi', parameters('baseName'))), '2020-02-02').ConnectionString]"
+            },
+            "logAnalyticsWorkspaceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', format('{0}-logs', parameters('baseName')))]"
+            },
+            "sandboxIdentityId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-sandbox-mi', parameters('baseName')))]"
+            },
+            "sandboxIdentityPrincipalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-sandbox-mi', parameters('baseName'))), '2023-01-31').principalId]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "reactor2-foundry",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[variables('baseName')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "projectName": {
+            "value": "reactor"
+          },
+          "modelName": {
+            "value": "gpt-5.2"
+          },
+          "modelVersion": {
+            "value": "2025-12-11"
+          },
+          "modelFormat": {
+            "value": "OpenAI"
+          },
+          "modelSkuName": {
+            "value": "GlobalStandard"
+          },
+          "modelCapacity": {
+            "value": "[parameters('modelCapacity')]"
+          },
+          "labUserPrincipalId": {
+            "value": ""
+          },
+          "labUserPrincipalType": {
+            "value": "User"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.40.2.10011",
+              "templateHash": "1602644731643141222"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for the Foundry resources."
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Deterministic LAB722 resource name prefix."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags."
+              }
+            },
+            "modelName": {
+              "type": "string",
+              "metadata": {
+                "description": "Foundry model name."
+              }
+            },
+            "modelVersion": {
+              "type": "string",
+              "metadata": {
+                "description": "Foundry model version."
+              }
+            },
+            "modelFormat": {
+              "type": "string",
+              "metadata": {
+                "description": "Foundry model provider format."
+              }
+            },
+            "modelSkuName": {
+              "type": "string",
+              "metadata": {
+                "description": "Foundry model deployment SKU."
+              }
+            },
+            "modelCapacity": {
+              "type": "int",
+              "metadata": {
+                "description": "Foundry model deployment capacity."
+              }
+            },
+            "labUserPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Object ID granted project-scoped Foundry data-plane access. Empty skips the role assignment."
+              }
+            },
+            "labUserPrincipalType": {
+              "type": "string",
+              "allowedValues": [
+                "User",
+                "Group",
+                "ServicePrincipal"
+              ],
+              "metadata": {
+                "description": "Microsoft Entra principal type for the Foundry role assignment."
+              }
+            },
+            "foundryUserRoleAssignmentName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Existing project-scoped Foundry User assignment name, if present. Empty generates a deterministic name."
+              }
+            },
+            "projectName": {
+              "type": "string",
+              "defaultValue": "caldova",
+              "metadata": {
+                "description": "Logical project name. Local reactor deployments can select a distinct project without changing the legacy default."
+              }
+            }
+          },
+          "variables": {
+            "foundryAccountName": "[format('{0}-ai', parameters('baseName'))]",
+            "foundryProjectName": "[parameters('projectName')]",
+            "foundryUserRoleId": "53ca6127-db72-4b80-b1b0-d745d6d5456d"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2025-06-01",
+              "name": "[variables('foundryAccountName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "kind": "AIServices",
+              "sku": {
+                "name": "S0"
+              },
+              "properties": {
+                "allowProjectManagement": true,
+                "customSubDomainName": "[variables('foundryAccountName')]",
+                "disableLocalAuth": true,
+                "publicNetworkAccess": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/projects",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}', variables('foundryAccountName'), variables('foundryProjectName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {},
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('labUserPrincipalId')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryAccountName'), variables('foundryProjectName'))]",
+              "name": "[if(empty(parameters('foundryUserRoleAssignmentName')), guid(resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryAccountName'), variables('foundryProjectName')), parameters('labUserPrincipalId'), variables('foundryUserRoleId')), parameters('foundryUserRoleAssignmentName'))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('foundryUserRoleId'))]",
+                "principalId": "[parameters('labUserPrincipalId')]",
+                "principalType": "[parameters('labUserPrincipalType')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryAccountName'), variables('foundryProjectName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}', variables('foundryAccountName'), parameters('modelName'))]",
+              "sku": {
+                "name": "[parameters('modelSkuName')]",
+                "capacity": "[parameters('modelCapacity')]"
+              },
+              "properties": {
+                "model": {
+                  "format": "[parameters('modelFormat')]",
+                  "name": "[parameters('modelName')]",
+                  "version": "[parameters('modelVersion')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', variables('foundryAccountName'))]",
+                "[resourceId('Microsoft.CognitiveServices/accounts/projects', variables('foundryAccountName'), variables('foundryProjectName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "foundryAccountName": {
+              "type": "string",
+              "value": "[variables('foundryAccountName')]"
+            },
+            "foundryProjectName": {
+              "type": "string",
+              "value": "[variables('foundryProjectName')]"
+            },
+            "foundryProjectEndpoint": {
+              "type": "string",
+              "value": "[format('https://{0}.services.ai.azure.com/api/projects/{1}', variables('foundryAccountName'), variables('foundryProjectName'))]"
+            },
+            "modelDeploymentName": {
+              "type": "string",
+              "value": "[parameters('modelName')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "reactor2-express",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[variables('baseName')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.40.2.10011",
+              "templateHash": "14674736140711147706"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for the Express environment."
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Deterministic LAB722 resource name prefix."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/managedEnvironments",
+              "apiVersion": "2026-03-02-preview",
+              "name": "[format('{0}-express', parameters('baseName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "environmentMode": "Express"
+              }
+            }
+          ],
+          "outputs": {
+            "expressEnvironmentName": {
+              "type": "string",
+              "value": "[format('{0}-express', parameters('baseName'))]"
+            },
+            "expressEnvironmentId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/managedEnvironments', format('{0}-express', parameters('baseName')))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "reactor2-sandboxes",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "baseName": {
+            "value": "[variables('baseName')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "sandboxIdentityId": {
+            "value": ""
+          },
+          "enableGroupIdentity": {
+            "value": false
+          },
+          "labUserPrincipalId": {
+            "value": ""
+          },
+          "labUserPrincipalType": {
+            "value": "User"
+          },
+          "maxSandboxCount": {
+            "value": 8
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.40.2.10011",
+              "templateHash": "4907390958609454040"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for the Sandbox group."
+              }
+            },
+            "baseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Deterministic LAB722 resource name prefix."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags."
+              }
+            },
+            "sandboxIdentityId": {
+              "type": "string",
+              "metadata": {
+                "description": "User-assigned identity resource ID used by the Sandbox group."
+              }
+            },
+            "enableGroupIdentity": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Keep the legacy group identity by default. Generated-analysis Sandboxes must not inherit it."
+              }
+            },
+            "labUserPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Object ID granted Sandbox data-plane access. Empty skips the role assignment."
+              }
+            },
+            "labUserPrincipalType": {
+              "type": "string",
+              "allowedValues": [
+                "User",
+                "Group",
+                "ServicePrincipal"
+              ],
+              "metadata": {
+                "description": "Microsoft Entra principal type for the Sandbox role assignment."
+              }
+            },
+            "maxSandboxCount": {
+              "type": "int",
+              "defaultValue": 8,
+              "minValue": 4,
+              "maxValue": 16,
+              "metadata": {
+                "description": "Bounded Sandbox group capacity. The attendee scenario needs a primary and three workers."
+              }
+            }
+          },
+          "variables": {
+            "sandboxDataOwnerRoleId": "c24cf47c-5077-412d-a19c-45202126392c"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.App/sandboxGroups",
+              "apiVersion": "2026-02-01-preview",
+              "name": "[format('{0}-sandboxes', parameters('baseName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": "[if(parameters('enableGroupIdentity'), createObject('type', 'UserAssigned', 'userAssignedIdentities', createObject(format('{0}', parameters('sandboxIdentityId')), createObject())), createObject('type', 'None'))]",
+              "properties": {
+                "defaultCpu": "2",
+                "defaultMemory": "4Gi",
+                "defaultDisk": "20Gi",
+                "maxSandboxCount": "[parameters('maxSandboxCount')]",
+                "defaultTimeoutSeconds": 7200
+              }
+            },
+            {
+              "condition": "[not(empty(parameters('labUserPrincipalId')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.App/sandboxGroups', format('{0}-sandboxes', parameters('baseName')))]",
+              "name": "[guid(resourceId('Microsoft.App/sandboxGroups', format('{0}-sandboxes', parameters('baseName'))), parameters('labUserPrincipalId'), variables('sandboxDataOwnerRoleId'))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('sandboxDataOwnerRoleId'))]",
+                "principalId": "[parameters('labUserPrincipalId')]",
+                "principalType": "[parameters('labUserPrincipalType')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.App/sandboxGroups', format('{0}-sandboxes', parameters('baseName')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "sandboxGroupName": {
+              "type": "string",
+              "value": "[format('{0}-sandboxes', parameters('baseName'))]"
+            },
+            "sandboxGroupId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/sandboxGroups', format('{0}-sandboxes', parameters('baseName')))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "reactor2-access",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "frontendName": {
+            "value": "[variables('frontendName')]"
+          },
+          "executionName": {
+            "value": "[variables('executionName')]"
+          },
+          "foundryAccountName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-foundry'), '2025-04-01').outputs.foundryAccountName.value]"
+          },
+          "foundryProjectName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-foundry'), '2025-04-01').outputs.foundryProjectName.value]"
+          },
+          "sandboxGroupName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-sandboxes'), '2025-04-01').outputs.sandboxGroupName.value]"
+          },
+          "registryName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-core'), '2025-04-01').outputs.containerRegistryName.value]"
+          },
+          "anonymousImagePull": {
+            "value": true
+          },
+          "enableAgentSwarm": {
+            "value": true
+          },
+          "createRoleAssignments": {
+            "value": false
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.40.2.10011",
+              "templateHash": "8107029230456435012"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "frontendName": {
+              "type": "string"
+            },
+            "executionName": {
+              "type": "string"
+            },
+            "foundryAccountName": {
+              "type": "string"
+            },
+            "foundryProjectName": {
+              "type": "string"
+            },
+            "sandboxGroupName": {
+              "type": "string"
+            },
+            "registryName": {
+              "type": "string",
+              "defaultValue": "acateam"
+            },
+            "anonymousImagePull": {
+              "type": "bool",
+              "defaultValue": true
+            },
+            "enableAgentSwarm": {
+              "type": "bool",
+              "defaultValue": false
+            },
+            "createRoleAssignments": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "False reuses harness-created assignments without attempting authorization writes."
+              }
+            }
+          },
+          "variables": {
+            "foundryUserRole": "53ca6127-db72-4b80-b1b0-d745d6d5456d",
+            "sandboxOwnerRole": "c24cf47c-5077-412d-a19c-45202126392c",
+            "acrPullRole": "7f951dda-4ed3-4680-a7ca-43fe172d538d"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[format('{0}-mi', parameters('frontendName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[format('{0}-mi', parameters('executionName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "copy": {
+                "name": "pullRoles",
+                "count": "[length(createArray(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('frontendName'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName')))))]"
+              },
+              "condition": "[and(parameters('createRoleAssignments'), not(parameters('anonymousImagePull')))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName'))]",
+              "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('registryName')), createArray(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('frontendName'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName'))))[copyIndex()], variables('acrPullRole'))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('acrPullRole'))]",
+                "principalId": "[if(equals(createArray(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('frontendName'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName'))))[copyIndex()], resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('frontendName')))), reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('frontendName'))), '2023-01-31').principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName'))), '2023-01-31').principalId)]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName')))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('frontendName')))]"
+              ]
+            },
+            {
+              "condition": "[parameters('createRoleAssignments')]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName'))]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('frontendName'))), variables('foundryUserRole'))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('foundryUserRole'))]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('frontendName'))), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('frontendName')))]"
+              ]
+            },
+            {
+              "condition": "[parameters('createRoleAssignments')]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.App/sandboxGroups', parameters('sandboxGroupName'))]",
+              "name": "[guid(resourceId('Microsoft.App/sandboxGroups', parameters('sandboxGroupName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName'))), variables('sandboxOwnerRole'))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('sandboxOwnerRole'))]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName'))), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName')))]"
+              ]
+            },
+            {
+              "condition": "[and(parameters('createRoleAssignments'), parameters('enableAgentSwarm'))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('foundryAccountName'))]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('foundryAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName'))), variables('foundryUserRole'))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('foundryUserRole'))]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName'))), '2023-01-31').principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName')))]"
+              ]
+            },
+            {
+              "condition": "[parameters('createRoleAssignments')]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName'))]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), 'runtime-toolbox', variables('foundryUserRole'))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('foundryUserRole'))]",
+                "principalId": "[reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), '2025-06-01', 'full').identity.principalId]",
+                "principalType": "ServicePrincipal"
+              }
+            }
+          ],
+          "outputs": {
+            "frontendIdentityId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('frontendName')))]"
+            },
+            "frontendObjectId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('frontendName'))), '2023-01-31').principalId]"
+            },
+            "frontendClientId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('frontendName'))), '2023-01-31').clientId]"
+            },
+            "executionIdentityId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName')))]"
+            },
+            "executionObjectId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName'))), '2023-01-31').principalId]"
+            },
+            "executionClientId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('{0}-mi', parameters('executionName'))), '2023-01-31').clientId]"
+            },
+            "projectObjectId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts/projects', parameters('foundryAccountName'), parameters('foundryProjectName')), '2025-06-01', 'full').identity.principalId]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'reactor2-core')]",
+        "[resourceId('Microsoft.Resources/deployments', 'reactor2-foundry')]",
+        "[resourceId('Microsoft.Resources/deployments', 'reactor2-sandboxes')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "REACTOR2_HARNESS_VERSION": {
+      "type": "string",
+      "value": "1"
+    },
+    "AZURE_SUBSCRIPTION_ID": {
+      "type": "string",
+      "value": "[subscription().subscriptionId]"
+    },
+    "AZURE_TENANT_ID": {
+      "type": "string",
+      "value": "[tenant().tenantId]"
+    },
+    "AZURE_RESOURCE_GROUP": {
+      "type": "string",
+      "value": "[resourceGroup().name]"
+    },
+    "AZURE_LOCATION": {
+      "type": "string",
+      "value": "[parameters('location')]"
+    },
+    "AZURE_ENV_NAME": {
+      "type": "string",
+      "value": "[format('reactor2-{0}', variables('suffix'))]"
+    },
+    "AZURE_CONTAINER_REGISTRY_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-core'), '2025-04-01').outputs.containerRegistryName.value]"
+    },
+    "FOUNDRY_ACCOUNT_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-foundry'), '2025-04-01').outputs.foundryAccountName.value]"
+    },
+    "FOUNDRY_PROJECT_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-foundry'), '2025-04-01').outputs.foundryProjectName.value]"
+    },
+    "FOUNDRY_PROJECT_ENDPOINT": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-foundry'), '2025-04-01').outputs.foundryProjectEndpoint.value]"
+    },
+    "FOUNDRY_MODEL_DEPLOYMENT_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-foundry'), '2025-04-01').outputs.modelDeploymentName.value]"
+    },
+    "EXPRESS_ENVIRONMENT_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-express'), '2025-04-01').outputs.expressEnvironmentName.value]"
+    },
+    "SANDBOX_GROUP_NAME": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-sandboxes'), '2025-04-01').outputs.sandboxGroupName.value]"
+    },
+    "REACTOR2_FRONTEND_NAME": {
+      "type": "string",
+      "value": "[variables('frontendName')]"
+    },
+    "REACTOR2_EXECUTION_NAME": {
+      "type": "string",
+      "value": "[variables('executionName')]"
+    },
+    "REACTOR2_PROJECT_OBJECT_ID": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-access'), '2025-04-01').outputs.projectObjectId.value]"
+    },
+    "REACTOR2_FRONTEND_OBJECT_ID": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-access'), '2025-04-01').outputs.frontendObjectId.value]"
+    },
+    "REACTOR2_EXECUTION_OBJECT_ID": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'reactor2-access'), '2025-04-01').outputs.executionObjectId.value]"
+    },
+    "REACTOR2_ARM_ROLE_ASSIGNMENT_COUNT": {
+      "type": "int",
+      "value": 0
+    },
+    "REACTOR2_LCA_ROLE_ASSIGNMENT_COUNT": {
+      "type": "int",
+      "value": 8
+    }
+  }
+}
