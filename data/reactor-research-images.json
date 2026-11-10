@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "dataset_version": "caldova-public-lab-use-v2",
+  "agent_version": "research-agent-v4",
+  "agent_source_sha256": "d820b713d186cbad244dacb90cd3778c7204895089821199af6ae96be1776e7b",
+  "agent_image": "acateam.azurecr.io/lab722/reactor-swarm-agents@sha256:580786b84decb3647fea78ced1e69904ae2dfca3d9c35f34eaa6892c631a7212",
+  "service_image": "acateam.azurecr.io/lab722/reactor-swarm-services@sha256:0e3d8c14d64d8dbcc3518406e37a5845f0e0f1873e4cd21f160ddc1124b8ccbd",
+  "hosted_image": "acateam.azurecr.io/lab722/reactor-swarm-hosted@sha256:95d224f281b6be59ee2baef824e2c2dcfa46eecdb2f57668bf70d3106dd14cf3",
+  "build_runs": {"agents": "cj2r", "services": "cj2s", "hosted": "cj28"},
+  "development_flow": {
+    "run_id": "c2584503-3f2a-4ac7-afe5-75dc91011396",
+    "service_image": "acateam.azurecr.io/lab722/reactor-swarm-services@sha256:55f98caac52fecf44f25216f022e3e78b01b34359beb9eafff63f1b1e4fd5eff",
+    "toolbox_version": "3",
+    "accepted": true,
+    "model_calls": [4, 4, 5],
+    "idempotency_verified": true
+  },
+  "verification": {
+    "images_built": true,
+    "preloaded_agent_and_frozen_hashes_verified": true,
+    "native_three_operation_discovery_verified": true,
+    "full_managed_identity_research_run_verified": true,
+    "attendee_ready": false,
+    "representative_human_walkthrough_ready": true,
+    "human_validation": "not_run"
+  },
+  "corrected_allocation_review": {
+    "resource_group": "ig2026-lab-local2",
+    "variant": "v4r2",
+    "source_commit": "2ce1af9",
+    "guide_sha256": "5dcb31f979145eca5e2627074bbffb59821f0f0780e02da4283d74b5d6edfc9b",
+    "mode": "Focused corrected-path technical review; prior failures preserved, not an uninterrupted or human pass.",
+    "accepted_runs": ["99811a38-390e-4587-bd8c-04edce551f32", "f7b21c40-a7b4-4506-bfad-9cf9f84e3abd"],
+    "foreign_probes": [403, 403, 403, 403],
+    "successful_artifacts_unchanged": true,
+    "idempotency_and_running_cancellation_verified": true,
+    "final_task_inventory": [],
+    "limitations": [
+      "Human comprehension, discoverability and pacing are unmeasured.",
+      "Operator access does not establish minimum-permission learner access; the documented CLI fallback was tested, not portal navigation.",
+      "Forced runtime-budget exhaustion was not exercised live.",
+      "Technical readiness for a representative human walkthrough is not blanket attendee release, expert audit or production approval."
+    ]
+  }
+}

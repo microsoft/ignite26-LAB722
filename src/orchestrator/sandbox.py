@@ -6,12 +6,12 @@ import math
 import os
 import re
 import shlex
-import signal
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 from uuid import UUID, uuid4
 
 from .contracts import CheckEvidence, SandboxBinding
+from ..sandbox_process import SandboxOutputLimitError, _OutputBudget, _BoundedPipe, stop_process
 
 READABLE_FILES = frozenset({
     "data/fixtures/research-data.json",
@@ -63,39 +63,6 @@ def _metadata_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
             raise ValueError("Sandbox metadata contains duplicate object fields.")
         value[key] = item
     return value
-
-
-class SandboxOutputLimitError(RuntimeError):
-    pass
-
-
-@dataclass
-class _OutputBudget:
-    maximum: int
-    captured: int = 0
-    discard: bool = False
-
-
-class _BoundedPipe:
-    def __init__(self, reader: asyncio.StreamReader, budget: _OutputBudget):
-        self.reader = reader
-        self.budget = budget
-        self.task: asyncio.Task | None = None
-
-    async def read(self) -> bytes:
-        # Process.communicate() otherwise uses an unbounded StreamReader.read(-1).
-        self.task = asyncio.current_task()
-        captured = bytearray()
-        while chunk := await self.reader.read(4096):
-            if self.budget.discard:
-                continue
-            self.budget.captured += len(chunk)
-            if self.budget.captured > self.budget.maximum:
-                raise SandboxOutputLimitError(
-                    f"Sandbox CLI output exceeded {self.budget.maximum} combined stdout/stderr bytes."
-                )
-            captured.extend(chunk)
-        return bytes(captured)
 
 
 _FILE_SCRIPT = """
@@ -334,37 +301,7 @@ class SandboxExecutor:
 
     @staticmethod
     async def _stop(process, pipes: list[_BoundedPipe], budget: _OutputBudget) -> None:
-        async def reap() -> None:
-            if os.name == "posix" and isinstance(getattr(process, "pid", None), int):
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-            if process.returncode is None:
-                try:
-                    process.kill()
-                except ProcessLookupError:
-                    pass
-            tasks = [pipe.task for pipe in pipes if pipe.task is not None]
-            for task in tasks:
-                if not task.done():
-                    task.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
-            budget.discard = True
-            await process.communicate()
-
-        # MCP cancellation is level-triggered. Reap outside that cancelled scope
-        # and finish cleanup before allowing cancellation to leave this method.
-        cleanup = asyncio.create_task(reap())
-        cancellation = None
-        while not cleanup.done():
-            try:
-                await asyncio.shield(cleanup)
-            except asyncio.CancelledError as error:
-                cancellation = error
-        cleanup.result()
-        if cancellation is not None:
-            raise cancellation
+        await stop_process(process, pipes, budget)
 
     async def file(self, path: str, content: str | None = None) -> dict[str, str]:
         relative = PurePosixPath(path)

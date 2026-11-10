@@ -1,0 +1,12 @@
+FROM python:3.13-slim-trixie@sha256:09a17cad02668ae61ece136b4fd36ac3849e14f670ebedb637ea3e15580525bc
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+COPY src/reactor/hosted-requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && pip check
+COPY src/reactor/hosted.py src/reactor/binding.py /app/src/reactor/
+COPY tests/test_hosted_workflow.py /app/tests/
+RUN python -m unittest discover -s tests -p 'test_hosted_workflow.py' -v
+RUN useradd --uid 10001 --create-home reactor
+USER reactor
+EXPOSE 8088
+CMD ["python", "-m", "src.reactor.hosted"]

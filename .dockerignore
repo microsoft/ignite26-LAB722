@@ -6,6 +6,13 @@
 !data/fixtures/
 !data/fixtures/research-data.json
 !src/
+!src/sandbox_process.py
+!src/runtime/
+!src/runtime/*.py
+!src/runtime/requirements.txt
+!src/runtime/Containerfile
+!src/runtime/web/
+!src/runtime/web/*
 !src/research-portal/
 !src/research-portal/Containerfile
 !src/research-portal/backend/
@@ -33,6 +40,7 @@
 !src/sandbox-mcp/
 !src/sandbox-mcp/server.py
 !tests/
+!tests/test_runtime.py
 !tests/test_research.py
 !tests/test_frozen_public_research.py
 !tests/test_agents.py

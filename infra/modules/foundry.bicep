@@ -36,8 +36,11 @@ param labUserPrincipalType string
 @description('Existing project-scoped Foundry User assignment name, if present. Empty generates a deterministic name.')
 param foundryUserRoleAssignmentName string = ''
 
+@description('Logical project name. Local reactor deployments can select a distinct project without changing the legacy default.')
+param projectName string = 'caldova'
+
 var foundryAccountName = '${baseName}-ai'
-var foundryProjectName = 'caldova'
+var foundryProjectName = projectName
 var foundryUserRoleId = '53ca6127-db72-4b80-b1b0-d745d6d5456d'
 
 resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-06-01' = {

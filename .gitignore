@@ -356,6 +356,7 @@ paket-files/
 *.pyc
 .venv/
 .venv-linux/
+.azure/
 .build-contexts/
 *.duckdb
 *.duckdb.partial

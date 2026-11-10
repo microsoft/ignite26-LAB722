@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caldova research | LAB722 reactor</title>
+<style>
+/*!
+ * Palette and light dashboard layout adapted from Plus Admin Free by BootstrapDash,
+ * revision af87c16d3e861d40726603c73266f7082ceb1398.
+ * https://github.com/BootstrapDash/PlusAdmin-Free-Bootstrap-Admin-Template
+ * MIT License
+ * Copyright (c) 2020 BootstrapDash
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+:root{font-family:"Segoe UI",system-ui,sans-serif;color:#313b52;background:#f8f9fb;line-height:1.5;--primary:#0033c4;--muted:#606b80;--border:#e8ebf1}
+*{box-sizing:border-box}body{margin:0}a{color:var(--primary);text-underline-offset:3px}button,input,select,textarea{font:inherit}
+:focus-visible{outline:3px solid var(--primary);outline-offset:3px}[hidden]{display:none!important}[id]{scroll-margin-top:90px}
+.skip-link{position:absolute;top:-80px;left:20px;z-index:20;background:white;padding:12px}.skip-link:focus{top:8px}
+.topbar{position:sticky;top:0;z-index:10;background:white;border-bottom:1px solid var(--border);padding:17px 30px;display:flex;align-items:center;gap:24px}
+.brand{color:var(--primary);font-size:28px;letter-spacing:-1px;font-weight:750;text-decoration:none}.topbar span{font-size:12px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:220px minmax(0,1fr)}.sidebar{background:white;border-right:1px solid var(--border);padding:28px 18px}
+.sidebar nav{display:grid;gap:8px}.sidebar a{padding:12px;border-radius:5px;text-decoration:none;font-size:13px}.sidebar a:first-child{background:#1a55e3;color:white}
+.sidebar-note{font-size:12px;color:var(--muted);margin-top:30px;padding:14px;background:#f8f9fb;border:1px solid var(--border)}
+main{width:100%;max-width:1440px;margin:auto;padding:30px;min-width:0}.eyebrow{color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin:0 0 6px}
+h1{font-size:28px;letter-spacing:-.03em;margin:0 0 8px}h2{font-size:18px;margin:0 0 12px}h3{font-size:14px;margin:8px 0}p{margin:8px 0}
+.intro,.note{font-size:12px;color:var(--muted)}.panel{background:white;border:1px solid var(--border);border-radius:5px;padding:22px;margin:20px 0}
+.warning{background:#fff8e9;border:1px solid #f0e2bd;border-left:3px solid #b17a15;border-radius:4px;padding:15px 18px;color:#76561d;font-size:12px}
+.row{display:flex;align-items:end;flex-wrap:wrap;gap:16px}.row label{flex:1;min-width:160px}label{display:flex;flex-direction:column;gap:6px;color:#4b566d;font-size:12px;font-weight:600}
+input,select,textarea{width:100%;background:white;color:#313b52;padding:10px 12px;border:1px solid #c5ccda;border-radius:4px;font-size:14px}
+textarea{resize:vertical;min-height:88px}button{background:var(--primary);color:white;border:1px solid transparent;border-radius:4px;padding:10px 16px;cursor:pointer;font-size:13px;font-weight:600}
+button:hover{background:#002997}button:disabled{opacity:.55;cursor:not-allowed}.secondary{background:white;color:var(--primary);border-color:#c5ccda}.secondary:hover{background:#edf2ff}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.ask{margin-top:18px}.status{font-size:13px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere}
+.metrics,.agents{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:20px 0}
+.metric,.agent{background:white;border:1px solid var(--border);border-radius:5px;padding:18px;min-width:0}.metric span,.metric small{display:block;color:var(--muted);font-size:11px}.metric strong{display:block;font-size:30px;color:#242d45;margin:6px 0}
+.agent h3{color:var(--primary)}.agent p{font-size:12px}.agent code{display:block;font-size:11px;overflow-wrap:anywhere}
+.evidence-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.evidence-grid .panel{margin:0;min-width:0}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;background:#f8f9fb;padding:16px;margin:16px 0}
+.chart-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;font-size:12px;margin:9px 0}.chart-row span{overflow-wrap:anywhere}
+meter{display:block;width:100%;height:7px;accent-color:#1a55e3}.record{border-top:1px solid var(--border);padding:18px 0;font-size:12px}.record p{overflow-wrap:anywhere}
+.tags{display:flex;flex-wrap:wrap;gap:6px}.tag{background:#edf2ff;color:#294fa8;border-radius:3px;padding:3px 8px;font-size:11px}
+.citation{font-size:11px;color:var(--muted);display:grid;gap:4px;margin-top:12px}.provenance{border-top:3px solid #1a55e3}
+summary{cursor:pointer;color:var(--primary);font-weight:600;padding:5px 0}details.panel>summary{font-size:18px}
+pre{font:11px/1.5 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#f8f9fb;padding:14px;max-height:480px;overflow:auto}
+.timeline{max-height:330px;overflow:auto;padding-left:22px;font-size:12px}.timeline li{padding:6px;overflow-wrap:anywhere}
+.answer{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}.acceptance{font-size:13px;font-weight:650;color:#146544}.failure{color:#9b253d}
+footer{font-size:11px;color:var(--muted);margin:26px 0}
+@media(max-width:1100px){.layout{grid-template-columns:1fr}.sidebar{padding:12px 20px;border-bottom:1px solid var(--border)}.sidebar nav{display:flex;flex-wrap:wrap}.sidebar-note{display:none}.evidence-grid{grid-template-columns:1fr}}
+@media(max-width:650px){main{padding:20px 14px}.topbar{padding:12px 16px;gap:14px}.topbar span{font-size:10px}h1{font-size:24px}.metrics,.agents,.charts{grid-template-columns:1fr}.panel{padding:18px}.row label{flex-basis:100%}}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#workspace">Skip to research workspace</a>
+<header class="topbar"><a class="brand" href="#workspace">caldova</a><span>Research operations / Evidence workspace</span><span>LAB722 reactor</span></header>
+<div class="layout">
+<aside class="sidebar">
+ <p class="eyebrow">Caldova workspace</p>
+ <nav aria-label="Workspace navigation"><a href="#workspace">Research overview</a><a href="#trials-heading">Trial evidence</a><a href="#safety-heading">Safety reports</a><a href="#provenance">Data provenance</a><a id="inspect-link" href="#execution">Inspect execution</a></nav>
+ <div class="sidebar-note"><strong>Evidence, with boundaries</strong><p>Frozen public records. Visible sources. No clinical recommendations.</p><p>Express hosts the UI/API and execution manager. Foundry hosts the orchestrator. Specialist agent loops run inside owned ACA Sandboxes; model inference is remote.</p></div>
+</aside>
+<main id="workspace" tabindex="-1">
+ <p class="eyebrow">Evidence-backed research</p>
+ <h1>Caldova research / LAB722 reactor</h1>
+ <p class="intro">Select a drug, inspect trial records and report mentions, and ask the hosted orchestrator to coordinate three Sandbox-resident agents.</p>
+ <section class="panel" aria-labelledby="account-heading">
+  <h2 id="account-heading">Demo application account</h2>
+  <p class="note">Alice and Bob are application accounts, not Entra users. Use the password from your facilitator. The server determines customer ownership.</p>
+  <form id="login-form">
+   <div class="row"><label>Username<input id="username" autocomplete="username" required></label><label>Password<input id="password" type="password" autocomplete="current-password" required></label><button id="login" type="submit">Sign in</button><button id="logout" class="secondary" type="button" disabled>Sign out</button></div>
+  </form>
+  <p id="identity" class="note" aria-live="polite">Checking session…</p>
+  <p id="connection" class="note"></p>
+ </section>
+ <aside class="warning"><strong>Bounded public-data demonstration</strong><p>Frozen trial records and a cached safety-report sample, not complete or representative coverage. Report mentions are not incidence rates, evidence of causality, or medical advice.</p></aside>
+ <section class="panel" aria-labelledby="research-heading">
+  <h2 id="research-heading">Research workspace</h2>
+  <div class="row">
+   <label>Research candidate / drug<select id="candidate" disabled><option value="">Sign in to load the public catalog</option></select></label>
+   <label>Trial condition<select id="condition" disabled><option value="">All conditions</option><option value="obesity">Obesity</option><option value="type-2-diabetes">Type 2 diabetes</option></select></label>
+  </div>
+  <p id="candidate-area" class="note"></p>
+  <p class="note">The condition filter applies to trials only. Safety reports mention the selected drug across the frozen sample.</p>
+  <label class="ask">Research question<textarea id="question">For the selected drug, show obesity trials by phase and summarize the safety reports in this frozen sample.</textarea></label>
+  <div class="actions"><button id="run" disabled>Ask research</button><button id="retry-metadata" class="secondary" disabled>Reload public catalog</button><button id="cancel-main" class="secondary" disabled>Cancel current run</button></div>
+  <p id="status" class="status" role="status" aria-live="polite">Sign in to begin research. No agent analysis has been requested.</p>
+ </section>
+ <section class="panel" aria-labelledby="swarm-heading">
+  <h2 id="swarm-heading">On-demand agent swarm</h2>
+  <p class="note">Clinical trials and drug specialists investigate; quality assurance reviews their outputs. These cards show server-reported observations, not simulated progress. Three roles do not imply three simultaneous Sandboxes.</p>
+  <div id="agents" class="agents"></div>
+  <details open><summary>Live role / Sandbox timeline</summary><p id="event-note" class="note"></p><ol id="events" class="timeline"></ol></details>
+ </section>
+ <section class="panel" aria-labelledby="answer-heading">
+  <h2 id="answer-heading">Research answer</h2>
+  <p id="acceptance" class="acceptance">No accepted research result yet.</p>
+  <p class="note">Source facts and charts below require accepted run evidence. A generated explanation is separate from independent validation.</p>
+  <div id="answer" class="answer">Ask research to obtain a correlated agent result. Browsing the catalog does not execute an agent.</div>
+ </section>
+ <div id="research-results" hidden>
+  <div class="metrics" aria-label="Accepted evidence summary">
+   <div class="metric"><span>Trials matching candidate / condition</span><strong id="trial-count"></strong><small>Source records, not an efficacy comparison</small></div>
+   <div class="metric"><span>Reports mentioning this candidate</span><strong id="report-count"></strong><small>Distinct reports, not an incidence rate</small></div>
+   <div class="metric"><span>Evidence mode</span><strong style="font-size:20px">Frozen public extract</strong><small id="result-version"></small></div>
+  </div>
+  <div class="evidence-grid">
+   <section class="panel" aria-labelledby="trials-heading">
+    <p class="eyebrow">Clinical-trial records</p><h2 id="trials-heading">Trial evidence</h2>
+    <div class="charts"><div><h3>By phase</h3><div id="phase-chart"></div></div><div><h3>By status</h3><div id="status-chart"></div></div></div>
+    <p class="note">Counts describe the accepted candidate/condition extract, not efficacy or safety. Display filters below affect trials only.</p>
+    <div class="row"><label>Trial phase<select id="phase"><option value="">All phases</option></select></label><label>Trial status<select id="trial-status"><option value="">All statuses</option></select></label></div>
+    <p id="trial-display-count" class="note"></p><div id="trials"></div><button id="more-trials" class="secondary" hidden>Show 10 more trials</button>
+   </section>
+   <section class="panel" aria-labelledby="safety-heading">
+    <p class="eyebrow">Report mentions</p><h2 id="safety-heading">Safety-report records</h2>
+    <p class="note">Reports are not filtered to the trial condition and may mention multiple candidates. Reaction counts describe report mentions in this sample only.</p>
+    <h3>Reported reaction terms</h3><div id="reaction-chart"></div>
+    <div id="reports"></div><button id="more-reports" class="secondary" hidden>Show 10 more reports</button>
+   </section>
+  </div>
+  <aside class="panel"><h2>Accepted result limitations</h2><div id="result-limitations"></div></aside>
+ </div>
+ <section id="provenance" class="panel provenance" aria-labelledby="provenance-heading">
+  <p class="eyebrow">Trace the input</p><h2 id="provenance-heading">Data provenance and coverage</h2>
+  <p id="dataset-version" class="note">Sign in to load frozen dataset identity and original source attribution.</p>
+  <div id="metadata-limitations"></div><div id="sources"></div>
+ </section>
+ <details id="execution" class="panel">
+  <summary>Inspect execution</summary>
+  <p class="note">Owned IDs, raw evidence, generated output, QA findings, model/tool usage, resource and cleanup receipts belong here. Completed is not necessarily accepted. Reported cleanup is not independently observed deletion; consult actual resource receipts.</p>
+  <div class="row"><label>Run ID<input id="run-id" placeholder="Current owned run" autocomplete="off"></label><label>Artifact ID<input id="artifact-id" placeholder="From owned run artifacts" autocomplete="off"></label></div>
+  <div class="actions"><button id="refresh" class="secondary" disabled>Inspect owned run</button><button id="artifact" class="secondary" disabled>Inspect evidence artifact</button><button id="cancel" class="secondary" disabled>Cancel and reconcile owned run</button></div>
+  <p class="note">Automatic polling pauses on errors. Use Inspect owned run to resume. A repeated idempotency key reuses the request; a new key starts a new execution.</p>
+  <div class="row"><label>Idempotency key<input id="key" autocomplete="off"></label><button id="new-key" class="secondary">New request key</button></div>
+  <h3>Existing lab exercises</h3><p class="note">These legacy probes are not research answers. Negative probes are expected to fail.</p>
+  <div class="row"><label>Task<select id="task"><option value="phases">Trial phase analysis</option><option value="safety">Safety report count</option><option value="workflow">Two workers and review</option><option value="egress">Prohibited Sandbox egress</option><option value="limit">Wall-time limit breach</option><option value="failure">Controlled exit 19</option></select></label><button id="legacy-run" disabled>Run lab exercise</button></div>
+  <h3>Owned run / hosted response</h3><pre id="output"></pre>
+  <h3>Raw artifact / independent acceptance evidence</h3><pre id="raw-evidence"></pre>
+ </details>
+ <footer>Caldova research / Microsoft Ignite 2026 / LAB722. Public input is shared; private sessions and execution results are owner-scoped. Demo ownership is application-asserted, not Entra end-user delegation.</footer>
+</main>
+</div>
+<script>
+"use strict";
+const el=id=>document.getElementById(id);
+const roles=["clinical_trials","drug_specialist","quality_assurance"];
+const roleNames={clinical_trials:"Clinical trials",drug_specialist:"Drug specialist",quality_assurance:"Quality assurance"};
+let csrf="",user=null,hostedConfigured=false,metadata=null,research=null,owned=null,evidence=null;
+let epoch=0,pollTimer=null,activeRun="",busy=false,authBusy=false,expectedSelection=null;
+let draftCandidate="",signoutPending=false,terminalChecks=0;
+let trialLimit=10,reportLimit=10;
+const requests=new Set();
+const text=value=>value==null?"":typeof value==="string"?value:JSON.stringify(value);
+const list=value=>Array.isArray(value)?value:[];
+const json=value=>JSON.stringify(value,null,2);
+const terminal=state=>["completed","failed","cancelled","canceled","rejected","succeeded","timed_out"].includes(state);
+function node(tag,value,className){
+ const result=document.createElement(tag);
+ if(value!==undefined)result.textContent=text(value);
+ if(className)result.className=className;
+ return result;
+}
+function paragraph(parent,value,className="note"){parent.append(node("p",value,className))}
+function safeLink(parent,url,label){
+ try{
+  const parsed=new URL(url);
+  if(parsed.protocol!=="https:"||parsed.username||parsed.password)return false;
+  const link=node("a",label);link.href=parsed.href;link.target="_blank";link.rel="noopener noreferrer";parent.append(link);return true;
+ }catch{return false}
+}
+function notes(parent,limitations,coverage){
+ parent.replaceChildren();
+ if(limitations)paragraph(parent,limitations);
+ for(const note of list(coverage))paragraph(parent,note);
+}
+function updateControls(){
+ const authenticated=Boolean(user)&&!authBusy;
+ el("login").disabled=authBusy;el("logout").disabled=authBusy||(!authenticated&&!signoutPending);
+ el("candidate").disabled=!authenticated||!metadata;el("condition").disabled=!authenticated||!metadata;
+ el("run").disabled=!authenticated||!hostedConfigured||!metadata||!el("candidate").value||busy;
+ el("legacy-run").disabled=!authenticated||!hostedConfigured||busy;
+ for(const id of ["refresh","artifact","cancel"])el(id).disabled=!authenticated||busy;
+ el("cancel-main").disabled=!authenticated||!activeRun||busy||terminal(owned?.state||owned?.status);
+ el("retry-metadata").disabled=!authenticated||busy;
+}
+function resetOwned(){
+ epoch++;clearTimeout(pollTimer);pollTimer=null;
+ for(const request of requests)request.abort();
+ requests.clear();busy=false;activeRun="";owned=null;evidence=null;research=null;expectedSelection=null;terminalChecks=0;
+ el("output").textContent="";el("raw-evidence").textContent="";
+ el("run-id").value="";el("artifact-id").value="";
+ el("research-results").hidden=true;el("answer").textContent="Ask research to obtain a correlated agent result.";
+ el("acceptance").textContent="No accepted research result yet.";el("acceptance").className="acceptance";
+ for(const id of ["trials","reports","phase-chart","status-chart","reaction-chart","result-limitations"])el(id).replaceChildren();
+ for(const id of ["trial-count","report-count","result-version","trial-display-count"])el(id).textContent="";
+ filterOptions("phase",{},"All phases");filterOptions("trial-status",{},"All statuses");
+ renderSwarm(null);updateControls();
+ return epoch;
+}
+function resetAccount(){
+ if(el("candidate").value)draftCandidate=el("candidate").value;
+ resetOwned();user=null;metadata=null;hostedConfigured=false;
+ signoutPending=false;
+ el("candidate").replaceChildren(node("option","Sign in to load the public catalog"));
+ el("candidate").firstChild.value="";
+ el("candidate-area").textContent="";el("dataset-version").textContent="Sign in to load frozen dataset identity and original source attribution.";
+ el("metadata-limitations").replaceChildren();el("sources").replaceChildren();
+ el("identity").textContent="Signed out";el("connection").textContent="";
+ updateControls();
+}
+function stale(){return new DOMException("Superseded request","AbortError")}
+async function api(path,body,version=epoch){
+ if(version!==epoch)throw stale();
+ const controller=new AbortController();requests.add(controller);
+ try{
+  const options={signal:controller.signal,credentials:"same-origin",cache:"no-store"};
+  if(body!==undefined){options.method="POST";options.headers={"Content-Type":"application/json","X-CSRF-Token":csrf};options.body=JSON.stringify(body)}
+  const response=await fetch(path,options);const raw=await response.text();
+  if(version!==epoch)throw stale();
+  let value;try{value=JSON.parse(raw)}catch{value={error:raw}}
+  if(response.status===401||response.status===403){
+   resetAccount();csrf="";
+   el("status").textContent=response.status===401?"Session expired or sign-in failed. Sign in again.":"Access denied. Owned results cleared; sign in again to confirm the current account.";
+   throw stale();
+  }
+  if(!response.ok)throw new Error("HTTP "+response.status+": "+text(value.detail??value.error??value));
+  return value;
+ }finally{requests.delete(controller)}
+}
+function fail(error,version){
+ if(version===epoch&&error.name!=="AbortError")el("status").textContent=error.message+" No new result has been accepted.";
+}
+async function session(version=epoch){
+ const value=await api("/api/session",undefined,version);
+ if(user&&(user.user_id!==value.user_id||user.customer_id!==value.customer_id)){resetAccount();return session(epoch)}
+ csrf=value.csrf||"";user=value.user_id?{user_id:value.user_id,customer_id:value.customer_id}:null;
+ hostedConfigured=value.hosted_configured===true;
+ el("identity").textContent=user?`${user.user_id} / ${user.customer_id} (application-asserted)`:"Signed out";
+ el("connection").textContent=hostedConfigured?"Hosted endpoint configured. Live agent execution is established only by an owned run and its evidence.":"Hosted orchestrator not connected. Sign-in and owned inspection remain available; ask the facilitator to configure the learner-created endpoint.";
+ updateControls();if(user)await loadMetadata(version);
+}
+async function loadMetadata(version=epoch){
+ const value=await api("/api/research/metadata",undefined,version);
+ if(!list(value.candidates).length)throw new Error("The public catalog has no research candidates.");
+ const previous=el("candidate").value||draftCandidate;metadata=value;
+ el("candidate").replaceChildren();
+ for(const candidate of value.candidates){const option=node("option",candidate.name);option.value=candidate.candidate_id;el("candidate").append(option)}
+ if(value.candidates.some(candidate=>candidate.candidate_id===previous))el("candidate").value=previous;
+ draftCandidate=el("candidate").value;
+ candidateArea();
+ el("dataset-version").textContent="Frozen dataset: "+text(value.dataset_version);
+ notes(el("metadata-limitations"),value.limitations,value.coverage_notes);
+ el("sources").replaceChildren();
+ for(const source of list(value.sources)){
+  const card=node("article",undefined,"record");card.append(node("h3",source.name||source.source_id));
+  paragraph(card,source.attribution);paragraph(card,source.license_notes);
+  paragraph(card,"Snapshot/export: "+text(source.release)+(source.retrieved_at?"; acquired "+text(source.retrieved_at):""));
+  if(source.url&&!safeLink(card,source.url,"Open original source"))paragraph(card,"Source link unavailable (HTTPS URL required).");
+  el("sources").append(card);
+ }
+ updateControls();
+}
+function candidateArea(){
+ const candidate=list(metadata?.candidates).find(item=>item.candidate_id===el("candidate").value);
+ el("candidate-area").textContent=candidate?candidate.name+" / "+candidate.research_area:"";
+}
+function renderSwarm(swarm){
+ el("agents").replaceChildren();
+ for(const role of roles){
+  const observations=list(swarm?.agents).filter(agent=>agent.role===role);
+  const card=node("article",undefined,"agent");card.append(node("h3",roleNames[role]));
+  if(!observations.length)paragraph(card,"Awaiting server-observed activity.");
+  for(const agent of observations){
+   paragraph(card,agent.status||"Status not reported");
+   card.append(node("code",agent.sandbox_id?"Sandbox: "+agent.sandbox_id:"Sandbox ID not yet reported"));
+   paragraph(card,"Model calls: "+text(agent.model_calls??"not reported")+" · Tool calls: "+text(agent.tool_calls??"not reported"));
+  }
+  el("agents").append(card);
+ }
+ const events=list(swarm?.events);el("events").replaceChildren();
+ el("event-note").textContent=events.length?`${swarm?.status?"Swarm: "+text(swarm.status)+". ":""}Showing ${Math.min(events.length,100)} of ${events.length} owned events.`:"No owned execution events have been reported.";
+ for(const event of events.slice(-100)){
+  const item=node("li");item.append(node("strong",text(event.at)+" · "+(roleNames[event.role]||text(event.role))+" · "+text(event.event)));
+  if(event.sandbox_id)item.append(node("code"," · Sandbox: "+event.sandbox_id));
+  if(event.detail)paragraph(item,event.detail);
+  el("events").append(item);
+ }
+}
+function citation(parent,record){
+ const source=list(metadata?.sources).find(item=>item.source_id===record.source_id);
+ const box=node("div",undefined,"citation");box.append(node("span",source?.name||record.source_id||"Source not supplied"));
+ box.append(node("code",record.source_record_id||record.trial_id||record.report_id||"Record identifier not supplied"));
+ const archive=typeof record.source_url==="string"&&/\.zip(?:[?#]|$)/i.test(record.source_url);
+ if(record.source_url&&!safeLink(box,record.source_url,archive?"Source partition ZIP (download; contains multiple reports)":"Open original source record"))box.append(node("span","Source link unavailable (HTTPS URL required)."));
+ parent.append(box);
+}
+function originalFields(parent,label,value){
+ const details=node("details");details.append(node("summary",label),node("pre",json(value)));parent.append(details);
+}
+function counts(records,field){
+ const values=Object.create(null);
+ for(const record of records){const value=text(record[field]||"Not reported");values[value]=(values[value]||0)+1}
+ return values;
+}
+function chart(parent,values,total){
+ parent.replaceChildren();
+ const entries=Object.entries(values||{}).filter(([,count])=>Number.isFinite(count)&&count>=0).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+ if(!entries.length){paragraph(parent,"No records in this accepted sample.");return}
+ for(const [label,count] of entries){
+  const row=node("div",undefined,"chart-row"),name=node("span",label.replaceAll("_"," "));
+  const meter=document.createElement("meter");meter.min=0;meter.max=Math.max(1,total,...entries.map(([,n])=>n));meter.value=count;meter.setAttribute("aria-label",label+": "+count+" record mentions");name.append(meter);
+  row.append(name,node("strong",count));parent.append(row);
+ }
+}
+function filterOptions(id,values,label){
+ el(id).replaceChildren();const all=node("option",label);all.value="";el(id).append(all);
+ for(const value of Object.keys(values).sort()){const option=node("option",value.replaceAll("_"," "));option.value=value;el(id).append(option)}
+}
+function renderTrials(){
+ if(!research)return;
+ const trials=research.trials.filter(trial=>(!el("phase").value||trial.phase===el("phase").value)&&(!el("trial-status").value||trial.status===el("trial-status").value));
+ el("trials").replaceChildren();el("trial-display-count").textContent=`Showing ${Math.min(trialLimit,trials.length)} of ${trials.length} matching records (${research.trials.length} accepted trials).`;
+ if(!trials.length)paragraph(el("trials"),"No trial records match these display filters.");
+ for(const trial of trials.slice(0,trialLimit)){
+  const card=node("article",undefined,"record"),tags=node("div",undefined,"tags");
+  tags.append(node("span",trial.phase,"tag"),node("span",trial.status,"tag"));card.append(tags,node("h3",trial.title||trial.trial_id));
+  paragraph(card,"Matched research topics: "+list(trial.conditions).join(", "));
+  if(trial.source_conditions||trial.source_interventions)originalFields(card,"Original source labels",{conditions:trial.source_conditions,matched_interventions:trial.source_interventions});
+  citation(card,trial);el("trials").append(card);
+ }
+ el("more-trials").hidden=trials.length<=trialLimit;
+}
+function renderReports(){
+ if(!research)return;
+ el("reports").replaceChildren();
+ if(!research.safety_reports.length)paragraph(el("reports"),"No cached report records mention this candidate.");
+ for(const report of research.safety_reports.slice(0,reportLimit)){
+  const card=node("article",undefined,"record");card.append(node("h3",report.report_id));paragraph(card,"Version "+text(report.version));
+  const terms=node("div",undefined,"tags");for(const term of list(report.reaction_terms))terms.append(node("span",term,"tag"));card.append(terms);
+  paragraph(card,"Candidate mentions: "+list(report.candidate_ids).map(id=>list(metadata?.candidates).find(candidate=>candidate.candidate_id===id)?.name||id).join(", "));
+  if(report.source_drugs){paragraph(card,"Harmonized brand arrays are metadata, not proof of products taken.");originalFields(card,"Original report fields",{matched_drugs:report.source_drugs,original_reaction_terms:report.original_reaction_terms})}
+  citation(card,report);el("reports").append(card);
+ }
+ el("more-reports").hidden=research.safety_reports.length<=reportLimit;
+}
+function hostedSummaries(hosted){
+ const summaries=[];
+ function read(value,depth=0){
+  if(depth>8||value==null)return;
+  if(typeof value==="string"){try{read(JSON.parse(value),depth+1)}catch{}return}
+  if(Array.isArray(value)){for(const item of value)read(item,depth+1);return}
+  if(typeof value!=="object")return;
+  if(typeof value.summary==="string")summaries.push(value.summary);
+  for(const key of ["output","content","text","response"])if(value[key]!==undefined)read(value[key],depth+1);
+ }
+ read(hosted);return [...new Set(summaries)].join("\n\n");
+}
+function renderAnswer(){
+ if(!research)return;
+ el("answer").textContent=hostedSummaries(owned?.hosted)||"Accepted source evidence is available below. No hosted research summary has been returned; inspect the owned hosted response for details.";
+}
+function acceptEvidence(value){
+ evidence=value;el("raw-evidence").textContent=json(value);
+ research=null;el("research-results").hidden=true;
+ if(value.accepted!==true){
+  el("acceptance").textContent="QA / independent validation failed or acceptance was not confirmed. This output is not accepted research.";
+  el("acceptance").className="acceptance failure";
+  el("answer").textContent="Unaccepted output is available only under Inspect execution.";
+  return;
+ }
+ const result=value.research;
+ if(!result){
+  el("acceptance").textContent="Accepted execution evidence, but no research result was supplied (for example, a legacy lab exercise).";
+  el("answer").textContent="Inspect the execution evidence; this is not a drug research answer.";return;
+ }
+ if(!result.candidate||!Array.isArray(result.trials)||!Array.isArray(result.safety_reports)||
+    (expectedSelection&&result.candidate.candidate_id!==expectedSelection.candidate_id)){
+  el("acceptance").textContent="Validation failure: research evidence is missing required records or does not match the requested candidate.";
+  el("acceptance").className="acceptance failure";el("answer").textContent="No research result displayed. Inspect the raw evidence.";return;
+ }
+ research=result;trialLimit=10;reportLimit=10;
+ el("acceptance").className="acceptance";
+ el("acceptance").textContent="Accepted run evidence · "+result.candidate.name+" · "+(expectedSelection?(expectedSelection.condition||"all trial conditions"):"condition recorded in owned request")+" · "+result.dataset_version;
+ el("trial-count").textContent=result.trials.length;el("report-count").textContent=result.safety_reports.length;
+ el("result-version").textContent=result.dataset_version;
+ const phases=counts(result.trials,"phase"),statuses=counts(result.trials,"status");
+ chart(el("phase-chart"),result.phase_counts||phases,result.trials.length);chart(el("status-chart"),statuses,result.trials.length);
+ chart(el("reaction-chart"),result.reaction_counts,result.safety_reports.length);
+ filterOptions("phase",phases,"All phases");filterOptions("trial-status",statuses,"All statuses");
+ notes(el("result-limitations"),result.limitations,result.coverage_notes);
+ renderTrials();renderReports();renderAnswer();el("research-results").hidden=false;
+}
+function runPath(id=activeRun){
+ if(!id)throw new Error("Enter an owned run ID first.");
+ return "/api/runs/"+encodeURIComponent(id);
+}
+async function inspectRun(version=epoch){
+ const response=await api(runPath(),undefined,version);
+ owned=response.run?{...response.run,artifacts:response.artifacts??response.run.artifacts,hosted:response.hosted??response.run.hosted,swarm:response.swarm??response.run.swarm}:response;
+ el("output").textContent=json(response);renderSwarm(owned.swarm);
+ const state=owned.state||owned.status||"not reported";el("status").textContent="Owned run: "+state+". "+(terminal(state)?"Completion is separate from acceptance.":"Waiting for observed agent activity…");
+ const artifact=list(owned.artifacts).find(item=>item.name==="evidence");
+ if(terminal(state)&&artifact&&(!evidence||el("artifact-id").value!==artifact.artifact_id)){
+  el("artifact-id").value=artifact.artifact_id;
+  const result=await api(runPath()+"/artifacts/"+encodeURIComponent(artifact.artifact_id),undefined,version);
+  acceptEvidence(result);
+ }else if(terminal(state)&&!artifact&&!evidence){
+  el("acceptance").textContent=state==="completed"?"Run completed; accepted research evidence is not available yet.":"Run "+state+"; no accepted research result.";
+ }
+ renderAnswer();updateControls();
+ // A terminal execution may precede persistence of its hosted summary or evidence.
+ const awaitingResult=state==="completed"&&(!artifact||(research&&!hostedSummaries(owned.hosted)));
+ if(!terminal(state))schedulePoll(version);
+ else if(awaitingResult&&++terminalChecks<15)schedulePoll(version);
+ else if(awaitingResult)el("status").textContent="Execution completed, but its accepted evidence or hosted summary is still unavailable. Inspect owned run to check again.";
+}
+function schedulePoll(version){
+ clearTimeout(pollTimer);
+ pollTimer=setTimeout(async()=>{try{await inspectRun(version)}catch(error){fail(error,version)}},2000);
+}
+async function submit(task){
+ if(busy||!user)return;
+ const candidate_id=el("candidate").value,condition=el("condition").value,question=el("question").value.trim(),key=el("key").value.trim();
+ if(!question||!key){el("status").textContent="Enter a question and an idempotency key.";return}
+ const version=resetOwned();busy=true;updateControls();el("status").textContent="Submitting owned "+(task==="research"?"research":"lab exercise")+" request…";
+ if(task==="research")expectedSelection={candidate_id,condition};
+ try{
+  const body={task,question,idempotency_key:key};if(task==="research")Object.assign(body,{candidate_id,condition});
+  const response=await api("/api/runs",body,version);const run=response.run||response;
+  if(!run.run_id)throw new Error("The service did not return an owned run ID.");
+  activeRun=run.run_id;el("run-id").value=activeRun;el("output").textContent=json(response);
+  el("status").textContent=response.reused?"Existing owned request reused; inspecting its actual evidence.":"Owned request submitted; waiting for observed execution.";
+  busy=false;updateControls();await inspectRun(version);
+ }catch(error){fail(error,version)}finally{if(version===epoch){busy=false;updateControls()}}
+}
+async function inspectEntered(){
+ if(busy||!user)return;
+ const id=el("run-id").value.trim();if(!id){el("status").textContent="Enter an owned run ID first.";return}
+ const selection=id===activeRun?expectedSelection:null;
+ const version=resetOwned();activeRun=id;el("run-id").value=id;expectedSelection=selection;
+ clearTimeout(pollTimer);terminalChecks=0;busy=true;updateControls();
+ try{await inspectRun(version)}catch(error){fail(error,version)}finally{if(version===epoch){busy=false;updateControls()}}
+}
+async function cancelRun(){
+ if(busy||!user)return;
+ const id=el("run-id").value.trim()||activeRun;if(!id){el("status").textContent="Enter an owned run ID first.";return}
+ const version=resetOwned();activeRun=id;el("run-id").value=id;busy=true;updateControls();
+ try{
+  const result=await api(runPath()+"/cancel",{},version);el("output").textContent=json(result);
+  await inspectRun(version);
+ }catch(error){fail(error,version)}finally{if(version===epoch){busy=false;updateControls()}}
+}
+el("login-form").onsubmit=async event=>{
+ event.preventDefault();if(authBusy)return;
+ const username=el("username").value,password=el("password").value;
+ resetAccount();authBusy=true;updateControls();el("password").value="";const version=epoch;
+ try{
+  if(!csrf){const value=await api("/api/session",undefined,version);csrf=value.csrf||""}
+  await api("/api/login",{username,password},version);await session(version);if(version===epoch)el("status").textContent="Signed in. Select a candidate and ask research."
+ }
+ catch(error){fail(error,version)}finally{authBusy=false;updateControls()}
+};
+el("logout").onclick=async()=>{
+ if(authBusy)return;
+ resetAccount();signoutPending=true;authBusy=true;updateControls();el("password").value="";const version=epoch;
+ try{await api("/api/logout",{},version);signoutPending=false;csrf="";await session(version);el("status").textContent="Signed out. Owned results cleared; your question and filter drafts are retained."}
+ catch(error){fail(error,version);signoutPending=true;el("identity").textContent="Local results cleared; server sign-out was not confirmed. Sign in again or retry sign-out."}
+ finally{authBusy=false;updateControls()}
+};
+for(const id of ["candidate","condition"])el(id).onchange=()=>{draftCandidate=el("candidate").value;resetOwned();candidateArea();el("key").value=crypto.randomUUID();el("status").textContent="Selection changed. Ask research for a new accepted result. Previous server work is not canceled."};
+el("run").onclick=()=>submit("research");
+el("legacy-run").onclick=()=>submit(el("task").value);
+el("refresh").onclick=inspectEntered;
+el("cancel").onclick=cancelRun;el("cancel-main").onclick=cancelRun;
+el("artifact").onclick=async()=>{
+ if(busy||!user)return;
+ const id=el("run-id").value.trim(),artifact=el("artifact-id").value.trim();
+ if(!id||!artifact){el("status").textContent="Enter an owned run ID and artifact ID.";return}
+ const version=resetOwned();activeRun=id;el("run-id").value=id;el("artifact-id").value=artifact;busy=true;updateControls();
+ try{const result=await api(runPath()+"/artifacts/"+encodeURIComponent(artifact),undefined,version);acceptEvidence(result);el("status").textContent="Owned artifact retrieved. Read its acceptance state."}
+ catch(error){fail(error,version)}finally{if(version===epoch){busy=false;updateControls()}}
+};
+el("retry-metadata").onclick=async()=>{const version=resetOwned();try{await loadMetadata(version);el("status").textContent="Public catalog loaded; no agent analysis executed."}catch(error){fail(error,version)}};
+el("new-key").onclick=()=>{resetOwned();el("key").value=crypto.randomUUID();el("status").textContent="New request key prepared. Previous server work is not canceled; inspect its owned ID to reconcile."};
+el("phase").onchange=el("trial-status").onchange=()=>{trialLimit=10;renderTrials()};
+el("more-trials").onclick=()=>{trialLimit+=10;renderTrials()};
+el("more-reports").onclick=()=>{reportLimit+=10;renderReports()};
+el("inspect-link").onclick=()=>{el("execution").open=true};
+el("key").value=crypto.randomUUID();renderSwarm(null);
+session().catch(error=>fail(error,epoch));
+</script>
+</body>
+</html>

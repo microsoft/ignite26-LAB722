@@ -10,6 +10,9 @@ param tags object
 @description('User-assigned identity resource ID used by the Sandbox group.')
 param sandboxIdentityId string
 
+@description('Keep the legacy group identity by default. Generated-analysis Sandboxes must not inherit it.')
+param enableGroupIdentity bool = true
+
 @description('Object ID granted Sandbox data-plane access. Empty skips the role assignment.')
 param labUserPrincipalId string
 
@@ -32,12 +35,12 @@ resource sandboxGroup 'Microsoft.App/sandboxGroups@2026-02-01-preview' = {
   name: '${baseName}-sandboxes'
   location: location
   tags: tags
-  identity: {
+  identity: enableGroupIdentity ? {
     type: 'UserAssigned'
     userAssignedIdentities: {
       '${sandboxIdentityId}': {}
     }
-  }
+  } : { type: 'None' }
   properties: {
     defaultCpu: '2'
     defaultMemory: '4Gi'

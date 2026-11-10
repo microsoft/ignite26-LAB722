@@ -1,14 +1,8 @@
 # Supporting documentation
 
-Attendee steps live in [`instructions/`](../instructions/README.md). This folder contains maintainer and facilitator context:
+- [Runtime architecture and trust boundaries](architecture.md)
+- [Architecture diagram](diagrams/application-architecture.svg)
+- [Deployment requirements, quickstart and troubleshooting](../README.md)
+- [Current lab instructions](../instructions/README.md)
 
-- [Architecture and trust boundaries](architecture.md)
-- [Implementation plan](implementation-plan.md)
-
-Additional documents planned for implementation:
-
-- Security model
-- Data provenance
-- Responsible-use guidance
-- Facilitator guide
-- Troubleshooting reference
+The current lab operates a running research swarm. It does not ask agents to implement missing application features or build a release candidate.
