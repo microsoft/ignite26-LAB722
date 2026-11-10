@@ -20,7 +20,7 @@ $root = Split-Path -Parent $PSScriptRoot
 if ($PreparedStatePath) {
     $PreparedStatePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PreparedStatePath)
 }
-$profile = Join-Path $root 'local-reactor'
+$profile = $root
 $base = if ($null -ne $AllocationValues) { $AllocationValues } else {
     & (Join-Path $PSScriptRoot 'prepare-local-reactor.ps1') -Mode Values
 }
@@ -61,7 +61,8 @@ if ($null -ne $prepared) {
             $prepared.ProjectEndpoint -cne $base.ProjectEndpoint) {
         throw 'Research preparation belongs to another allocation; no adoption or replacement was performed.'
     }
-    if ($prepared.ServiceImage -cne $catalog.service_image -or $prepared.AgentImage -cne $catalog.agent_image) {
+    if ($prepared.ServiceImage -cne $catalog.service_image -or $prepared.AgentImage -cne $catalog.agent_image -or
+            $prepared.HostedImage -cne $catalog.hosted_image) {
         throw 'Prepared images differ. Plan an explicit migration; do not redeploy an execution app with owned evidence.'
     }
     if ($prepared.FrontendName -cne $FrontendName -or $prepared.ExecutionName -cne $ExecutionName -or

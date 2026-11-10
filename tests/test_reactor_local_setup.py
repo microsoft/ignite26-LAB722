@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
@@ -242,6 +243,197 @@ try { . ([scriptblock]::Create($main)) } catch { $failure=$_.Exception.Message }
         result = self.run_handoff(other_project=True)
         self.assertIn("different project", result["failure"])
         self.assertEqual(result["events"], [])
+
+
+@unittest.skipUnless(shutil.which("pwsh"), "PowerShell 7 required")
+class LocalResearchPreparation(unittest.TestCase):
+    def run_research(self, *, mismatch=False, hosted_failed=False):
+        source = str(ROOT / "scripts" / "prepare-local-reactor.ps1").replace("'", "''")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            scripts = root / "scripts"
+            scripts.mkdir()
+            (root / "data").mkdir()
+            shutil.copyfile(ROOT / "data" / "reactor-research-images.json",
+                            root / "data" / "reactor-research-images.json")
+            (scripts / "prepare-reactor-swarm.ps1").write_text("""
+param($AllocationValues,$ImageCatalogPath,$PythonExecutable,$AlicePassword,$BobPassword)
+$global:events.Add(@{kind='swarm';allocation=$AllocationValues;
+    catalog=(Get-Content $ImageCatalogPath -Raw|ConvertFrom-Json)})
+[pscustomobject]@{
+    SubscriptionId=$AllocationValues.SubscriptionId;ResourceGroupName=$AllocationValues.ResourceGroupName
+    ProjectEndpoint=$AllocationValues.ProjectEndpoint;HostedName='reactor-research-orchestrator'
+    HostedVersion='7';HostedEndpoint='https://hosted.example/responses?api-version=v1'
+    FrontendName='research-frontend';FrontendUrl='https://frontend.example';HostedConnected=$false
+}
+""", encoding="utf-8")
+            (scripts / "connect-reactor-frontend.ps1").write_text("""
+param($SubscriptionId,$ResourceGroupName,$FrontendName,$ProjectEndpoint,$AgentName,$HostedResponsesEndpoint)
+$global:events.Add(@{kind='connect';frontend=$FrontendName;endpoint=$HostedResponsesEndpoint})
+$global:connected=$true
+""", encoding="utf-8")
+            program = r"""
+$ErrorActionPreference='Stop'
+$ast=[System.Management.Automation.Language.Parser]::ParseFile('__SOURCE__',[ref]$null,[ref]$null)
+foreach ($statement in $ast.EndBlock.Statements) {
+    if ($statement -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+        . ([scriptblock]::Create($statement.Extent.Text))
+    }
+}
+$global:events=[Collections.Generic.List[object]]::new()
+$global:connected=$false
+$configFixture=@{
+    AZURE_ENV_NAME='research';AZURE_SUBSCRIPTION_ID='11111111-1111-1111-1111-111111111111'
+    AZURE_RESOURCE_GROUP='local-group';AZURE_LOCATION='westus3';LAB_USER_PRINCIPAL_ID='operator'
+    FOUNDRY_ACCOUNT_NAME='account';FOUNDRY_PROJECT_NAME='reactor'
+    FOUNDRY_PROJECT_ENDPOINT='https://account.services.ai.azure.com/api/projects/reactor'
+    FOUNDRY_MODEL_DEPLOYMENT_NAME='gpt-5.2';EXPRESS_ENVIRONMENT_NAME='express'
+    SANDBOX_GROUP_NAME='sandboxes';AZURE_CONTAINER_REGISTRY_NAME='localregistry'
+    REACTOR_PYTHON='Invoke-FakePython'
+}
+function Read-LocalEnvironment { return $configFixture }
+function Ensure-ReactorRole { param($Scope,$Principal,$Role,$PrincipalType) }
+function Invoke-LocalNative {
+    param($Executable,$Arguments)
+    if ($Executable -eq 'aca') { return '[]' }
+    if ($Executable -eq 'azd') {
+        $global:events.Add(@{kind='state';arguments=$Arguments})
+        return ''
+    }
+    if ($Arguments[0] -eq 'account') {
+        return (@{id=$configFixture.AZURE_SUBSCRIPTION_ID;state='Enabled'}|ConvertTo-Json)
+    }
+    if ($Arguments[1] -eq 'import') {
+        $global:events.Add(@{kind='import';arguments=$Arguments})
+        return ''
+    }
+    if ($Arguments[2] -eq 'list') { return '[]' }
+    if ($Arguments[2] -eq 'show') {
+        $digest=(Get-Content '__ROOT__\data\reactor-research-images.json' -Raw|ConvertFrom-Json).hosted_image.Split('@')[1]
+        if (__MISMATCH__) { $digest='sha256:wrong' }
+        return (@{digest=$digest}|ConvertTo-Json)
+    }
+    throw "Unexpected native call: $Executable $Arguments"
+}
+function Invoke-ReactorArm {
+    param($Method,$ResourceId,$Version,$Body)
+    if ($ResourceId.EndsWith('/connections/reactor-allocated-registry')) {
+        if ($Method -eq 'PUT') {
+            $global:events.Add(@{kind='registry';body=$Body})
+            return
+        }
+        return @{properties=@{authType='ManagedIdentity';target='localregistry.azurecr.io'
+            metadata=@{ResourceId=($ResourceId.Split('/providers/Microsoft.CognitiveServices')[0] +
+                '/providers/Microsoft.ContainerRegistry/registries/localregistry')}}}
+    }
+    if ($ResourceId.EndsWith('/registries/localregistry')) {
+        return @{name='localregistry';tags=@{lab='LAB722';'azd-env-name'='research'}
+            properties=@{loginServer='localregistry.azurecr.io'}}
+    }
+    return @{identity=@{principalId='project-principal'}}
+}
+function Invoke-FakePython {
+    $global:LASTEXITCODE=0
+    '{"audience":"api://dedicated-execution"}'
+}
+function Wait-LocalHosted {
+    param($Name,$Version)
+    $global:events.Add(@{kind='wait';name=$Name;version=$Version})
+    if (__HOSTED_FAILED__) { throw 'Exact hosted version failed.' }
+}
+function Invoke-RestMethod {
+    param($Uri)
+    return @{hosted_configured=$global:connected}
+}
+$Mode='Research';$ServiceManagementReference=[securestring]::new()
+$AlicePassword=$null;$BobPassword=$null
+$main=($ast.EndBlock.Statements|Where-Object {
+    $_ -isnot [System.Management.Automation.Language.FunctionDefinitionAst]
+}|ForEach-Object {$_.Extent.Text}) -join "`n"
+$main='$PSScriptRoot=''__ROOT__\scripts'';' + $main
+$failure=''
+try { . ([scriptblock]::Create($main)) } catch { $failure=$_.Exception.Message }
+$values='__ROOT__\.build-contexts\research-research\learner-values.json'
+@{failure=$failure;events=@($global:events.ToArray());saved=(Test-Path $values)}|
+    ConvertTo-Json -Depth 20 -Compress
+"""
+            program = (program.replace("__SOURCE__", source)
+                       .replace("__ROOT__", str(root).replace("'", "''"))
+                       .replace("__MISMATCH__", "$true" if mismatch else "$false")
+                       .replace("__HOSTED_FAILED__", "$true" if hosted_failed else "$false"))
+            result = subprocess.run(["pwsh", "-NoProfile", "-NonInteractive", "-Command", program],
+                                    text=True, capture_output=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            output = json.loads(result.stdout.splitlines()[-1])
+            output["root"] = str(root)
+            return output
+
+    def test_research_mirrors_current_image_waits_then_connects_frontend_and_saves_root_state(self):
+        result = self.run_research()
+        self.assertEqual(result["failure"], "")
+        kinds = [event["kind"] for event in result["events"]]
+        self.assertEqual(kinds, ["import", "registry", "swarm", "wait", "connect", "state"])
+        swarm = next(event for event in result["events"] if event["kind"] == "swarm")
+        self.assertEqual(swarm["allocation"]["ExecutionApiAudience"], "api://dedicated-execution")
+        catalog = json.loads((ROOT / "data" / "reactor-research-images.json").read_text())
+        self.assertEqual(swarm["catalog"]["hosted_image"],
+                         catalog["hosted_image"].replace("acateam.azurecr.io", "localregistry.azurecr.io"))
+        self.assertEqual(swarm["catalog"]["agent_image"], catalog["agent_image"])
+        self.assertEqual(swarm["catalog"]["service_image"], catalog["service_image"])
+        wait = next(event for event in result["events"] if event["kind"] == "wait")
+        self.assertEqual(wait["version"], "7")
+        state = result["events"][-1]["arguments"]
+        self.assertEqual(state[:5], ["-C", result["root"], "env", "set", "RESEARCH_PREPARED_STATE"])
+        self.assertTrue(json.loads(state[5])["HostedConnected"])
+        self.assertTrue(result["saved"])
+
+    def test_mirror_digest_mismatch_stops_before_connection_or_deployment(self):
+        result = self.run_research(mismatch=True)
+        self.assertIn("digest differs", result["failure"])
+        self.assertEqual([event["kind"] for event in result["events"]], ["import"])
+        self.assertFalse(result["saved"])
+
+    def test_failed_exact_version_does_not_connect_or_claim_readiness(self):
+        result = self.run_research(hosted_failed=True)
+        self.assertIn("Exact hosted version failed", result["failure"])
+        self.assertNotIn("connect", [event["kind"] for event in result["events"]])
+        self.assertNotIn("state", [event["kind"] for event in result["events"]])
+        self.assertFalse(result["saved"])
+
+    def test_saved_swarm_cannot_silently_reuse_a_different_hosted_image(self):
+        catalog = json.loads((ROOT / "data" / "reactor-research-images.json").read_text())
+        allocation = {
+            "SubscriptionId": "subscription", "ResourceGroupName": "group", "Region": "westus3",
+            "SandboxGroupName": "sandboxes", "ProjectEndpoint": "https://project.example",
+            "FoundryAccountName": "account", "FoundryProjectName": "project",
+            "ExpressEnvironmentName": "express", "ExecutionApiAudience": "api://execution", "Model": "model",
+        }
+        prepared = {
+            **allocation, "ServiceImage": catalog["service_image"], "AgentImage": catalog["agent_image"],
+            "HostedImage": catalog["hosted_image"], "FrontendName": "lab722-research-frontend",
+            "ExecutionName": "lab722-research-execution", "HostedName": "reactor-research-orchestrator",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            state = Path(temporary) / "prepared.json"
+            for mismatch in (False, True):
+                with self.subTest(mismatch=mismatch):
+                    state.write_text(json.dumps({**prepared, "HostedImage":
+                                                 "other.azurecr.io/image@sha256:wrong" if mismatch
+                                                 else catalog["hosted_image"]}), encoding="utf-8")
+                    script = str(ROOT / "scripts" / "prepare-reactor-swarm.ps1").replace("'", "''")
+                    values = json.dumps(allocation).replace("'", "''")
+                    program = (
+                        f"$ErrorActionPreference='Stop'; $base='{values}'|ConvertFrom-Json -AsHashtable;"
+                        f"& '{script}' -Mode Values -AllocationValues $base "
+                        f"-PreparedStatePath '{str(state).replace(chr(39), chr(39)*2)}'|Out-Null"
+                    )
+                    result = subprocess.run(["pwsh", "-NoProfile", "-NonInteractive", "-Command", program],
+                                            text=True, capture_output=True, timeout=30)
+                    if mismatch:
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn("Prepared images differ", result.stderr)
+                    else:
+                        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":

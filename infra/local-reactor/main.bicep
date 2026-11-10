@@ -15,7 +15,11 @@ var tags = {
   'azd-env-name': environmentName
 }
 
-module foundry '../../infra/modules/foundry.bicep' = {
+module core '../modules/core.bicep' = {
+  name: 'core'
+  params: { location: location, baseName: baseName, tags: tags }
+}
+module foundry '../modules/foundry.bicep' = {
   name: 'foundry'
   params: {
     location: location
@@ -31,11 +35,11 @@ module foundry '../../infra/modules/foundry.bicep' = {
     labUserPrincipalType: 'User'
   }
 }
-module express '../../infra/modules/express.bicep' = {
+module express '../modules/express.bicep' = {
   name: 'express'
   params: { location: location, baseName: baseName, tags: tags }
 }
-module sandboxes '../../infra/modules/sandboxes.bicep' = {
+module sandboxes '../modules/sandboxes.bicep' = {
   name: 'sandboxes'
   params: {
     location: location
@@ -52,6 +56,7 @@ module sandboxes '../../infra/modules/sandboxes.bicep' = {
 output AZURE_SUBSCRIPTION_ID string = subscription().subscriptionId
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
 output AZURE_LOCATION string = location
+output AZURE_CONTAINER_REGISTRY_NAME string = core.outputs.containerRegistryName
 output FOUNDRY_ACCOUNT_NAME string = foundry.outputs.foundryAccountName
 output FOUNDRY_PROJECT_NAME string = foundry.outputs.foundryProjectName
 output FOUNDRY_PROJECT_ENDPOINT string = foundry.outputs.foundryProjectEndpoint

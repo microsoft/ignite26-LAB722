@@ -1,11 +1,25 @@
-name: ignite26-lab722
-metadata:
-  template: ignite26-lab722@0.1.0
-
+name: lab722-research
+resourceGroup: ${AZURE_RESOURCE_GROUP}
+workflows:
+  up:
+    steps:
+      - azd: provision
 infra:
   provider: bicep
-  path: infra
+  path: infra/local-reactor
   module: main
-
+hooks:
+  preup:
+    shell: pwsh
+    run: |
+      & .\scripts\prepare-local-reactor.ps1 -Mode Validate
+    interactive: true
+    continueOnError: false
+  postprovision:
+    shell: pwsh
+    run: |
+      & .\scripts\prepare-local-reactor.ps1 -Mode Research
+    interactive: true
+    continueOnError: false
 requiredVersions:
-  azd: ">= 1.33.0"
+  azd: ">= 1.35.1"

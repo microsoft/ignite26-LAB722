@@ -41,7 +41,7 @@ if ($exists) {
         'purpose=reactor2', "azd-env-name=$EnvironmentName", '-o', 'json')
 }
 $operator = Invoke-Reactor2Command az @('ad', 'signed-in-user', 'show', '--query', 'id', '-o', 'tsv')
-$template = Join-Path $root 'local-reactor\infra\main.bicep'
+$template = Join-Path $root 'infra\local-reactor\main.bicep'
 $outputs = Invoke-Reactor2Command az @('deployment', 'group', 'create', '--subscription', $SubscriptionId,
     '--resource-group', $ResourceGroupName, '--name', "reactor2-$EnvironmentName", '--template-file', $template,
     '--parameters', "location=$Region", "environmentName=$EnvironmentName", "operatorObjectId=$operator",

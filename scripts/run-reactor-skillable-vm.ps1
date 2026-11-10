@@ -25,22 +25,14 @@ if ($LASTEXITCODE -ne 0 -or $account.user.type -cne 'user' -or
     $account.id -ine $SubscriptionId -or $account.tenantId -ine $TenantId) {
     throw 'Setup requires the allocated learner user and subscription; no service-principal fallback is supported.'
 }
-$basePython = & py -3.13 -c 'import sys; print(sys.executable)'
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $basePython)) {
-    throw 'The prepared VM must provide Python 3.13 through the py launcher.'
-}
 $venv = Join-Path $root '.venv'
 $python = Join-Path $venv 'Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $python)) {
-    & $basePython -m venv $venv
-    if ($LASTEXITCODE -ne 0) { throw 'Creating the isolated setup environment failed.' }
+    throw "The prepared VM must include $python with the declared setup dependencies already installed. No environment or package installation was attempted."
 }
 & $python -B -c 'from azure.ai.projects.models import HostedAgentDefinition,OpenApiToolboxTool; from mcp import ClientSession; from azure.identity.aio import AzureCliCredential'
 if ($LASTEXITCODE -ne 0) {
-    & $python -m pip install -r (Join-Path $root 'src\orchestrator\requirements.txt')
-    if ($LASTEXITCODE -ne 0) { throw 'Restoring the declared setup dependencies failed.' }
-    & $python -B -c 'from azure.ai.projects.models import HostedAgentDefinition,OpenApiToolboxTool; from mcp import ClientSession; from azure.identity.aio import AzureCliCredential'
-    if ($LASTEXITCODE -ne 0) { throw 'The restored SDK does not expose the required Toolbox/hosted types.' }
+    throw 'The prepared Python environment is missing required setup dependencies. Prepare the VM with src\orchestrator\requirements.txt before starting the lab; no package installation was attempted.'
 }
 $credentialPath = Join-Path $root '.build-contexts\demo-credentials.clixml'
 if (Test-Path -LiteralPath $credentialPath) {

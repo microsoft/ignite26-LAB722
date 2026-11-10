@@ -1,18 +1,24 @@
 #requires -Version 7.3
 [CmdletBinding()]
 param(
-    [ValidateSet('Validate', 'Prepare', 'Connect', 'Values')]
-    [string] $Mode = 'Prepare',
+    [ValidateSet('Validate', 'Research', 'Prepare', 'Connect', 'Values')]
+    [string] $Mode = 'Research',
     [uri] $HostedResponsesEndpoint,
-    [securestring] $ServiceManagementReference,
-    [securestring] $AlicePassword,
-    [securestring] $BobPassword
+    [securestring] $ServiceManagementReference = $(if ($env:LAB722_SERVICE_MANAGEMENT_REFERENCE) {
+        ConvertTo-SecureString $env:LAB722_SERVICE_MANAGEMENT_REFERENCE -AsPlainText -Force
+    }),
+    [securestring] $AlicePassword = $(if ($env:LAB722_ALICE_PASSWORD) {
+        ConvertTo-SecureString $env:LAB722_ALICE_PASSWORD -AsPlainText -Force
+    }),
+    [securestring] $BobPassword = $(if ($env:LAB722_BOB_PASSWORD) {
+        ConvertTo-SecureString $env:LAB722_BOB_PASSWORD -AsPlainText -Force
+    })
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $root = Split-Path -Parent $PSScriptRoot
-$profile = Join-Path $root 'local-reactor'
+$profile = $root
 
 function Invoke-LocalNative {
     param([string] $Executable, [string[]] $Arguments)
@@ -168,7 +174,7 @@ function Get-LocalLearnerValues {
 
 $config = Read-LocalEnvironment
 foreach ($key in @('AZURE_ENV_NAME', 'AZURE_SUBSCRIPTION_ID', 'AZURE_RESOURCE_GROUP', 'AZURE_LOCATION')) {
-    if (-not $config[$key]) { throw "Set $key in the local-reactor azd environment before continuing." }
+    if (-not $config[$key]) { throw "Set $key in the repository-root azd environment before continuing." }
 }
 if ($config.AZURE_RESOURCE_GROUP -notmatch '^[A-Za-z0-9][A-Za-z0-9._()-]{0,89}$' -or
     $config.AZURE_ENV_NAME -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{1,31}$' -or
@@ -206,11 +212,18 @@ if ($Mode -eq 'Validate') {
             }
         }
     }
-    if (-not $config['REACTOR_REGISTRY_ID']) { throw 'Set the authorized shared acateam registry resource ID.' }
-    Set-LocalValue REACTOR_SERVICE_IMAGE 'acateam.azurecr.io/lab722/reactor-services@sha256:48d6a42cd9d7bc87a551f2f05264fb8de6de0efef10bf3ec31e947ca96ff355a'
-    Set-LocalValue REACTOR_HOSTED_IMAGE 'acateam.azurecr.io/lab722/reactor-hosted@sha256:2b3ef7ec815035dd5cbfe2c9905cbc5307efd46364bb2b149c91d6e2cb3cb289'
-    Write-Host "Local allocation: $($config.AZURE_SUBSCRIPTION_ID)/$($config.AZURE_RESOURCE_GROUP). No registry or legacy runtime will be created."
+    Write-Host "Local allocation: $($config.AZURE_SUBSCRIPTION_ID)/$($config.AZURE_RESOURCE_GROUP). The post-provision hook prepares the research swarm."
     return
+}
+
+if ($Mode -eq 'Prepare') {
+    if (-not $config['REACTOR_REGISTRY_ID']) { throw 'Set the authorized shared acateam registry resource ID for legacy preparation.' }
+    if (-not $config['REACTOR_SERVICE_IMAGE']) {
+        Set-LocalValue REACTOR_SERVICE_IMAGE 'acateam.azurecr.io/lab722/reactor-services@sha256:48d6a42cd9d7bc87a551f2f05264fb8de6de0efef10bf3ec31e947ca96ff355a'
+    }
+    if (-not $config['REACTOR_HOSTED_IMAGE']) {
+        Set-LocalValue REACTOR_HOSTED_IMAGE 'acateam.azurecr.io/lab722/reactor-hosted@sha256:2b3ef7ec815035dd5cbfe2c9905cbc5307efd46364bb2b149c91d6e2cb3cb289'
+    }
 }
 
 foreach ($key in @('FOUNDRY_ACCOUNT_NAME', 'FOUNDRY_PROJECT_NAME', 'FOUNDRY_PROJECT_ENDPOINT',
@@ -236,6 +249,89 @@ if ($Mode -eq 'Connect' -and $config['REACTOR_PREPARED'] -ne 'true') {
     throw 'Finish exact starter/service preparation before connecting a learner version.'
 }
 Assert-NoReactorTasks
+
+if ($Mode -eq 'Research') {
+    if (-not $config['AZURE_CONTAINER_REGISTRY_NAME']) { throw 'Provision the local registry before research preparation.' }
+    $project = Invoke-ReactorArm GET $projectId '2025-06-01'
+    $registryId = "$groupId/providers/Microsoft.ContainerRegistry/registries/$($config.AZURE_CONTAINER_REGISTRY_NAME)"
+    $registry = Invoke-ReactorArm GET $registryId '2023-07-01'
+    if ($registry.tags.lab -cne 'LAB722' -or
+        $registry.tags.'azd-env-name' -cne $config.AZURE_ENV_NAME) {
+        throw 'Registry does not belong to this local environment.'
+    }
+    Ensure-ReactorRole $projectId $config.LAB_USER_PRINCIPAL_ID '53ca6127-db72-4b80-b1b0-d745d6d5456d' 'User'
+    Ensure-ReactorRole $registryId $project.identity.principalId '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+    Ensure-ReactorRole $accountId $project.identity.principalId '53ca6127-db72-4b80-b1b0-d745d6d5456d'
+    $catalog = Get-Content (Join-Path $root 'data\reactor-research-images.json') -Raw | ConvertFrom-Json
+    $digest = ($catalog.hosted_image -split '@')[1]
+    $repository = 'lab722/reactor-swarm-hosted'
+    $tag = 'release-' + $digest.Substring(7, 12)
+    $repositories = Invoke-LocalNative az @('acr', 'repository', 'list', '--subscription',
+        $config.AZURE_SUBSCRIPTION_ID, '--name', $registry.name, '-o', 'json') | ConvertFrom-Json
+    $tags = if ($repositories -contains $repository) {
+        Invoke-LocalNative az @('acr', 'repository', 'show-tags', '--subscription',
+            $config.AZURE_SUBSCRIPTION_ID, '--name', $registry.name, '--repository', $repository, '-o', 'json') | ConvertFrom-Json
+    } else { @() }
+    if ($tags -notcontains $tag) {
+        $null = Invoke-LocalNative az @('acr', 'import', '--subscription', $config.AZURE_SUBSCRIPTION_ID,
+            '--name', $registry.name, '--source', $catalog.hosted_image, '--image', "${repository}:$tag")
+    }
+    $mirror = Invoke-LocalNative az @('acr', 'repository', 'show', '--subscription',
+        $config.AZURE_SUBSCRIPTION_ID, '--name', $registry.name, '--image', "${repository}:$tag", '-o', 'json') | ConvertFrom-Json
+    if ($mirror.digest -cne $digest) { throw 'Local hosted-image digest differs; no overwrite was attempted.' }
+    $catalog.hosted_image = "$($registry.properties.loginServer)/$repository@$digest"
+    $directory = Join-Path $root ".build-contexts\research-$($config.AZURE_ENV_NAME)"
+    $null = New-Item -ItemType Directory -Path $directory -Force
+    $catalogPath = Join-Path $directory 'research-images.json'
+    $catalog | ConvertTo-Json -Depth 20 | Set-Content $catalogPath -Encoding utf8NoBOM
+    $body = New-ReactorConnectionBody $registry.properties.loginServer '' $registryId $project.identity.principalId
+    $null = Invoke-ReactorArm PUT "$projectId/connections/reactor-allocated-registry" '2025-06-01' $body
+    $connection = Invoke-ReactorArm GET "$projectId/connections/reactor-allocated-registry" '2025-06-01'
+    if ($connection.properties.authType -cne 'ManagedIdentity' -or
+        $connection.properties.target -cne $registry.properties.loginServer -or
+        $connection.properties.metadata.ResourceId -ine $registryId) {
+        throw 'Local registry connection read-back failed.'
+    }
+    $private = $ServiceManagementReference
+    if ($null -eq $private) {
+        $private = Read-Host 'Private serviceManagementReference (Enter if your tenant does not require it)' -AsSecureString
+    }
+    $inputJson = @{ service_management_reference = [Net.NetworkCredential]::new('', $private).Password } |
+        ConvertTo-Json -Compress
+    try {
+        $apiText = $inputJson | & $python -B (Join-Path $PSScriptRoot 'prepare-reactor-api.py') `
+            --subscription $config.AZURE_SUBSCRIPTION_ID --resource-group $config.AZURE_RESOURCE_GROUP
+        if ($LASTEXITCODE -ne 0) { throw 'Dedicated execution API preparation failed; inspect the retained registration.' }
+        $api = ($apiText -join "`n") | ConvertFrom-Json
+    } finally { $private = $null; $inputJson = $null }
+    $allocation = @{
+        SubscriptionId = $config.AZURE_SUBSCRIPTION_ID; ResourceGroupName = $config.AZURE_RESOURCE_GROUP
+        Region = $config.AZURE_LOCATION; SandboxGroupName = $config.SANDBOX_GROUP_NAME
+        ProjectEndpoint = $config.FOUNDRY_PROJECT_ENDPOINT; FoundryAccountName = $config.FOUNDRY_ACCOUNT_NAME
+        FoundryProjectName = $config.FOUNDRY_PROJECT_NAME; ExpressEnvironmentName = $config.EXPRESS_ENVIRONMENT_NAME
+        ExecutionApiAudience = $api.audience; Model = $config.FOUNDRY_MODEL_DEPLOYMENT_NAME
+    }
+    $prepared = & (Join-Path $PSScriptRoot 'prepare-reactor-swarm.ps1') -AllocationValues $allocation `
+        -ImageCatalogPath $catalogPath -PythonExecutable $python -AlicePassword $AlicePassword -BobPassword $BobPassword
+    Wait-LocalHosted $prepared.HostedName $prepared.HostedVersion
+    $session = Invoke-RestMethod "$($prepared.FrontendUrl)/api/session"
+    if (-not $session.hosted_configured) {
+        $null = & (Join-Path $PSScriptRoot 'connect-reactor-frontend.ps1') `
+            -SubscriptionId $prepared.SubscriptionId -ResourceGroupName $prepared.ResourceGroupName `
+            -FrontendName $prepared.FrontendName -ProjectEndpoint $prepared.ProjectEndpoint `
+            -AgentName $prepared.HostedName -HostedResponsesEndpoint $prepared.HostedEndpoint
+    }
+    $session = Invoke-RestMethod "$($prepared.FrontendUrl)/api/session"
+    if (-not $session.hosted_configured) { throw 'Research frontend is not connected after hosted readiness.' }
+    $prepared.HostedConnected = $true
+    $prepared | ConvertTo-Json -Depth 20 | Set-Content (Join-Path $directory 'learner-values.json') -Encoding utf8NoBOM
+    $json = $prepared | ConvertTo-Json -Depth 20 -Compress
+    $null = Invoke-LocalNative azd @('-C', $profile, 'env', 'set', 'RESEARCH_PREPARED_STATE', $json)
+    Write-Host "Research frontend: $($prepared.FrontendUrl)"
+    Write-Host "Learner values: $(Join-Path $directory 'learner-values.json')"
+    Write-Host 'Services and exact hosted version are ready. Verify a real accepted research run in the browser.'
+    return
+}
 
 if ($Mode -eq 'Connect') {
     $endpoint = Normalize-ReactorEndpoint $HostedResponsesEndpoint $config.FOUNDRY_PROJECT_ENDPOINT 'reactor-orchestrator'

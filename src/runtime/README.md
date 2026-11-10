@@ -1,6 +1,6 @@
 # Runtime analysis
 
-This separate LAB722 application runs bounded generated or edited Python against the prepared public-data Sandbox. It does not replace the tagged developer lab.
+This retained legacy application runs bounded generated or edited Python against the prepared public-data Sandbox. It is not the current research-swarm lab; start with the [current architecture](../../docs/architecture.md). This page documents only the older implementation.
 
 **Access:** the page and `/health` are public; `/api/config`, `/api/analyze`, `/api/execute` and `/mcp` require `X-Lab722-Proof-Key`. A facilitator supplies the endpoint key privately. The browser clears the password input and retains the key only in tab memory. There is no learner sign-in, tenant selector or durable user/result ownership.
 
@@ -12,7 +12,7 @@ Actual stdout/stderr, exit status and the correlated receipt determine execution
 
 ## Preparation and checks
 
-Use [the scoped deployment sequence](../../infra/README.md#single-allocation-generated-analysis) and [the existing maintainer helper](../../scripts/README.md#simplified-runtime-deployment). Prepare A before app deployment; reuse a matching Toolbox instead of publishing another version. Learners do not deploy infrastructure or assign the four service grants.
+Existing legacy allocations require their original deployment inputs and explicitly authorized resource scope; the retired walkthrough remains in Git history. Prepare A before app deployment and reuse a matching Toolbox instead of publishing another version. This is not the current root `azd` path. Learners do not deploy infrastructure or assign service grants.
 
 `Containerfile` reuses the existing proof stack, pins its Python base/native CLI and runs `tests/test_runtime.py` before publication. Upload only an explicit source context containing this directory, `src/sandbox_process.py` and that focused test. Do not upload local environments, credentials or caches.
 

@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="920" viewBox="0 0 1500 920" role="img" aria-labelledby="title description">
+  <title id="title">Caldova runtime research architecture</title>
+  <desc id="description">Browser to frontend Express app to Foundry hosted orchestrator to runtime-research Toolbox over MCP to execution-manager Express API. The execution manager launches clinical-trials and drug-specialist Sandboxes concurrently. QA starts in its own Sandbox only after both specialists finish. Model inference stays in Foundry. Owner-bound evidence is independently checked and task Sandboxes are deleted.</desc>
+  <defs>
+    <style>
+      text { font-family: "Segoe UI", Arial, sans-serif; fill: #17243b; }
+      .title { font-size: 34px; font-weight: 700; }
+      .subtitle { font-size: 19px; fill: #526179; }
+      .heading { font-size: 21px; font-weight: 650; }
+      .body { font-size: 17px; }
+      .small { font-size: 15px; fill: #526179; }
+      .card { fill: #fff; stroke: #b7c8dc; stroke-width: 2; }
+      .express { fill: #edf6ff; stroke: #588cc0; stroke-width: 2; }
+      .foundry { fill: #f5f0ff; stroke: #9c7bc8; stroke-width: 2; }
+      .sandbox { fill: #eaf8f3; stroke: #54a38b; stroke-width: 2; }
+      .flow { fill: none; stroke: #2464a7; stroke-width: 3; stroke-linejoin: round; marker-end: url(#arrow); }
+      .join { fill: none; stroke: #2464a7; stroke-width: 3; stroke-linejoin: round; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 10 5 0 10Z" fill="#2464a7"/>
+    </marker>
+  </defs>
+  <rect width="1500" height="920" fill="#fff"/>
+  <text class="title" x="40" y="62">Caldova research swarm</text>
+  <text class="subtitle" x="40" y="101">LAB722 | A runtime agent application, not an application-building exercise</text>
+  <g>
+    <rect class="card" x="40" y="170" width="170" height="140" rx="14"/>
+    <text class="heading" x="62" y="215">Browser</text>
+    <text class="body" x="62" y="249">Alice or Bob</text>
+    <text class="small" x="62" y="280">Research question</text>
+  </g>
+  <path class="flow" d="M210 240H250"/>
+  <g>
+    <rect class="express" x="250" y="170" width="240" height="140" rx="14"/>
+    <text class="heading" x="272" y="215">Frontend Express app</text>
+    <text class="body" x="272" y="249">Sign-in and research UI</text>
+    <text class="small" x="272" y="280">Owner-bound requests</text>
+  </g>
+  <path class="flow" d="M490 240H530"/>
+  <g>
+    <rect class="foundry" x="530" y="170" width="260" height="140" rx="14"/>
+    <text class="heading" x="552" y="211">Foundry hosted</text>
+    <text class="heading" x="552" y="240">orchestrator</text>
+    <text class="body" x="552" y="279">Plan and delegate research</text>
+  </g>
+  <path class="flow" d="M790 240H830"/>
+  <g>
+    <rect class="foundry" x="830" y="170" width="270" height="140" rx="14"/>
+    <text class="heading" x="852" y="211">runtime-research</text>
+    <text class="heading" x="852" y="240">Toolbox (MCP)</text>
+    <text class="small" x="852" y="279">Project managed identity</text>
+  </g>
+  <path class="flow" d="M1100 240H1140"/>
+  <g>
+    <rect class="express" x="1140" y="170" width="310" height="140" rx="14"/>
+    <text class="heading" x="1162" y="211">Execution-manager</text>
+    <text class="heading" x="1162" y="240">Express API</text>
+    <text class="body" x="1162" y="279">Authorize, bound and reconcile</text>
+  </g>
+  <path class="join" d="M1295 310V365H1050V415M1295 365H1340V415"/>
+  <path class="flow" d="M1050 415V440"/>
+  <path class="flow" d="M1340 415V440"/>
+  <text class="small" x="1080" y="400">Run concurrently</text>
+  <g>
+    <rect class="sandbox" x="930" y="440" width="240" height="140" rx="14"/>
+    <text class="heading" x="952" y="484">Clinical-trials</text>
+    <text class="heading" x="952" y="513">Sandbox</text>
+    <text class="small" x="952" y="552">Agent loop and data tools</text>
+  </g>
+  <g>
+    <rect class="sandbox" x="1220" y="440" width="240" height="140" rx="14"/>
+    <text class="heading" x="1242" y="484">Drug-specialist</text>
+    <text class="heading" x="1242" y="513">Sandbox</text>
+    <text class="small" x="1242" y="552">Agent loop and data tools</text>
+  </g>
+  <path class="join" d="M1050 580V625H1340V580"/>
+  <path class="flow" d="M1195 625V700"/>
+  <text class="small" x="1215" y="663">After both specialists finish</text>
+  <g>
+    <rect class="sandbox" x="1060" y="700" width="270" height="135" rx="14"/>
+    <text class="heading" x="1082" y="744">QA Sandbox</text>
+    <text class="body" x="1082" y="779">Review combined findings</text>
+    <text class="small" x="1082" y="810">Separate agent and workspace</text>
+  </g>
+  <g>
+    <rect class="card" x="40" y="440" width="790" height="395" rx="14"/>
+    <text class="heading" x="68" y="485">What the learner can inspect</text>
+    <text class="body" x="68" y="529">Separate frontend and execution managed identities</text>
+    <text class="body" x="68" y="570">Customer, conversation and run-grant boundaries</text>
+    <text class="body" x="68" y="611">Frozen ClinicalTrials.gov / AACT and openFDA records</text>
+    <text class="body" x="68" y="652">Citations, independent checks and accepted research evidence</text>
+    <text class="body" x="68" y="693">Task compute creation, cancellation and deletion</text>
+    <text class="small" x="68" y="750">Model inference stays in Foundry; agent loops run in Sandboxes.</text>
+    <text class="small" x="68" y="781">Express is the Azure hosting mode, not the Node.js framework.</text>
+    <text class="small" x="68" y="812">Main delegation path shown; frontend polling and return traffic omitted.</text>
+  </g>
+  <text class="small" x="40" y="889">Fictional research demonstration | Bounded public sample | Not clinical advice</text>
+</svg>

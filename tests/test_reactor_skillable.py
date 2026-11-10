@@ -417,7 +417,7 @@ $prepared=@{FrontendUrl='https://frontend.example.test'}
 
     def execute(self, *, account_type="user", signed_in=True, login_failure=False, wrong_scope=False):
         source = (ROOT / "scripts" / "run-reactor-skillable-vm.ps1").read_text(encoding="utf-8-sig")
-        preflight = source[source.index("$accountText ="):source.index("$basePython =")]
+        preflight = source[source.index("$accountText ="):source.index("$venv =")]
         program = r"""
 $ErrorActionPreference='Stop'
 $SubscriptionId=[guid]'11111111-1111-1111-1111-111111111111'
@@ -476,6 +476,58 @@ function az {
     def test_foreign_selected_scope_is_rejected(self):
         result = self.execute(wrong_scope=True)
         self.assertIn("allocated learner user and subscription", result["failure"])
+
+
+@unittest.skipUnless(shutil.which("pwsh"), "PowerShell 7 required")
+class SkillablePreparedPython(unittest.TestCase):
+    def execute(self, *, prepared=True, imports_succeed=True):
+        source = (ROOT / "scripts" / "run-reactor-skillable-vm.ps1").read_text(encoding="utf-8-sig")
+        preflight = source[source.index("$venv ="):source.index("$credentialPath =")]
+        program = r"""
+$ErrorActionPreference='Stop'
+$root='PreparedRoot'
+$calls=[Collections.Generic.List[object]]::new()
+function Join-Path {
+ param($Path,$ChildPath)
+ if($Path -ceq 'PreparedRoot' -and $ChildPath -ceq '.venv'){return 'PreparedVenv'}
+ if($Path -ceq 'PreparedVenv' -and $ChildPath -ceq 'Scripts\python.exe'){return 'Invoke-PreparedPython'}
+ throw 'Unexpected environment creation or dependency path.'
+}
+function Test-Path {
+ param($LiteralPath)
+ if($LiteralPath -cne 'Invoke-PreparedPython'){throw 'Unexpected file check.'}
+ return $prepared
+}
+function Invoke-PreparedPython {
+ param([Parameter(ValueFromRemainingArguments)][string[]]$Arguments)
+ $calls.Add(@($Arguments))
+ if($Arguments.Count -ne 3 -or $Arguments[0] -cne '-B' -or $Arguments[1] -cne '-c'){
+  throw 'Only the dependency import check is permitted; no installer may run.'
+ }
+ $global:LASTEXITCODE=if($importsSucceed){0}else{1}
+}
+"""
+        program += f"$prepared=${str(prepared).lower()}\n$importsSucceed=${str(imports_succeed).lower()}\n"
+        program += "\n$failure=$null\ntry {\n" + preflight + "\n} catch {$failure=$_.Exception.Message}\n"
+        program += "[pscustomobject]@{calls=@($calls);failure=$failure}|ConvertTo-Json -Depth 10 -Compress\n"
+        result = subprocess.run(["pwsh", "-NoProfile", "-Command", program],
+                                capture_output=True, text=True, check=True)
+        return json.loads(result.stdout.strip().splitlines()[-1])
+
+    def test_prepared_environment_is_checked_without_installing(self):
+        result = self.execute()
+        self.assertIsNone(result["failure"])
+        self.assertEqual(len(result["calls"]), 1)
+
+    def test_missing_environment_stops_without_creating_or_installing(self):
+        result = self.execute(prepared=False)
+        self.assertIn("already installed", result["failure"])
+        self.assertEqual(result["calls"], [])
+
+    def test_missing_dependencies_stop_without_installing(self):
+        result = self.execute(imports_succeed=False)
+        self.assertIn("no package installation was attempted", result["failure"])
+        self.assertEqual(len(result["calls"]), 1)
 
 
 @unittest.skipUnless(shutil.which("pwsh"), "PowerShell 7 required")

@@ -1,76 +1,30 @@
-# Architecture and trust boundaries
+# Runtime architecture and trust boundaries
 
-## Runtime flow
+![Caldova runtime research workflow](diagrams/application-architecture.svg)
 
-```text
-Attendee browser
-  |
-  +--> Per-attendee Microsoft Foundry project and endpoint
-  |      `--> Caldova orchestrator using Microsoft Agent Framework
-  |
-  +--> ACA Sandboxes portal
-  |      +--> Primary development Sandbox
-  |      |      `--> Baseline snapshot
-  |      +--> Clinical-trials worker clone
-  |      +--> Drug-safety worker clone
-  |      `--> Quality/governance worker clone
-  |
-  +--> ACA Express portal
-  |      `--> Caldova research application
-  |
-  `--> Azure Monitor workbook
+## Request path
 
-GitHub or staged source bundle ---> primary Sandbox
-Shared data artifact -----------> primary Sandbox
-Validated source ---------------> ACR Task
-Approved image digest ----------> ACA Express
-```
+1. The browser signs into the [frontend](../src/reactor/frontend.py), a Python web application hosted on Azure Container Apps Express. Here, **Express is the Azure hosting mode**, not the Node.js Express framework.
+2. The frontend creates owner-bound work through the [execution API](../src/reactor/execution.py) and invokes the [Foundry-hosted orchestrator](../src/reactor/hosted.py). The frontend also polls execution state; the diagram's main chain is the agent-delegation path, not every HTTP request.
+3. The orchestrator uses the **runtime-research** managed Toolbox over MCP. The [Toolbox setup](../scripts/setup-reactor-foundry.py) binds the [OpenAPI operations](../src/reactor/openapi.json) to the execution API through a project-managed-identity connection.
+4. The execution manager launches [clinical-trials and drug-specialist agents](../src/reactor/agent_runtime.py) in separate, request-owned Sandboxes. Their agent loops and bounded data tools run there; model inference remains in Foundry.
+5. After both specialists finish, a separate QA Sandbox checks their combined work. [Deterministic evaluation](../src/reactor/evaluation.py) checks the reported results against the frozen public records.
+6. Results and independent evidence return to the owning session. [Sandbox lifecycle management](../src/reactor/sandboxes.py) reconciles and deletes task compute, including cancellation paths. Teaching seeds and snapshots are intentionally retained.
 
-## Agent boundary
+## Identity and customer boundaries
 
-The Python Foundry orchestrator uses Microsoft Agent Framework to plan and coordinate work. It does not execute repository code. The three specialist roles execute commands and manipulate files only inside their assigned Sandbox clones.
+The frontend and execution API have separate managed identities. [Service authentication](../src/reactor/service_auth.py) verifies the token audience and permitted caller object IDs; a reachable HTTP endpoint does not authorize arbitrary callers.
 
-Planning uses a managed agent version with a strict `ImplementationPlan` output schema; Foundry rejects a per-request text-format override for a named agent. Tool-smoke and worker dispatch use an ordinary-text version of the same owned agent, so the planning schema does not constrain tool results. Strict validation still checks the exact run, immutable dataset identity, approved assignments and human-release requirement; Markdown-fenced or identity-changing output is rejected rather than repaired into an accepted plan.
+[Ownership state](../src/reactor/ownership.py) binds a run to its customer, principal and conversation. An additional [run grant](../src/reactor/binding.py) travels through Toolbox to the specialist operations. Alice and Bob are application demo accounts, not Azure accounts. Cross-customer access is denied even when a caller knows another run ID.
 
-Each worker receives a fresh structured-output schema whose role, run, Sandbox, dataset version and logical hash are constrained to the exact assigned identity. This prevents those report fields from competing with other hashes in the prompt. Local parsing, immutable-identity comparison, bounded report-only retries and independent acceptance remain separate checks; the controller never rewrites a returned identity into an accepted result.
+## Execution and quality boundaries
 
-The attendee configures one persistent orchestrator. Specialist roles are versioned templates started as separate sessions:
+The orchestrator requests bounded work; the execution API controls actual Sandbox creation, budgets and lifecycle. Specialists run concurrently, then QA runs after both complete. A model's final answer, a configured endpoint and `HostedConnected=true` are not proof that a research result was accepted.
 
-1. Clinical-trials worker
-2. Drug-safety worker
-3. Quality/governance worker
+Inspect the run's returned evidence, the independent checks and actual task inventory. Retries reuse their owned work where supported; after an uncertain create or hosted-version failure, inspect the retained operation rather than blindly submitting another.
 
 ## Data boundary
 
-All attendees use one immutable dataset version. A primary Sandbox stages the artifact, validates its checksum, and records the manifest before creating a snapshot. Worker clones inherit that state.
+The [frozen dataset](../data/README.md) contains a bounded AACT/ClinicalTrials.gov-derived and openFDA sample. The [image catalog](../data/reactor-research-images.json) pins the services, hosted orchestrator and preloaded specialist images by digest. Source records, citations and coverage limitations remain part of the research result.
 
-Live data access is optional and is used only to demonstrate controlled egress. Cached fixtures are authoritative for acceptance tests.
-
-## Network boundary
-
-Sandbox egress starts from a supplied restricted policy. The attendee confirms the approved destinations and runs:
-
-- One request to an approved source.
-- One request to an unapproved test destination.
-
-The approved request must succeed. The unapproved request must fail.
-
-## Release boundary
-
-The orchestrator cannot approve a release based only on model confidence. The release candidate must pass:
-
-- Worker-output schema validation
-- Clinical-trial fixture assertions
-- Safety normalization and deduplication assertions
-- Citation checks
-- Responsible-use checks
-- Application acceptance tests
-- Egress-policy checks
-
-The final deployment uses the approved image digest rather than a mutable tag.
-
-## Identity boundary
-
-During development and rollout testing, maintainers deploy with `azd` and Azure CLI against the ACAPMS subscription. Each environment contains its own Foundry endpoint and model deployment so the lab can be completed independently.
-
-Skillable identity and attendee authorization are added after the Bicep deployment has been compiled to ARM and validated. The event platform will provide the resource group and attendee principal ID and preassign the permissions needed for the dedicated Sandbox and Express portals. Attendees do not provide GitHub personal access tokens or infrastructure credentials.
+This is a fictional research demonstration, not live clinical coverage, comparative safety analysis or medical advice.
