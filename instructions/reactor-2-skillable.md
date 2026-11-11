@@ -1,8 +1,10 @@
 # LAB722: Operate secure, multi-tenant agentic apps on Azure Container Apps
 
-## Operate a Sandbox-resident research swarm
+## LAB722: Operate a Sandbox-resident research swarm
 
 In this lab you will ask the Caldova application a question about a drug in a frozen public dataset. Watch a Foundry-hosted orchestrator delegate to clinical-trials, drug-specialist and quality-assurance agents running in on-demand ACA Sandboxes. Use the portals to inspect the application tier, agent compute, ownership and cleanup. We will focus on architecture and operations, not an application-building.
+
+![Caldova research swarm architecture](instructions359506/application-architecture.svg)
 
 | Objective | By the end you can |
 | --- | --- |
@@ -10,7 +12,6 @@ In this lab you will ask the Caldova application a question about a drug in a fr
 | 02 | Observe full specialist agents appear on demand, explain concurrency and independently verify task compute disappears. |
 | 03 | Inspect a preloaded agent and locate Express, Foundry and Toolbox in the automated request path. |
 | 04 | Correlate a run with its owner and demonstrate allowed Alice/Bob work and denied cross-customer access. |
-| 05 | Distinguish reuse from new work, reconcile cancellation and explain execution and quality budgets. |
 
 Use the same sequence in a guided session or at your own pace. No measured learner completion time or human comprehension result is implied.
 
@@ -18,59 +19,45 @@ Use the same sequence in a guided session or at your own pace. No measured learn
 
 # 1. Sign in to your allocated environment
 
-Use the Windows VM and Azure allocation supplied by this lab. Do not use a personal Azure account, a previous lab's subscription or an `ig2026-lab-local2` environment.
+The Windows password, Azure credentials, and Caldova demo passwords serve different purposes. Retrieve your credentials from the **Resources Tab** of of the lab VM browser window.
 
-The Windows password, Azure **Password**, Azure **TAP**, and Caldova demo passwords serve different purposes:
+![Skillable Resources tab and Azure sign-in](instructions359506/skillable-resources-sign-in.png)
 
 | Credential | Use |
 | --- | --- |
 | Windows VM username/password | Sign in to the supplied Windows desktop. |
-| Allocated Azure username and **TAP** | Authenticate the Azure preparation session and portals with the lab's Temporary Access Pass. |
-| Azure **Password** row | Not a substitute for the separately supplied **TAP** in this sequence. |
-| Alice/Bob demo passwords | Sign in to Caldova after preparation. These are not Azure credentials. |
+| Allocated Azure credentials | Authenticate the Azure session and portals with the lab's dynamic credentials (username, password, TAP) |
+| Alice/Bob demo passwords | Sign in to Caldova app after preparation. These are not Azure credentials. |
 
-## 1.1 Run the delivered preparation
+## 1.1 Run the Data Plane Deployment
 
-1. Sign in to Windows. In the lab client's **Resources** panel, locate the allocated Azure username, subscription ID and the separate **TAP** row.
-2. Open **Reactor 2 - sign in and prepare** on the desktop.
-3. Follow the displayed device-login instructions in the browser. Use the allocated Azure username and **TAP**, not your own account or the Azure Password row. Complete the normal sign-in prompts.
-4. Confirm the selected subscription matches Resources. Allow preparation to finish. Do not launch another preparation while one is running.
+![Reactor 2 sign-in and preparation desktop shortcut](instructions359506/prepare-desktop-shortcut.png)
+
+1. Sign in to Windows. In the lab client's **Resources** panel, locate the allocated Windowns password.
+2. Open (by double clicking) **Reactor 2 - sign in and prepare** on the desktop.
+3. Follow the displayed device-login instructions in the browser.
+4. Confirm the selected subscription matches Resources. Allow preparation to finish. Do not launch another preparation while one is running. In this step we're finalizing the control plane updates, as step that may take up to **5 min to complete**.
 5. Continue only after the terminal shows **REACTOR2_SKILLABLE_READY**, followed by the frontend URL.
 
-Preparation uses your ordinary Azure CLI user session. It does not require saving a custom bearer token, a client secret or a Skillable secure-token variable. Ordinary sign-in caching still applies.
 
-**Recovery for a password-only or wrong CLI session:** close or leave the failed preparation at its idle prompt. In PowerShell 7 run `az logout`, reopen the delivered preparation shortcut and authenticate with the allocated **TAP**. On the tested allocation, password-only sign-in succeeded but a subsequent Foundry connection write was rejected because MFA had not been satisfied; normal logout and TAP-backed sign-in resolved it. Do not weaken policy, grant yourself roles or repeatedly retry a denied write.
+**Recovery for a Password-only or wrong CLI Session:** close or leave the failed preparation at its idle prompt. In PowerShell 7 run `az logout`, reopen the delivered shortcut and authenticate with the allocated **TAP**. On the tested allocation, password-only sign-in succeeded but a subsequent Foundry connection write was rejected because MFA had not been satisfied; normal logout and TAP-backed sign-in resolved it.
 
-If preparation fails for another reason, retain the exact error and contact the facilitator. A configured endpoint is not proof of a working research run.
+If preparation fails for another reason, retain the exact error and contact the facilitator.
 
-## 1.2 Inspect what preparation delivered
+## 1.2 Inspect our Deployment
 
-Open a separate PowerShell 7 terminal and keep it for the read-only checks:
+In the same PowerShell terminal run the following and copy and paste the output to Notepad for later reference:
 
 ```powershell
-Set-Location 'C:\Lab\Reactor2'
-$v = Get-Content -LiteralPath '.\learner-values.json' -Raw | ConvertFrom-Json
-az account show --query '{subscription:id,state:state}' -o json
-$v | Select-Object SubscriptionId,ResourceGroupName,Region,FrontendName,ExecutionName,
-    FoundryAccountName,FoundryProjectName,SandboxGroupName,FrontendUrl
+$v = Get-Content 'C:\Lab\Reactor2\learner-values.json' -Raw |
+    ConvertFrom-Json
+
+$v | Format-List -Property ($v.PSObject.Properties.Name | Sort-Object)
 ```
 
-**Expected:** the selected subscription equals `SubscriptionId`, its state is `Enabled`, the resource group is **LAB722**, and the region is **westus3**. Names have an allocation-specific suffix; use your values, not another learner's screenshots.
+**Expected:** the selected subscription equals `$SubscriptionId`, the resource group is **LAB722**, and the region is **westus3**.
 
-The initial preparation shortcut is system-installed on the shared desktop. The final **Reactor 2 research app** shortcut is written to the current learner's desktop. Open that final shortcut, or copy `FrontendUrl` from your own values.
-
-Preparation is not an unexplained infrastructure deployment:
-
-| Mechanism | Inputs and changes | Independent check |
-| --- | --- | --- |
-| Skillable ARM deployment | Creates the allocated foundation, identities, Foundry model, Express environment and Sandbox group. | Resource inventory and deployment status in Azure portal. |
-| Post-Build Lifecycle Action | Creates the allocation-owned execution API registration and service principal; applies eight child-resource-scoped role assignments. | Exact API metadata and principal/scope/role comparison; facilitator check below. |
-| First Displayable Lifecycle Action | Installs the digest-pinned preparation source and initial shortcut on the existing VM. | Inspect `C:\Lab\Reactor2\scripts` and the delivered shortcut. |
-| `run-reactor-skillable-vm.ps1` and `initialize-reactor-skillable.ps1` | Use the allocated user session, foundation outputs and preinstalled Python dependencies; prepare image/seed/snapshot, mirror the hosted image to the allocated registry, configure services, Foundry connections and Toolbox, and wait for hosted readiness. | Actual portal resources, exact hosted version and a real accepted run; not just `HostedConnected`. |
-| Final handoff | Writes `learner-values.json`, the learner-desktop URL shortcut and random DPAPI-protected Alice/Bob demo credentials. | Read your values and use the normal application sign-in. |
-| Tearing Down Lifecycle Action | Removes the exact allocation-owned execution API registration/service principal. | Allocation lifecycle and scoped directory cleanup; not a learner delete step. |
-
-You can open those preparation scripts in a text editor. Do not edit them or rerun native creates just to inspect them.
+The initial preparation shortcut is system-installed on the shared desktop. The final **Reactor 2 research app** shortcut creates a shortcut to the Caldova frontend application on the desktop. Open that final shortcut, or copy `$FrontendUrl` from your own values.
 
 ===
 
@@ -84,97 +71,96 @@ You can open those preparation scripts in a text editor. Do not edit them or rer
 
 1. Open **[Azure Container Apps portal](https://containerapps.azure.com)**. Sign in with the allocated Azure user using TAP-backed authentication.
 2. Select your allocated subscription and **LAB722**.
-3. Open the environment containing `FrontendName` and `ExecutionName`. Open each app's **Live Overview**.
-4. Confirm both apps are **Running / Ready for traffic** and **Environment mode** is **Express**.
-5. Compare their immutable image digests with `ServiceImage`. The shared image runs different application entry points; it is not the preloaded specialist image.
-6. On **Identity**, inspect only the attached managed identities. Compare their object/principal IDs with `FrontendObjectId` and `ExecutionObjectId` in your values.
+3. Find the `$FrontendName` and `$ExecutionName` applications. Open each app's **Live Overview**.
+4. Confirm both apps are **Running / Ready for traffic** and **Environment mode** is **Express**. Feel free to look at their log stream or launch into their console. The code can be inspected under [Frontend service](https://github.com/microsoft/ignite26-LAB722/blob/main/src/reactor/frontend.py) and [Execution manager's API](https://github.com/microsoft/ignite26-LAB722/blob/main/src/reactor/execution.py).
+5. The following environment variables are used for the frontend and execution manager:
 
-If the portal does not display an identity comparison, this read-only fallback selects only the non-secret fields:
+**Frontend environment variables**
 
-```powershell
-foreach ($appName in @($v.FrontendName, $v.ExecutionName)) {
-    az identity show --subscription $v.SubscriptionId --resource-group $v.ResourceGroupName `
-        --name "$appName-mi" --query '{name:name,objectId:principalId,clientId:clientId}' -o json
-}
-```
+| Variable | Expected value | Why it is needed |
+|---|---|---|
+| `AZURE_CLIENT_ID` | Frontend managed identity's **client ID** | Selects the identity used to authenticate requests to the execution API and Foundry. |
+| `EXECUTION_API_AUDIENCE` | `api://<execution-api-application-client-id>` | Requests an access token intended specifically for the execution API. Must match the backend's audience. |
+| `EXECUTION_ENDPOINT` | Execution API's HTTPS base URL | Tells the frontend where to send login, run, evidence and cancellation requests. |
+| `FRONTEND_PUBLIC_ORIGIN` | `https://<frontend-hostname>` | Supplies the browser-facing origin for CSRF checks behind Azure's HTTPS ingress. Do not include a path or trailing slash. |
+| `HOSTED_RESPONSES_ENDPOINT` | Exact Foundry hosted agent Responses endpoint, including its API-version query | Routes research requests to the hosted orchestrator. May be empty during preparation, but research submissions remain disabled until configured. |
+| `REACTOR_COMPONENT` | `frontend` | Starts the frontend application from the shared services image. |
+
+**Backend environment variables**
+
+| Variable | Expected value | Why it is needed |
+|---|---|---|
+| `AZURE_CLIENT_ID` | Execution managed identity's **client ID** | Selects the backend identity used for Sandbox operations and model inference. This differs from the frontend identity. |
+| `AZURE_SUBSCRIPTION_ID` | Subscription containing the Sandbox group | Scopes Sandbox lifecycle operations to the correct subscription. |
+| `AZURE_TENANT_ID` | Microsoft Entra tenant ID | Identifies the tenant trusted when validating incoming service access tokens. |
+| `EXECUTION_API_AUDIENCE` | `api://<execution-api-application-client-id>` | Validates that incoming tokens were issued for this dedicated execution API. Must match the frontend configuration. |
+| `FRONTEND_OBJECT_ID` | Frontend managed identity's **principal/object ID** | Authorizes the frontend as a trusted service caller. This is not its client ID. |
+| `MODEL_DEPLOYMENT` | Foundry model deployment name, such as `gpt-5.2` | Selects the model used by the Sandbox agents through the backend's model relay. Required when the research swarm is enabled. |
+| `PROJECT_OBJECT_ID` | Foundry project's managed identity **principal/object ID** | Authorizes project-managed-identity calls arriving through the Toolbox connection. |
+| `REACTOR_AGENT_SWARM_ENABLED` | `true` | Enables the specialist/QA research swarm and model relay. Without it, research operations are unavailable. |
+| `REACTOR_ALICE_PASSWORD` | Secret containing Alice's demo password | Seeds Alice's application account. Must contain 12-1024 characters and differ from Bob's password. |
+| `REACTOR_BOB_PASSWORD` | Secret containing Bob's demo password | Seeds Bob's application account. Must contain 12-1024 characters and differ from Alice's password. |
+| `REACTOR_COMPONENT` | `execution` | Starts the execution-manager application from the shared services image. |
+| `REACTOR_MODEL_ENDPOINT` | `https://<foundry-account>.openai.azure.com/openai/v1/chat/completions` | Provides the model inference endpoint used by the backend's relay. Required when the research swarm is enabled. |
+| `RESOURCE_GROUP` | Resource group containing the Sandbox group | Scopes Sandbox lifecycle operations to the intended resource group. |
+| `SANDBOX_GROUP` | Sandbox group name | Identifies the group in which specialist and QA task Sandboxes run. |
+| `SANDBOX_REGION` | Sandbox group region, such as `westus3` | Selects the regional endpoint for Sandbox operations. |
+| `SANDBOX_SNAPSHOT_ID` | Prepared agent-capable snapshot ID | Supplies the preloaded agent environment and frozen dataset from which task Sandboxes are created. |
+6. On **Identity**, inspect only the attached managed identities. Compare their object/principal IDs with `$FrontendObjectId` and `$ExecutionObjectId` in your values.
+
 
 ## 2.2 Locate Foundry and Toolbox
 
-In Azure portal, open your allocated Foundry account, then project **reactor**. Locate the hosted agent named by `HostedName`, its exact `HostedVersion`, and the **runtime-research** Toolbox. A registered agent version must actually be active; an existing name is insufficient.
+Foundry Toolbox provides a secure and governend toolchain layer away from unpredictable agent code. In this next stage we're exploring this part of the application.
 
-Under the project's connected resources, find **reactor-swarm-execution**. Its authentication is **Project Managed Identity**. Compare its target and audience with `ExecutionUrl` and `ExecutionApiAudience`.
+In Azure portal, **[open your Foundry account](https://ai.azure.com)**, then project **reactor**. Locate the hosted agent named **reactor-research-orchestrator** and the **runtime-research** Toolbox. A registered agent version must actually be active.
 
-If those connection fields are not exposed in the portal:
+Under the project's connected resources, find **reactor-swarm-execution**. Its authentication is **Project Managed Identity**. Compare its target and audience with `$ExecutionUrl`.
 
-```powershell
-az rest --method get `
-    --url "https://management.azure.com$($v.ExecutionConnectionId)?api-version=2025-06-01" `
-    --query 'properties.{authentication:authType,target:target,audience:audience}' -o json
-```
+`runtime-research` is the Toolbox; `reactor-swarm-execution` is a connection, not an executable tool. There are three related objects:
 
-The managed Toolbox advertises `reactor___clinical_trials`, `reactor___drug_specialist` and `reactor___quality_assurance`. Each requires a request body and **X-Reactor-Run-Grant**. The backend supplies that grant; do not obtain, copy or edit it. These are tools reaching the execution manager, not three permanently running public agent servers.
+| Object | What it does |
+| --- | --- |
+| runtime-research | Foundry-managed Toolbox exposing the execution API's operations through an MCP endpoint |
+| reactor-execution | The OpenAPI tool registered inside that Toolbox; defines the available operations and their request/response schemas |
+| reactor-swarm-execution | Foundry project connection specifying the execution-manager URL, authentication audience and Project Managed Identity authentication |
 
-For an exact read-only check when the Foundry portal does not expose these fields:
+The managed Toolbox advertises `reactor___clinical_trials`, `reactor___drug_specialist` and `reactor___quality_assurance`. Each requires a request body and **X-Reactor-Run-Grant**. The backend supplies that grant.
 
-```powershell
-& .\.venv\Scripts\python.exe .\scripts\wait-reactor-hosted.py `
-    --project-endpoint $v.ProjectEndpoint --name $v.HostedName `
-    --version $v.HostedVersion --timeout 30
-if ($LASTEXITCODE -ne 0) { throw 'Exact hosted version readiness was not verified.' }
-$toolboxText = & .\.venv\Scripts\python.exe .\scripts\inspect-reactor-toolbox.py `
-    --endpoint $v.ToolboxEndpoint
-if ($LASTEXITCODE -ne 0) { throw 'Managed Toolbox discovery failed.' }
-$toolbox = ($toolboxText -join "`n") | ConvertFrom-Json
-$toolbox.tools | ForEach-Object {
-    [pscustomobject]@{Name=$_.name; Required=($_.inputSchema.required -join ', ')}
-} | Format-Table -Wrap
-```
+During a full end-to-end execution the frontend identity calls the user-facing execution API; the Foundry project identity calls specialist operations. The execution manager's identity accesses the allocated Sandbox group and model. Tokens for those Azure calls do not enter the task Sandbox.
 
-These two small scripts are readable under `scripts`: one calls the SDK's exact agent-version GET until active or timeout; the other authenticates normally and performs MCP initialization and `tools/list`. Neither creates a deployment or saves a bearer token. Expect the exact hosted version to be active and all three specialist names to require both arguments.
-
-```text
-Browser / application account
-  -> Express frontend and API
-  -> Foundry-hosted orchestrator
-  -> Managed Toolbox + project-identity connection
-  -> Express execution manager
-  -> On-demand clinical / drug / QA Sandboxes
-  -> Owned evidence and response
-```
-
-The frontend identity calls the user-facing execution API; the Foundry project identity calls specialist operations. The execution manager's identity accesses the allocated Sandbox group and model. Tokens for those Azure calls do not enter the task Sandbox.
-
-**Feedback:** two Express apps, an active hosted orchestrator and a managed tool boundary are distinct resources. No research task has been submitted yet.
-
-**Explain (R2-03):** which component creates the Sandbox when the orchestrator selects a specialist tool, and where does the specialist's agent loop run?
+**Explain:** which component creates the Sandbox when the orchestrator selects a specialist tool, and where does the specialist's agent loop run?
 
 ===
 
-# 3. Inspect a preloaded agent manually
+# 3. Create and Inspect an Agent manually
 
-**Goal:** slow-walk the compute that the application will later create automatically.
+**Goal:** Create and explore the compute that the application will later create automatically. This sandbox is only explorative and won't be used for the application.
 
 ## 3.1 Record the baseline
 
 1. Open **[ACA Sandboxes portal](https://sandboxes.azure.com)** in the same allocated-user, TAP-backed browser session.
-2. Select your subscription, **LAB722**, and `SandboxGroupName`.
-3. On **Overview**, record the teaching Sandbox, custom image and snapshot. Compare their IDs with `SeedId`, `AgentDiskId` and `SnapshotId`.
-4. Open **Sandboxes** and use **Refresh sandboxes**. The retained seed can be **Stopped** after its idle timeout. It is not a request-owned task.
+2. Select your subscription, **LAB722**, and `$SandboxGroupName`.
+3. On **Overview**, record the teaching Sandbox, custom image and snapshot. Compare their IDs with `SeedId`, `$AgentDiskId` and `$SnapshotId`.
+4. Open **Sandboxes** and use **Refresh sandboxes**. There should already be an initial sandbox created as a test/template.
 
-Before any research, expect one retained teaching seed, one custom image and one teaching snapshot, with no `purpose: reactor-task` Sandboxes.
+Before any research, expect one sandbox , one disk image and one snapshot.
 
-## 3.2 Create your inspection Sandbox
+## 3.2 Create your Sandbox
+
+![Create a Sandbox from a custom image](instructions359506/sandbox-create-custom-image.png)
 
 1. Return to **Overview** and choose **Create from custom image**.
-2. Select the entry containing your `AgentDiskId`. The tested portal displayed **LAB722**, the disk UUID and a date, rather than a friendly image name.
+2. Select the entry containing your `$AgentDiskId`. The tested portal displayed **LAB722**, the disk UUID and a date, rather than a friendly image name.
 3. Choose **L: 2 cores / 4 GiB / 40 GiB**. Set the name label to **reactor-manual-inspection**.
-4. Expand **Advanced**, then **Network Egress Policy**. Select **Full** traffic inspection first, then default action **Deny**. The Deny option is not available under Partial inspection.
+4. Expand **Advanced**, then **Network Egress Policy**. Select **Full** traffic inspection first, then default action **Deny**. Set up an **Allow** rule for the exact host `open.fda.gov`.
+
+![Sandbox network egress policy allowing open.fda.gov](instructions359506/sandbox-egress-policy.png)
+
 5. Leave ports, volumes and connectors unconfigured. Review those settings and submit **Create** once.
-6. Wait for **Running**. Record this new Sandbox's exact ID separately from `SeedId`.
+6. Wait for **Running**.
 
-The manual Sandbox is for inspection only. Do not start a research agent or put Azure/model credentials into it.
-
-## 3.3 Use the portal terminal
+## 3.3 Inspect the Sandbox workload and data
 
 Open the Sandbox terminal and run these Linux commands there, not in Windows PowerShell:
 
@@ -186,28 +172,37 @@ sha256sum /opt/lab722-data/* /opt/lab722-agent/src/reactor/agent_runtime.py
 
 Locate the three `ROLE_INSTRUCTIONS`, protocol **research-agent-v4**, the **12-turn** bound and **180-second** specialist wall-time bound. The code and data are preloaded; a Sandbox does not download the dataset or a model during the request.
 
-| File | Expected SHA-256 |
-| --- | --- |
-| `source-records.json` | `5c31dcd20478c1644b50eff7a7286b9c568094dd1e26427843afd23fc9dfe57c` |
-| `data-manifest.json` | `99810e57a77cd3bc8b107287037e54fb2521795a96ec71d431fd585c03289f91` |
-| `caldova-research.duckdb` | `f12f3e239f7b439b5c4fde1b405bd4e2346fa49fba79b1c1b198f42874ef9559` |
-| `agent_runtime.py` | `d820b713d186cbad244dacb90cd3778c7204895089821199af6ae96be1776e7b` |
-
 The three data files should show read-only permissions, `-r--r--r--`. The role loop coordinates tools and remote model requests. Generated Python runs separately with a cleared environment, UID 65534, no-new-privileges and resource limits.
 
-## 3.4 Remove only your manual Sandbox
+## 3.4 Exercise the Egress rules
 
-Use **More actions -> Delete** on the exact ID you just recorded. Type the confirmation prefix displayed by the portal and submit Delete once.
+**Predict:** which request should work: `open.fda.gov` or `example.com`? Why?
 
-Refresh the Sandbox list. Your inspection ID should be absent, while the teaching seed, image and snapshot remain. Do not delete the group or teaching resources. Do not repeat an uncertain create/delete; first inspect the actual resource list.
+Return to the Sandboxe's **browser terminal** and paste this block. It uses the installed Python runtime to send two read-only requests and print their HTTP status:
+
+```bash
+python3 - <<'PY'
+from urllib.request import urlopen
+from urllib.error import HTTPError
+
+for url in ("https://www.bing.com/", "https://open.fda.gov/apis/", "https://example.com/"):
+    try:
+        with urlopen(url, timeout=15) as response:
+            print(f"{url}: HTTP {response.status}")
+    except HTTPError as error:
+        print(f"{url}: HTTP {error.code}")
+PY
+```
+
+**Compare:** expect **HTTP 200** for `open.fda.gov` and **HTTP 403** for `example.com` and `bing.com`.
 
 ===
 
-# 4. Ask a real research question
+# 4. Ask a real Research question
 
-**Goal:** connect the research experience to actual ephemeral agent compute and accepted evidence.
+**Goal:** exercise the full app by connecting the research experience to actual ephemeral agent compute.
 
-## 4.1 Sign in to Caldova
+## 4.1 Sign in to the frontend Caldova app
 
 Open the **Reactor 2 research app** desktop shortcut.
 
@@ -218,9 +213,9 @@ $demo = Import-Clixml -LiteralPath '.\.build-contexts\demo-credentials.clixml'
 $demo.alice.GetNetworkCredential().Password
 ```
 
-Use username **alice** in the normal Caldova sign-in form. Do not include the password or this output in screenshots, notes or support messages.
+Use username **alice** in the normal Caldova sign-in form. On occasion the login may have to be repeated more than once.
 
-**Expected:** **user-alice / customer-alice (application-asserted)**. Alice and Bob are application accounts, not separate Entra users or directories. The server selects customer ownership; the research question cannot change it.
+**Expected:** **user-alice / customer-alice (application-asserted)**.
 
 ## 4.2 Submit and observe
 
@@ -230,12 +225,17 @@ Keep the Sandbox portal open beside Caldova.
 2. Ask: **For semaglutide, show obesity trials by phase and summarize report mentions in this frozen sample. Cite the selected source IDs and explain the coverage limitations.**
 3. Click **Ask research** once.
 4. Expand **Inspect execution** and record the run ID, conversation ID and idempotency key. These are correlation values, not permission to access another customer's result.
+
+![Caldova semaglutide research question](instructions359506/caldova-research-question.png)
+
 5. Immediately use **Refresh sandboxes** in the Sandbox portal. Inspect the new task rows and their **+ more** label descriptions. Refresh again as the work progresses.
 6. Compare **run**, **user**, **customer**, **conversation**, **step**, and **purpose: reactor-task** with the application's timeline.
 
-**Predict:** three roles do not mean three simultaneous task Sandboxes. Clinical and drug specialists may run concurrently, with at most two task Sandboxes active. QA is staged after their results.
+**Predict:** three roles do not mean three simultaneous task Sandboxes. Clinical and drug specialists run concurrently, with at most two task Sandboxes active. QA is staged after their results.
 
-The application timeline should show actual `sandbox_created`, `model_requested`, `tool_selected`, `model_completed`, validation and deletion events. Counts and durations vary. A failed Python proposal can be corrected within the bounded agent loop; process completion alone is not answer acceptance.
+![Parallel specialist Sandboxes with QA waiting](instructions359506/caldova-parallel-specialists.png)
+
+The application timeline should show actual `sandbox_created`, `model_requested`, `tool_selected`, `model_completed`, validation and deletion events.
 
 ## 4.3 Inspect accepted evidence
 
@@ -253,96 +253,31 @@ For this exact selection, expect:
 
 Inspect the phase/status charts, reaction-term chart, source IDs and original-source links. In **Inspect execution**, enter the evidence artifact ID listed by the owned run and select **Inspect evidence artifact**. Compare agent ownership, source hashes, model/tool counts and execution receipts with the timeline.
 
-The full frozen sample contains **168 trials and 38 reports**. The trial condition filters trials only; safety reports cover mentions of the selected drug across the frozen sample. Report mentions are not incidence rates, proof of causality or a comparative safety assessment. A live source link does not turn frozen record values into current evidence. This lab provides no treatment recommendations.
-
 Use **Refresh sandboxes** after completion. The task IDs from the timeline must be absent; the teaching seed/image/snapshot remain. A JSON `cleaned: true` field is not an independent deletion check.
 
-**Explain (R2-01):** what evidence distinguishes a plausible generated summary from an accepted answer, and why can the reaction chart not establish a drug's incidence rate?
-
-**Explain (R2-02):** which observations show compute was created on demand and disappeared afterward, rather than simply being hidden by the application?
+**Explain:** which observations show compute was created on demand and disappeared afterward, rather than simply being hidden by the application?
 
 ===
 
-# 5. Compare ownership, reuse and cancellation
+# 5. Test and exercise tool and data ownership
 
 ## 5.1 Allowed work and denied cross-customer access
 
-1. Keep Alice signed in. Record her accepted run, artifact and conversation IDs.
-2. Open a separate browser profile or private window, not merely a second tab sharing Alice's cookies.
+1. Keep Alice signed in. Record her accepted run ID.
+2. Open a separate **private browser window**, not merely a second tab sharing Alice's cookies.
 3. Retrieve `$demo.bob.GetNetworkCredential().Password` privately and sign in as **bob**. Confirm **user-bob / customer-bob**.
-4. In Bob's **Inspect execution**, enter Alice's run ID and choose **Inspect owned run**. Expect **403 Forbidden**, shown as **Access denied**, not Alice's result. The UI clears the current account and owned results after a denial. Sign in again before the next check; a page reload is not required.
-5. Re-enter Alice's run ID and evidence artifact ID, then choose **Inspect evidence artifact**. Expect denial. Do not repeatedly submit a denied operation.
-6. Start Bob's own research with semaglutide/Obesity. Confirm an accepted result and Bob-owned labels in the Sandbox portal.
-7. Return to Alice and try Bob's run/evidence IDs. Expect denial while Bob's own allowed result remains accessible.
+4. In Bob's **Inspect execution**, enter Alice's run ID and choose **Inspect owned run**. Expect **403 Forbidden**, shown as **Access denied**, not Alice's result. **The UI clears the current account and owned results after a denial.** Sign in again before the next check.
+5. Start Bob's own research with semaglutide/Obesity. Confirm an accepted result and Bob-owned labels in the Sandbox portal.
+6. Return to Alice and try Bob's run/evidence IDs. Expect denial while Bob's own allowed result remains accessible.
 
-The private run, evidence, conversation and cancellation APIs enforce owner checks. Correlation IDs and an application dropdown would not themselves provide isolation. The frozen public inputs can be shared while private execution and results remain owner-scoped.
-
-**Explain (R2-04):** which identity is application-asserted, which identities authenticate service calls, and which observed labels carry customer context into task compute?
-
-## 5.2 Reuse is not re-execution
-
-On an accepted owned request, keep the same selection, question and idempotency key. Select **Ask research** again.
-
-**Expected:** `reused: true`, the same run ID and existing artifact. The timeline must not gain a new set of agent executions, and the portal must not show new task Sandboxes for that run.
-
-Choose **New request key** only when intentionally starting new work. Changing a key is not a repair for an unknown operation still in progress.
-
-## 5.3 Cancel actual running work
-
-1. Choose **New request key** and submit a separate request.
-2. Wait until the application reports running work and the Sandbox portal shows one or two of that run's actual task Sandboxes.
-3. Select **Cancel current run** once.
-4. Inspect the owned run until it is **cancelled** and cleanup is acknowledged.
-5. Independently refresh the portal. Those task IDs must disappear; the seed/image/snapshot remain.
-
-If status or cancellation fails, use **Inspect owned run** to reconcile first. Do not assume a browser timeout stopped backend work, or submit another cancellation without checking the current result.
-
-For a terminal failed run, inspect its retained rejected evidence and error before deciding on new work. Verify its task inventory is empty. Only then deliberately choose a new key. A later successful request does not erase the first failure. If QA or cleanup failures recur, stop and provide the facilitator with non-secret run IDs and exact errors.
-
-Each specialist has a 12-turn/180-second bound. Generated Python has tighter execution limits. Model throttling uses bounded retries within the remaining budget; one QA correction round is allowed. These controls limit work, not guarantee success or answer quality.
-
-**Explain (R2-05):** how would you distinguish safe same-key reuse, an intentionally new request and an incomplete cancellation?
+**Explain:** which identity is application-asserted, which identities authenticate service calls, and which observed labels carry customer context into task compute?
 
 ===
 
-# 6. Finish and verify
+# 6. What you learned
 
-Sign out of Alice and Bob after completing the comparisons. Do not capture or save an authenticated VM image.
+In this lab, you operated a multi-agent research application across Azure Container Apps Express, Microsoft Foundry and ACA Sandboxes. You followed a Caldova research question from the frontend through a Foundry-hosted orchestrator and its MCP Toolbox to specialist agents. You observed clinical-trials and drug specialists working in parallel, followed by a separate QA agent that checked their results against a frozen public dataset.
 
-In the Sandbox portal refresh the list and confirm **zero `purpose: reactor-task` Sandboxes**. Only the retained teaching seed, custom image and snapshot should remain, unless the facilitator has explicitly assigned another exercise.
+You inspected managed identities and service authentication, configured Sandbox network egress rules, and saw and tested production example of customer isolation through Foundry Toolbox. You confirmed that Alice and Bob could access their own results but not each other's. You traced ownership from an application request into its Sandbox labels and distinguished the agent code running in a Sandbox from model inference running in Foundry.
 
-If the portal is unavailable, this is a read-only native inventory check:
-
-```powershell
-$native = @('--subscription', $v.SubscriptionId, '--resource-group', $v.ResourceGroupName,
-    '--region', $v.Region, '--group', $v.SandboxGroupName, '-o', 'json')
-aca sandbox list @native --selector 'lab=LAB722,purpose=reactor-task'
-if ($LASTEXITCODE -ne 0) { throw 'Task inventory could not be verified.' }
-```
-
-**Expected:** `[]`. A failed read is not an empty inventory.
-
-Your final explanation should connect: research question, Express application tier, Foundry-hosted orchestration, managed Toolbox, propagated customer context, bounded Sandbox agents, independent evidence and independently observed cleanup.
-
-## Facilitator: scoped permissions check
-
-Eight additional role assignments are supplied by the allocation's Post-Build Lifecycle Action, not by attendee commands:
-
-| Principal | Resource scopes |
-| --- | --- |
-| Allocated learner | Foundry project data access; Sandbox group data owner |
-| Frontend managed identity | Foundry project data access |
-| Execution managed identity | Sandbox group data owner; Foundry account/model data access |
-| Foundry project managed identity | Foundry project data access; Foundry account/model data access; allocated registry AcrPull |
-
-Read exact child-resource assignments with:
-
-```powershell
-$prefix = "/subscriptions/$($v.SubscriptionId)/resourceGroups/$($v.ResourceGroupName)/"
-az role assignment list --all --query "[?starts_with(scope, '$prefix')]" -o json
-if ($LASTEXITCODE -ne 0) { throw 'Scoped role assignments could not be read.' }
-```
-
-Compare all eight **principal ID / exact resource scope / role definition ID** triples against the successful foundation outputs and current learner. A count of eight alone is insufficient. The Foundry data-role GUID is `53ca6127-db72-4b80-b1b0-d745d6d5456d`; Sandbox group data owner is `c24cf47c-5077-412d-a19c-45202126392c`; AcrPull is `7f951dda-4ed3-4680-a7ca-43fe172d538d`.
-
-Do not grant Owner, add temporary setup-principal access or modify the shared policy to obtain a pass. The harness's existing Contributor allocation is separate from these eight scoped assignments.
+If you wish to deploy or experiment further with this lab you can find it at [**https://github.com/microsoft/ignite26-LAB722**](https://github.com/microsoft/ignite26-LAB722).
