@@ -69,7 +69,7 @@ The initial preparation shortcut is system-installed on the shared desktop. The 
 
 ## 2.1 Explore Express first
 
-1. Open **[Azure Container Apps portal](https://containerapps.azure.com)**. Sign in with the allocated Azure user using TAP-backed authentication.
+1. Navigate to `https://containerapps.azure.com` in the browser in the lab VM to open the **Azure Container Apps portal**. Do not open it in the host machine's browser. Sign in with the allocated Azure user using the provided TAP credentials.
 2. Select your allocated subscription and **LAB722**.
 3. Find the `$FrontendName` and `$ExecutionName` applications. Open each app's **Live Overview**.
 4. Confirm both apps are **Running / Ready for traffic** and **Environment mode** is **Express**. Feel free to look at their log stream or launch into their console. The code can be inspected under [Frontend service](https://github.com/microsoft/ignite26-LAB722/blob/main/src/reactor/frontend.py) and [Execution manager's API](https://github.com/microsoft/ignite26-LAB722/blob/main/src/reactor/execution.py).
@@ -113,7 +113,7 @@ The initial preparation shortcut is system-installed on the shared desktop. The 
 
 Foundry Toolbox provides a secure and governend toolchain layer away from unpredictable agent code. In this next stage we're exploring this part of the application.
 
-In Azure portal, **[open your Foundry account](https://ai.azure.com)**, then project **reactor**. Locate the hosted agent named **reactor-research-orchestrator** and the **runtime-research** Toolbox. A registered agent version must actually be active.
+Navigate to `https://ai.azure.com` in the lab VM browser to open the **Foundry portal**. Use the same browser session as before. Open your Foundry account, then project **reactor**. Locate the hosted agent named **reactor-research-orchestrator** and the **runtime-research** Toolbox. A registered agent version must actually be active.
 
 Under the project's connected resources, find **reactor-swarm-execution**. Its authentication is **Project Managed Identity**. Compare its target and audience with `$ExecutionUrl`.
 
@@ -139,7 +139,7 @@ During a full end-to-end execution the frontend identity calls the user-facing e
 
 ## 3.1 Record the baseline
 
-1. Open **[ACA Sandboxes portal](https://sandboxes.azure.com)** in the same allocated-user, TAP-backed browser session.
+1. Navigate to `https://sandboxes.azure.com` in the lab VM browser to open the **ACA Sandboxes portal**. Use the same browser session as before.
 2. Select your subscription, **LAB722**, and `$SandboxGroupName`.
 3. On **Overview**, record the teaching Sandbox, custom image and snapshot. Compare their IDs with `SeedId`, `$AgentDiskId` and `$SnapshotId`.
 4. Open **Sandboxes** and use **Refresh sandboxes**. There should already be an initial sandbox created as a test/template.
