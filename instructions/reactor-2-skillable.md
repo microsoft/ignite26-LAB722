@@ -46,6 +46,10 @@ If preparation fails for another reason, retain the exact error and contact the 
 
 ## 1.2 Inspect our Deployment
 
+`C:\Lab\Reactor2\learner-values.json` is not supplied in advance. The **Reactor 2 - sign in and prepare** shortcut generates it for your allocation after preparation succeeds, immediately before displaying `REACTOR2_SKILLABLE_READY`. Do not create the file manually or use another learner's values.
+
+If the file is missing, return to section 1.1 and check the preparation terminal. If preparation is still running, wait; do not start a second copy. If it failed, follow the recovery guidance above. If the shortcut is missing, or the file is still missing after the ready message, retain the terminal output and contact the facilitator.
+
 In the same PowerShell terminal run the following and copy and paste the output to Notepad for later reference:
 
 ```powershell
